@@ -11,13 +11,13 @@ interface HeaderProps {
 
 export default function Header({ variant = "default" }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    setMounted(false);
+    setMounted(true);
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
       setScrollY(window.scrollY);
