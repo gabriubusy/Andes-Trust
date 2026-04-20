@@ -1,32 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, Sun, Moon, Menu, X } from "lucide-react";
+import Image from "next/image";
+import { Sun, Moon, Menu, X, LogIn, LayoutDashboard } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
+import { usePrivy } from "@privy-io/react-auth";
 
 interface HeaderProps {
-  variant?: "default" | "transparent";
+  readonly variant?: "default" | "transparent";
 }
+
+const navLinks = [
+  { label: "Servicios", href: "/servicios" },
+  { label: "Cómo Funciona", href: "/como-funciona" },
+  { label: "Beneficios", href: "/beneficios" },
+  { label: "FAQ", href: "/faq" },
+];
 
 export default function Header({ variant = "default" }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
   const { theme, setTheme } = useTheme();
+  const { ready, authenticated } = usePrivy();
 
   useEffect(() => {
     setMounted(true);
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
-      setScrollY(window.scrollY);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const isTransparent = variant === "transparent" && !scrolled;
+  const isAuthed = mounted && ready && authenticated;
 
   return (
     <header
@@ -43,34 +52,32 @@ export default function Header({ variant = "default" }: HeaderProps) {
           }`}
         >
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo.png" alt="Andes Trust" className="h-12 w-auto" />
+            <Image
+              src="/logo.png"
+              alt="Andes Trust"
+              width={120}
+              height={48}
+              priority
+              className="h-12 w-auto"
+            />
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
-            {["Servicios", "Cómo Funciona", "Beneficios", "Contacto"].map((item) => {
-              const href =
-                item === "Servicios"
-                  ? "#servicios"
-                  : item === "Cómo Funciona"
-                    ? "#como-funciona"
-                    : item === "Beneficios"
-                      ? "#beneficios"
-                      : "#contacto";
-              return (
-                <Link
-                  key={item}
-                  href={href}
-                  className="text-foreground/70 hover:text-primary hover:bg-primary/10 rounded-full px-4 py-2 text-sm font-medium transition-all"
-                >
-                  {item}
-                </Link>
-              );
-            })}
+            {navLinks.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="text-foreground/70 hover:text-primary hover:bg-primary/10 rounded-full px-4 py-2 text-sm font-medium transition-all"
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
             {mounted && (
               <button
+                type="button"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="hover:bg-muted text-foreground rounded-full p-2.5 transition-all"
                 aria-label="Cambiar tema"
@@ -78,17 +85,30 @@ export default function Header({ variant = "default" }: HeaderProps) {
                 {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
             )}
-            <button className="text-primary hover:bg-primary/10 rounded-full px-5 py-2.5 text-sm font-semibold transition-all">
-              Iniciar Sesión
-            </button>
-            <button className="bg-primary hover:shadow-primary/30 text-primary-foreground hover:bg-primary/90 rounded-full px-5 py-2.5 text-sm font-semibold shadow-md transition-all hover:shadow-lg">
-              Registrarse
-            </button>
+            {isAuthed ? (
+              <Link
+                href="/dashboard"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-md transition-all hover:shadow-lg"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Mi panel
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-md transition-all hover:shadow-lg"
+              >
+                <LogIn className="h-4 w-4" />
+                Iniciar Sesión
+              </Link>
+            )}
           </div>
 
           <button
+            type="button"
             className="text-foreground hover:bg-muted rounded-full p-2 md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Abrir menú"
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -98,12 +118,7 @@ export default function Header({ variant = "default" }: HeaderProps) {
       {mobileMenuOpen && (
         <div className="border-border bg-background/95 absolute top-full right-0 left-0 border-b p-4 shadow-xl backdrop-blur-xl md:hidden">
           <nav className="space-y-2">
-            {[
-              { label: "Servicios", href: "#servicios" },
-              { label: "Cómo Funciona", href: "#como-funciona" },
-              { label: "Beneficios", href: "#beneficios" },
-              { label: "Contacto", href: "#contacto" },
-            ].map((item) => (
+            {navLinks.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
@@ -116,6 +131,7 @@ export default function Header({ variant = "default" }: HeaderProps) {
             <div className="space-y-3 pt-4">
               {mounted && (
                 <button
+                  type="button"
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                   className="text-foreground border-border hover:bg-muted flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium"
                 >
@@ -123,12 +139,25 @@ export default function Header({ variant = "default" }: HeaderProps) {
                   {theme === "dark" ? "Modo Claro" : "Modo Oscuro"}
                 </button>
               )}
-              <button className="text-primary border-primary hover:bg-primary/10 w-full rounded-xl border px-4 py-3 text-sm font-semibold">
-                Iniciar Sesión
-              </button>
-              <button className="bg-primary text-primary-foreground w-full rounded-xl px-4 py-3 text-sm font-semibold">
-                Registrarse
-              </button>
+              {isAuthed ? (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Mi panel
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Iniciar Sesión
+                </Link>
+              )}
             </div>
           </nav>
         </div>
