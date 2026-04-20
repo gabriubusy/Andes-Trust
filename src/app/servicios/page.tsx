@@ -1,154 +1,162 @@
-"use client";
-
-import { Database, Lock, TreePine, Mountain, Smartphone, BarChart3 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PageHero from "@/components/PageHero";
+import CTASection from "@/components/CTASection";
+import { variantStyles, type Variant } from "@/lib/variants";
+import {
+  Database,
+  Lock,
+  TreePine,
+  Mountain,
+  Smartphone,
+  BarChart3,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
+
+interface Service {
+  icon: LucideIcon;
+  variant: Variant;
+  title: string;
+  desc: string;
+  features: string[];
+}
+
+const services: Service[] = [
+  {
+    icon: Database,
+    variant: "primary",
+    title: "Registro Digital",
+    desc: "Digitaliza toda la información de tu hato: nacimientos, vacunas, peso y más.",
+    features: [
+      "Registro individual de animales",
+      "Historial médico completo",
+      "Control de peso y crecimiento",
+      "Alertas de vacunación",
+    ],
+  },
+  {
+    icon: Lock,
+    variant: "secondary",
+    title: "Blockchain Seguro",
+    desc: "Cada registro se almacena en la blockchain, garantizando inmutabilidad.",
+    features: [
+      "Registros inmutables",
+      "Encriptación de extremo a extremo",
+      "Verificación de identidad",
+      "Auditoría transparente",
+    ],
+  },
+  {
+    icon: TreePine,
+    variant: "accent",
+    title: "Trazabilidad Total",
+    desc: "Rastrea el historial completo de cada animal desde su nacimiento.",
+    features: [
+      "Seguimiento en tiempo real",
+      "Historial de movimientos",
+      "Certificación de origen",
+      "Reportes de trazabilidad",
+    ],
+  },
+  {
+    icon: Mountain,
+    variant: "primary",
+    title: "Smart Contracts",
+    desc: "Automatiza transacciones y acuerdos comerciales con contratos inteligentes.",
+    features: [
+      "Contratos automatizados",
+      "Pagos seguros",
+      "Acuerdos transparentes",
+      "Ejecución automática",
+    ],
+  },
+  {
+    icon: Smartphone,
+    variant: "secondary",
+    title: "Acceso Multiplataforma",
+    desc: "Accede a la información de tu hato desde cualquier dispositivo.",
+    features: [
+      "Web responsiva",
+      "Sincronización offline",
+      "Notificaciones en el navegador",
+      "Interfaz intuitiva",
+    ],
+  },
+  {
+    icon: BarChart3,
+    variant: "accent",
+    title: "Análisis y Reportes",
+    desc: "Obtén insights valiosos sobre el rendimiento de tu hato.",
+    features: [
+      "Dashboards interactivos",
+      "Reportes personalizados",
+      "Análisis de tendencias",
+      "Exportación de datos",
+    ],
+  },
+];
 
 export default function ServiciosPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="bg-background text-foreground flex min-h-screen flex-col">
       <Header />
-      {/* Hero Section */}
-      <section className="bg-slate-50 py-20 md:py-32 dark:bg-slate-900">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-foreground mb-6 text-4xl font-bold md:text-5xl lg:text-6xl">
-            Nuestros Servicios
-          </h1>
-          <p className="text-foreground/70 mx-auto mb-8 max-w-2xl text-lg md:text-xl">
-            Soluciones integrales para la gestión ganadera con tecnología blockchain
-          </p>
-          <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <button className="text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg px-8 py-3 text-lg font-medium shadow-lg transition-colors">
-              Comenzar Ahora
-            </button>
-            <button className="text-secondary border-secondary hover:bg-secondary hover:text-secondary-foreground rounded-lg border-2 px-8 py-3 text-lg font-medium transition-colors">
-              Solicitar Demo
-            </button>
-          </div>
-        </div>
-      </section>
 
-      {/* Services Grid */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className="bg-card border-border rounded-xl border p-6 shadow-lg transition-shadow hover:shadow-xl">
-              <div className="bg-primary/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
-                <Database className="text-primary h-6 w-6" />
-              </div>
-              <h3 className="text-card-foreground mb-2 text-xl font-semibold">Registro Digital</h3>
-              <p className="text-foreground/70 mb-4">
-                Digitaliza toda la información de tu hato: nacimientos, vacunas, peso, y más.
-              </p>
-              <ul className="text-foreground/60 space-y-2 text-sm">
-                <li>• Registro individual de animales</li>
-                <li>• Historial médico completo</li>
-                <li>• Control de peso y crecimiento</li>
-                <li>• Alertas de vacunación</li>
-              </ul>
-            </div>
+      <main className="flex-1 pt-20">
+        <PageHero
+          badge={{ icon: Sparkles, label: "Nuestros servicios" }}
+          title="Soluciones integrales"
+          titleAccent="para tu hato"
+          description="Todo lo que necesitas para gestionar tu ganado con tecnología blockchain"
+        />
 
-            <div className="bg-card border-border rounded-xl border p-6 shadow-lg transition-shadow hover:shadow-xl">
-              <div className="bg-secondary/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
-                <Lock className="text-secondary h-6 w-6" />
-              </div>
-              <h3 className="text-card-foreground mb-2 text-xl font-semibold">Blockchain Segura</h3>
-              <p className="text-foreground/70 mb-4">
-                Cada registro se almacena en la blockchain, garantizando inmutabilidad.
-              </p>
-              <ul className="text-foreground/60 space-y-2 text-sm">
-                <li>• Registros inmutables</li>
-                <li>• Encriptación de extremo a extremo</li>
-                <li>• Verificación de identidad</li>
-                <li>• Auditoría transparente</li>
-              </ul>
-            </div>
-
-            <div className="bg-card border-border rounded-xl border p-6 shadow-lg transition-shadow hover:shadow-xl">
-              <div className="bg-accent/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
-                <TreePine className="text-accent h-6 w-6" />
-              </div>
-              <h3 className="text-card-foreground mb-2 text-xl font-semibold">
-                Trazabilidad Total
-              </h3>
-              <p className="text-foreground/70 mb-4">
-                Rastrea el historial completo de cada animal desde su nacimiento.
-              </p>
-              <ul className="text-foreground/60 space-y-2 text-sm">
-                <li>• Seguimiento en tiempo real</li>
-                <li>• Historial de movimientos</li>
-                <li>• Certificación de origen</li>
-                <li>• Reportes de trazabilidad</li>
-              </ul>
-            </div>
-
-            <div className="bg-card border-border rounded-xl border p-6 shadow-lg transition-shadow hover:shadow-xl">
-              <div className="bg-primary/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
-                <Mountain className="text-primary h-6 w-6" />
-              </div>
-              <h3 className="text-card-foreground mb-2 text-xl font-semibold">Smart Contracts</h3>
-              <p className="text-foreground/70 mb-4">
-                Automatiza transacciones y acuerdos comerciales con contratos inteligentes.
-              </p>
-              <ul className="text-foreground/60 space-y-2 text-sm">
-                <li>• Contratos automatizados</li>
-                <li>• Pagos seguros</li>
-                <li>• Acuerdos transparentes</li>
-                <li>• Ejecución automática</li>
-              </ul>
-            </div>
-
-            <div className="bg-card border-border rounded-xl border p-6 shadow-lg transition-shadow hover:shadow-xl">
-              <div className="bg-secondary/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
-                <Smartphone className="text-secondary h-6 w-6" />
-              </div>
-              <h3 className="text-card-foreground mb-2 text-xl font-semibold">App Móvil</h3>
-              <p className="text-foreground/70 mb-4">
-                Accede a la información de tu hato desde cualquier lugar.
-              </p>
-              <ul className="text-foreground/60 space-y-2 text-sm">
-                <li>• App iOS y Android</li>
-                <li>• Sincronización offline</li>
-                <li>• Notificaciones push</li>
-                <li>• Interfaz intuitiva</li>
-              </ul>
-            </div>
-
-            <div className="bg-card border-border rounded-xl border p-6 shadow-lg transition-shadow hover:shadow-xl">
-              <div className="bg-accent/10 mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
-                <BarChart3 className="text-accent h-6 w-6" />
-              </div>
-              <h3 className="text-card-foreground mb-2 text-xl font-semibold">
-                Análisis y Reportes
-              </h3>
-              <p className="text-foreground/70 mb-4">
-                Obtén insights valiosos sobre el rendimiento de tu hato.
-              </p>
-              <ul className="text-foreground/60 space-y-2 text-sm">
-                <li>• Dashboards interactivos</li>
-                <li>• Reportes personalizados</li>
-                <li>• Análisis de tendencias</li>
-                <li>• Exportación de datos</li>
-              </ul>
+        <section className="container mx-auto px-4 py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {services.map((service) => {
+                const v = variantStyles[service.variant];
+                return (
+                  <div
+                    key={service.title}
+                    className="group border-border bg-card hover:border-primary/40 flex flex-col rounded-2xl border p-7 transition-all hover:-translate-y-1 hover:shadow-lg"
+                  >
+                    <div
+                      className={`${v.bgSoft} ${v.bgHover} mb-5 flex h-14 w-14 items-center justify-center rounded-xl transition-colors`}
+                    >
+                      <service.icon className={`${v.text} h-7 w-7`} />
+                    </div>
+                    <h3 className="text-card-foreground mb-2 text-xl font-bold">{service.title}</h3>
+                    <p className="text-foreground/70 mb-5 text-sm leading-relaxed">
+                      {service.desc}
+                    </p>
+                    <ul className="space-y-2 border-t border-dashed pt-4">
+                      {service.features.map((feature) => (
+                        <li
+                          key={feature}
+                          className="text-foreground/70 flex items-center gap-2 text-xs"
+                        >
+                          <span
+                            className={`${v.text.replace("text-", "bg-")} h-1 w-1 rounded-full`}
+                          />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="bg-primary mx-auto max-w-4xl rounded-2xl p-8 text-center md:p-12">
-          <h2 className="text-primary-foreground mb-4 text-3xl font-bold md:text-4xl">
-            ¿Interesado en Nuestros Servicios?
-          </h2>
-          <p className="text-primary-foreground/90 mb-8 text-lg">
-            Contáctanos para una demostración personalizada de cómo podemos ayudar a tu hato.
-          </p>
-          <button className="text-primary rounded-lg bg-white px-8 py-3 text-lg font-medium shadow-lg transition-colors hover:bg-slate-100">
-            Solicitar Demo
-          </button>
-        </div>
-      </section>
+        <CTASection
+          title="¿Interesado en nuestros servicios?"
+          description="Contáctanos para una demostración personalizada de cómo podemos ayudar a tu hato"
+          primaryLabel="Solicitar Demo"
+          secondaryLabel="Contactar"
+        />
+      </main>
+
       <Footer />
     </div>
   );

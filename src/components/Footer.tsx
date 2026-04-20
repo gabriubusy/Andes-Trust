@@ -1,14 +1,21 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, Phone, MapPin, Globe, ArrowUpRight, Send } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="from-background to-muted/30 border-t bg-gradient-to-b">
+    <footer className="from-background to-muted/30 border-t bg-linear-to-b">
       <div className="container mx-auto px-4 py-16">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-6 lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-3">
-              <img src="/logo.png" alt="Andes Trust" className="h-14 w-auto" />
+              <Image
+                src="/logo.png"
+                alt="Andes Trust"
+                width={140}
+                height={56}
+                className="h-14 w-auto"
+              />
             </Link>
             <p className="text-foreground/70 max-w-sm text-base leading-relaxed">
               Tecnología blockchain para la ganadería de los Andes. Transformamos la forma de
@@ -48,19 +55,28 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-foreground/60 hover:text-primary transition-colors">
-                  Características
-                </a>
+                <Link
+                  href="/como-funciona"
+                  className="text-foreground/60 hover:text-primary transition-colors"
+                >
+                  Cómo Funciona
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-foreground/60 hover:text-primary transition-colors">
-                  Precios
-                </a>
+                <Link
+                  href="/beneficios"
+                  className="text-foreground/60 hover:text-primary transition-colors"
+                >
+                  Beneficios
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-foreground/60 hover:text-primary transition-colors">
-                  API
-                </a>
+                <Link
+                  href="/faq"
+                  className="text-foreground/60 hover:text-primary transition-colors"
+                >
+                  FAQ
+                </Link>
               </li>
             </ul>
           </div>
@@ -77,9 +93,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-foreground/60 hover:text-primary transition-colors">
+                <Link
+                  href="/blog"
+                  className="text-foreground/60 hover:text-primary transition-colors"
+                >
                   Blog
-                </a>
+                </Link>
               </li>
               <li>
                 <Link
@@ -104,15 +123,15 @@ export default function Footer() {
             <h4 className="text-foreground text-lg font-bold">Contacto</h4>
             <ul className="space-y-3">
               <li className="text-foreground/60 flex items-center gap-3">
-                <MapPin className="text-primary h-5 w-5 flex-shrink-0" />
+                <MapPin className="text-primary h-5 w-5 shrink-0" />
                 <span>Mérida, Venezuela</span>
               </li>
               <li className="text-foreground/60 flex items-center gap-3">
-                <Mail className="text-primary h-5 w-5 flex-shrink-0" />
+                <Mail className="text-primary h-5 w-5 shrink-0" />
                 <span>contacto@andestrust.com</span>
               </li>
               <li className="text-foreground/60 flex items-center gap-3">
-                <Phone className="text-primary h-5 w-5 flex-shrink-0" />
+                <Phone className="text-primary h-5 w-5 shrink-0" />
                 <span>+58 274 123 4567</span>
               </li>
             </ul>
