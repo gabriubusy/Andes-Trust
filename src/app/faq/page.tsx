@@ -187,9 +187,11 @@ export default function FAQPage() {
         </section>
 
         <CTASection
-          title="¿Comenzamos?"
+          title="¿Resolvemos"
+          highlightedTitle="tu duda?"
           description="Crea tu cuenta gratis y descubre cómo transformar tu ganadería"
           primaryLabel="Solicitar Demo"
+          secondaryLabel="Contactar"
         />
       </main>
 

@@ -123,7 +123,8 @@ export default function BeneficiosPage() {
         </section>
 
         <CTASection
-          title="¿Listo para empezar?"
+          title="¿Listo para"
+          highlightedTitle="empezar?"
           description="Da el siguiente paso hacia una ganadería trazable y verificable"
           primaryLabel="Solicitar Demo"
           secondaryLabel="Contactar"

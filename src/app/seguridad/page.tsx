@@ -265,9 +265,18 @@ export default function SeguridadPage() {
         </section>
 
         <CTASection
-          title="¿Preguntas sobre seguridad?"
+          title="¿Preguntas sobre"
+          highlightedTitle="seguridad?"
           description="Nuestro equipo de seguridad está disponible para responder cualquier consulta sobre nuestras prácticas"
+          badge="Respuesta en menos de 24h"
           primaryLabel="Contactar Seguridad"
+          trustSignals={[
+            "Cifrado end-to-end",
+            "Auditorías periódicas",
+            "Cumplimiento ISO",
+            "Reporta vulnerabilidades",
+          ]}
+          stats={[]}
         />
       </main>
 

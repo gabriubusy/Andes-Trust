@@ -213,7 +213,8 @@ export default function ComoFuncionaPage() {
         </section>
 
         <CTASection
-          title="¿Comenzamos?"
+          title="En 5 minutos"
+          highlightedTitle="estás listo"
           description="En menos de 5 minutos puedes tener tu cuenta activa y registrar tu primer animal"
           primaryLabel="Solicitar Demo"
           secondaryLabel="Contactar"

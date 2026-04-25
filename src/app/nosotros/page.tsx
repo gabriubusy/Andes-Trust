@@ -203,10 +203,14 @@ export default function NosotrosPage() {
         </section>
 
         <CTASection
-          title="¿Quieres ser parte del equipo?"
+          title="¿Quieres ser parte"
+          highlightedTitle="del equipo?"
           description="Estamos siempre buscando talento apasionado por la tecnología y el desarrollo rural"
+          badge="Estamos contratando"
           primaryLabel="Ver Vacantes"
           secondaryLabel="Contactar"
+          trustSignals={[]}
+          stats={[]}
         />
       </main>
 

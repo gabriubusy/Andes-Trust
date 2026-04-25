@@ -150,7 +150,8 @@ export default function ServiciosPage() {
         </section>
 
         <CTASection
-          title="¿Interesado en nuestros servicios?"
+          title="¿Interesado en"
+          highlightedTitle="nuestros servicios?"
           description="Contáctanos para una demostración personalizada de cómo podemos ayudar a tu hato"
           primaryLabel="Solicitar Demo"
           secondaryLabel="Contactar"
