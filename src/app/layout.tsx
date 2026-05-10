@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { PrivyProvider } from "@/providers/privy-provider";
+import { SupabaseProvider } from "@/providers/supabase-provider";
 import { ThemeScript } from "@/components/theme-script";
 
 const geistSans = Geist({
@@ -17,33 +18,44 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://andestrust.com"),
-  title: "Andes Trust",
-  description: "Plataforma de trazabilidad ganadera con tecnología blockchain para los Andes",
-  keywords: ["blockchain", "ganadería", "trazabilidad", "vacunos", "andinos", "traza", "registro"],
-  authors: [{ name: "Andes Trust" }],
+  metadataBase: new URL("https://fincaelprogreso.com"),
+  title: "Finca El Progreso",
+  description:
+    "Plataforma de trazabilidad ganadera con tecnología blockchain para la Finca El Progreso",
+  keywords: [
+    "blockchain",
+    "ganadería",
+    "trazabilidad",
+    "vacunos",
+    "Mérida",
+    "Venezuela",
+    "traza",
+    "registro",
+  ],
+  authors: [{ name: "Finca El Progreso" }],
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",
   },
   openGraph: {
-    title: "Andes Trust - Trazabilidad Ganadera Blockchain",
-    description: "Plataforma de trazabilidad ganadera con tecnología blockchain para los Andes",
+    title: "Finca El Progreso - Trazabilidad Ganadera Blockchain",
+    description:
+      "Plataforma de trazabilidad ganadera con tecnología blockchain para la Finca El Progreso",
     type: "website",
-    url: "https://andestrust.com",
-    siteName: "Andes Trust",
+    url: "https://fincaelprogreso.com",
+    siteName: "Finca El Progreso",
     images: [
       {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "Andes Trust",
+        alt: "Finca El Progreso",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Andes Trust",
+    title: "Finca El Progreso",
     description: "Plataforma de trazabilidad ganadera blockchain",
     images: ["/logo.png"],
   },
@@ -68,7 +80,9 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <PrivyProvider>
-            <QueryProvider>{children}</QueryProvider>
+            <QueryProvider>
+              <SupabaseProvider>{children}</SupabaseProvider>
+            </QueryProvider>
           </PrivyProvider>
         </ThemeProvider>
       </body>

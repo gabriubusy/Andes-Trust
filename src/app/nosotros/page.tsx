@@ -71,7 +71,7 @@ export default function NosotrosPage() {
           badge={{ icon: Heart, label: "Sobre nosotros" }}
           title="Transformamos la"
           titleAccent="ganadería andina"
-          description="Conoce al equipo detrás de Andes Trust y nuestra misión de modernizar la ganadería en los Andes"
+          description="Conoce la misión de Finca El Progreso y su apuesta por modernizar la ganadería en Mérida"
         />
 
         {/* Mission pillars */}

@@ -54,7 +54,7 @@ export default function Header({ variant = "default" }: HeaderProps) {
           <Link href="/" className="flex items-center gap-3">
             <Image
               src="/logo.png"
-              alt="Andes Trust"
+              alt="Finca El Progreso"
               width={120}
               height={48}
               priority

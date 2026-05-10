@@ -1,0 +1,216 @@
+"use client";
+
+import { useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { usePrivy } from "@privy-io/react-auth";
+import {
+  LogOut,
+  Loader2,
+  LayoutDashboard,
+  Beef,
+  Activity,
+  Milk,
+  Syringe,
+  FileCheck,
+  Receipt,
+  BarChart3,
+  Users,
+  Settings,
+  Bell,
+  type LucideIcon,
+} from "lucide-react";
+import { useCurrentFarm } from "@/hooks/use-current-farm";
+
+const navItems: { icon: LucideIcon; label: string; href: string; matches?: string[] }[] = [
+  { icon: LayoutDashboard, label: "Resumen", href: "/dashboard" },
+  { icon: Beef, label: "Animales", href: "/dashboard/animales", matches: ["/dashboard/animales"] },
+  {
+    icon: Milk,
+    label: "Producción",
+    href: "/dashboard/produccion",
+    matches: ["/dashboard/produccion"],
+  },
+  { icon: Activity, label: "Eventos", href: "/dashboard/eventos", matches: ["/dashboard/eventos"] },
+  {
+    icon: FileCheck,
+    label: "Certificados",
+    href: "/dashboard/certificados",
+    matches: ["/dashboard/certificados"],
+  },
+  {
+    icon: Settings,
+    label: "Configuración",
+    href: "/dashboard/configuracion",
+    matches: ["/dashboard/configuracion"],
+  },
+];
+
+const comingSoonItems: { icon: LucideIcon; label: string }[] = [
+  { icon: Syringe, label: "Tratamientos" },
+  { icon: Receipt, label: "Ventas" },
+  { icon: BarChart3, label: "Reportes" },
+  { icon: Users, label: "Equipo" },
+];
+
+type Props = {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+};
+
+export default function DashboardShell({ title, subtitle, children, action }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { ready, authenticated, user, logout } = usePrivy();
+  const farmQuery = useCurrentFarm();
+
+  useEffect(() => {
+    if (ready && !authenticated) router.replace("/login");
+  }, [ready, authenticated, router]);
+
+  if (!ready || !authenticated) {
+    return (
+      <div className="bg-background text-foreground flex min-h-screen items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 className="text-primary h-5 w-5 animate-spin" />
+          <span className="text-foreground/70 text-sm">Verificando sesión...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const email = user?.email?.address ?? user?.google?.email;
+  const displayName = user?.google?.name ?? email?.split("@")[0] ?? "ganadero";
+  const initials = displayName.slice(0, 2).toUpperCase();
+  const farmName = farmQuery.data?.name ?? "Cargando finca…";
+
+  const isActive = (item: (typeof navItems)[number]) => {
+    if (item.matches?.some((m) => pathname.startsWith(m))) return true;
+    return pathname === item.href;
+  };
+
+  return (
+    <div className="bg-background text-foreground flex min-h-screen">
+      <aside className="bg-card/40 border-border hidden w-64 shrink-0 flex-col border-r backdrop-blur-xl lg:flex">
+        <div className="border-border flex h-16 items-center border-b px-6">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <Image
+              src="/logo.png"
+              alt="Finca El Progreso"
+              width={120}
+              height={48}
+              priority
+              className="h-8 w-auto"
+            />
+          </Link>
+        </div>
+        <div className="border-border border-b px-6 py-3">
+          <div className="text-foreground/60 text-[10px] font-semibold tracking-wider uppercase">
+            Finca
+          </div>
+          <div className="text-foreground truncate text-sm font-semibold">{farmName}</div>
+        </div>
+        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+          {navItems.map((item) => {
+            const active = isActive(item);
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground/70 hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <item.icon
+                  className={`h-4 w-4 shrink-0 ${
+                    active ? "text-primary" : "text-foreground/60 group-hover:text-foreground"
+                  }`}
+                />
+                <span className="flex-1">{item.label}</span>
+              </Link>
+            );
+          })}
+
+          <div className="border-border/50 mt-4 border-t pt-4">
+            <p className="text-foreground/40 px-3 pb-2 text-[10px] font-semibold tracking-wider uppercase">
+              Próximamente
+            </p>
+            {comingSoonItems.map((item) => (
+              <div
+                key={item.label}
+                className="text-foreground/30 flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium"
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span className="flex-1">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </nav>
+        <div className="border-border border-t p-4">
+          <div className="bg-muted/50 border-border flex items-center gap-3 rounded-xl border p-3">
+            <div className="from-primary to-secondary flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-xs font-bold text-white">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-foreground truncate text-sm font-medium">{displayName}</div>
+              <div className="text-foreground/60 truncate text-xs">{email ?? "Sin email"}</div>
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              aria-label="Cerrar sesión"
+              className="text-foreground/60 hover:bg-background hover:text-foreground rounded-lg p-1.5 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="border-border bg-background/80 sticky top-0 z-10 flex h-16 items-center gap-4 border-b px-4 backdrop-blur-xl md:px-8">
+          <Link href="/" className="inline-flex items-center gap-2 lg:hidden">
+            <Image
+              src="/logo.png"
+              alt="Finca El Progreso"
+              width={120}
+              height={48}
+              priority
+              className="h-8 w-auto"
+            />
+          </Link>
+          <div className="hidden lg:block">
+            <div className="text-foreground/60 text-xs">{subtitle ?? farmName}</div>
+            <div className="text-foreground text-base font-semibold">{title}</div>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {action}
+            <button
+              type="button"
+              aria-label="Notificaciones"
+              className="border-border text-foreground/70 hover:border-primary/40 hover:text-foreground relative inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors"
+            >
+              <Bell className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={logout}
+              aria-label="Cerrar sesión"
+              className="border-border text-foreground hover:border-primary/40 hover:bg-primary/5 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors lg:hidden"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+        <main className="flex-1 p-4 md:p-8">
+          <div className="mx-auto max-w-7xl space-y-8">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+}

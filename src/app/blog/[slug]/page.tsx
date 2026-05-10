@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
@@ -55,7 +56,7 @@ A diferencia de una base de datos tradicional, la blockchain es un libro mayor d
 
 ### Inmutabilidad = Confianza
 
-Cuandoun comprador obtiene un certificado de trazabilidad de Andes Trust, puede verificar que:
+Cuandoun comprador obtiene un certificado de trazabilidad de Finca El Progreso, puede verificar que:
 - El animal nació en la fecha registrada
 - Recibió las vacunas declaradas
 - Su historial de peso es real
@@ -189,7 +190,7 @@ Exportar ganado a países andinos requiere cumplir con normativas específicas. 
 3. Guía de movilización
 4. Factura de venta
 
-### Certificado Andes Trust
+### Certificado Finca El Progreso
 
 Nuestro certificado digital incluye:
 - Identificación del animal (arete RFID)
@@ -273,7 +274,7 @@ Trabajamos con los principales lectores del mercado:
 - Nordic ID (resistente al agua)
 - cualquier lector USB/Bluetooth con serie virtual
 
-## Integración con Andes Trust
+## Integración con Finca El Progreso
 
 Al escanear, la app automáticamente:
 1. Lee el número del arete
@@ -317,7 +318,7 @@ Es un programa que se ejecuta automáticamente cuando se cumplen ciertas condici
 - Certificado se transfiere automáticamente
 - Historial completo disponible
 
-## Cómo usarlo en Andes Trust
+## Cómo usarlo en Finca El Progreso
 
 ### 1. Crea el contrato
 Desde tu panel, selecciona "Venta con Smart Contract":
@@ -391,7 +392,7 @@ Protege contra varias enfermedades clostridiales.
 
 ## Cómo registrar las vacunas
 
-En Andes Trust, cada vacunación queda registrada con:
+En Finca El Progreso, cada vacunación queda registrada con:
 - Fecha de aplicación
 - Lote de la vacuna
 - Veterinario responsable
@@ -881,7 +882,7 @@ export default function BlogPostPage({ params }: PageProps) {
         <article>
           <section className="relative overflow-hidden py-16 md:py-24">
             <div className="absolute inset-0 z-0">
-              <img src="/home/hero-home.png" alt="" className="h-full w-full object-cover" />
+              <Image src="/home/hero-home.png" alt="" fill priority className="object-cover" />
               <div className="from-background/80 via-background/60 to-background/90 absolute inset-0 bg-gradient-to-b" />
             </div>
 
@@ -1042,7 +1043,7 @@ export default function BlogPostPage({ params }: PageProps) {
 
         <section className="relative overflow-hidden py-20">
           <div className="absolute inset-0">
-            <img src="/home/cta.png" alt="" className="h-full w-full object-cover" />
+            <Image src="/home/cta.png" alt="" fill className="object-cover" />
             <div className="from-primary/90 via-primary/70 to-primary/90 absolute inset-0 bg-gradient-to-r" />
           </div>
 

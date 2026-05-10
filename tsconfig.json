@@ -31,5 +31,12 @@
     "**/*.ts",
     "**/*.tsx"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "contracts",
+    "scripts",
+    "test/contracts",
+    "artifacts",
+    "cache-hardhat"
+  ]
 }

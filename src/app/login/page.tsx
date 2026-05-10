@@ -60,7 +60,7 @@ export default function LoginPage() {
         <Link href="/" className="inline-flex items-center gap-2">
           <Image
             src="/logo.png"
-            alt="Andes Trust"
+            alt="Finca El Progreso"
             width={120}
             height={48}
             priority

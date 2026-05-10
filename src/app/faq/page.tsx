@@ -58,8 +58,8 @@ const faqCategories: Category[] = [
     variant: "primary",
     questions: [
       {
-        q: "¿Qué es Andes Trust?",
-        a: "Andes Trust es una plataforma de trazabilidad ganadera basada en tecnología blockchain. Permite registrar, gestionar y certificar el historial de tu ganado de manera segura e inmutable.",
+        q: "¿Qué es Finca El Progreso?",
+        a: "Finca El Progreso es una plataforma de trazabilidad ganadera basada en tecnología blockchain. Permite registrar, gestionar y certificar el historial de tu ganado de manera segura e inmutable.",
       },
       {
         q: "¿Por qué usar blockchain para mi ganado?",
@@ -67,7 +67,7 @@ const faqCategories: Category[] = [
       },
       {
         q: "¿Necesito conocimientos técnicos?",
-        a: "No, Andes Trust está diseñado para ser intuitivo y fácil de usar. Solo necesitas un teléfono o tablet para comenzar a registrar tu ganado.",
+        a: "No, Finca El Progreso está diseñado para ser intuitivo y fácil de usar. Solo necesitas un teléfono o tablet para comenzar a registrar tu ganado.",
       },
     ],
   },
@@ -129,7 +129,7 @@ export default function FAQPage() {
           badge={{ icon: HelpCircle, label: "Ayuda" }}
           title="Preguntas"
           titleAccent="frecuentes"
-          description="Respuestas a las dudas más comunes sobre Andes Trust"
+          description="Respuestas a las dudas más comunes sobre Finca El Progreso"
         />
 
         <section className="container mx-auto px-4 py-20">

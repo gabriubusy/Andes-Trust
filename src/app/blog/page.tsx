@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
@@ -185,7 +186,7 @@ export default function BlogPage() {
       <main className="flex-1 pt-20">
         <section className="relative overflow-hidden py-20 md:py-32">
           <div className="absolute inset-0 z-0">
-            <img src="/home/hero-home.png" alt="" className="h-full w-full object-cover" />
+            <Image src="/home/hero-home.png" alt="" fill priority className="object-cover" />
             <div className="from-background/80 via-background/60 to-background/90 absolute inset-0 bg-gradient-to-b" />
           </div>
 
@@ -354,7 +355,7 @@ export default function BlogPage() {
 
         <section className="relative overflow-hidden py-20">
           <div className="absolute inset-0">
-            <img src="/home/cta.png" alt="" className="h-full w-full object-cover" />
+            <Image src="/home/cta.png" alt="" fill className="object-cover" />
             <div className="from-primary/90 via-primary/70 to-primary/90 absolute inset-0 bg-gradient-to-r" />
           </div>
 

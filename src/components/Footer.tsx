@@ -11,7 +11,7 @@ export default function Footer() {
             <Link href="/" className="inline-flex items-center gap-3">
               <Image
                 src="/logo.png"
-                alt="Andes Trust"
+                alt="Finca El Progreso"
                 width={140}
                 height={56}
                 className="h-14 w-auto"
@@ -141,7 +141,7 @@ export default function Footer() {
         <div className="border-border/50 mt-16 border-t pt-8">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <p className="text-foreground/50 text-sm">
-              © 2024 Andes Trust. Todos los derechos reservados.
+              © 2025 Finca El Progreso. Todos los derechos reservados.
             </p>
             <div className="flex gap-6">
               <a
