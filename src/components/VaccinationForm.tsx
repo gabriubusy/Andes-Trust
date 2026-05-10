@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
+import { enqueueMutation } from "@/lib/offline/db";
 
 const schema = z.object({
   vaccine_id: z.string().uuid("Selecciona una vacuna"),
@@ -77,11 +78,10 @@ export default function VaccinationForm({ animalId, farmId, profileId, onDone }:
 
   const mutation = useMutation({
     mutationFn: async (v: Values) => {
-      if (!supabase) throw new Error("Sesión no lista.");
       const appliedAt = v.applied_at
         ? new Date(v.applied_at).toISOString()
         : new Date().toISOString();
-      const { error } = await supabase.from("vaccinations").insert({
+      const payload = {
         animal_id: animalId,
         farm_id: farmId,
         vaccine_id: v.vaccine_id,
@@ -91,7 +91,13 @@ export default function VaccinationForm({ animalId, farmId, profileId, onDone }:
         batch_number: v.batch_number || null,
         next_due_at: v.next_due_at || null,
         notes: v.notes || null,
-      });
+      };
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (!supabase || isOffline) {
+        await enqueueMutation("vaccinations", payload);
+        return;
+      }
+      const { error } = await supabase.from("vaccinations").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {

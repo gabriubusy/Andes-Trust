@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
+import { enqueueMutation } from "@/lib/offline/db";
 
 const schema = z.object({
   treatment_id: z.string().uuid("Selecciona un tratamiento").optional().or(z.literal("")),
@@ -63,7 +64,6 @@ export default function TreatmentForm({ animalId, farmId, profileId, onDone }: P
 
   const mutation = useMutation({
     mutationFn: async (v: Values) => {
-      if (!supabase) throw new Error("Sesión no lista.");
       const startedAt = v.started_at
         ? new Date(v.started_at).toISOString()
         : new Date().toISOString();
@@ -80,7 +80,7 @@ export default function TreatmentForm({ animalId, farmId, profileId, onDone }: P
             .slice(0, 10)
         : null;
 
-      const { error } = await supabase.from("treatments").insert({
+      const payload = {
         animal_id: animalId,
         farm_id: farmId,
         prescribed_by: profileId,
@@ -91,7 +91,13 @@ export default function TreatmentForm({ animalId, farmId, profileId, onDone }: P
         notes: v.notes || null,
         withdrawal_until_meat: withdrawalMeat,
         withdrawal_until_milk: withdrawalMilk,
-      });
+      };
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (!supabase || isOffline) {
+        await enqueueMutation("treatments", payload);
+        return;
+      }
+      const { error } = await supabase.from("treatments").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {

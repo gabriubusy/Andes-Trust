@@ -6,3 +6,7 @@ coverage
 .turbo
 dist
 public
+
+# Generated files
+src/lib/supabase/database.types.ts
+typechain-types

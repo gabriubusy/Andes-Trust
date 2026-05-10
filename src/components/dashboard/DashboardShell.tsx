@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
+import { useQuery } from "@tanstack/react-query";
 import {
   LogOut,
   Loader2,
@@ -19,9 +20,11 @@ import {
   Users,
   Settings,
   Bell,
+  BellRing,
   type LucideIcon,
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { useSupabase } from "@/hooks/use-supabase";
 
 const navItems: { icon: LucideIcon; label: string; href: string; matches?: string[] }[] = [
   { icon: LayoutDashboard, label: "Resumen", href: "/dashboard" },
@@ -34,10 +37,22 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
   },
   { icon: Activity, label: "Eventos", href: "/dashboard/eventos", matches: ["/dashboard/eventos"] },
   {
+    icon: BellRing,
+    label: "Alertas",
+    href: "/dashboard/alertas",
+    matches: ["/dashboard/alertas"],
+  },
+  {
     icon: FileCheck,
     label: "Certificados",
     href: "/dashboard/certificados",
     matches: ["/dashboard/certificados"],
+  },
+  {
+    icon: BarChart3,
+    label: "Reportes",
+    href: "/dashboard/reportes",
+    matches: ["/dashboard/reportes"],
   },
   {
     icon: Settings,
@@ -50,7 +65,6 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
 const comingSoonItems: { icon: LucideIcon; label: string }[] = [
   { icon: Syringe, label: "Tratamientos" },
   { icon: Receipt, label: "Ventas" },
-  { icon: BarChart3, label: "Reportes" },
   { icon: Users, label: "Equipo" },
 ];
 
@@ -66,6 +80,23 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const pathname = usePathname();
   const { ready, authenticated, user, logout } = usePrivy();
   const farmQuery = useCurrentFarm();
+  const { supabase } = useSupabase();
+  const farmId = farmQuery.data?.id;
+  const openAlertsQuery = useQuery<number>({
+    queryKey: ["alerts-open-count", farmId],
+    enabled: !!supabase && !!farmId,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { count, error } = await supabase!
+        .from("alerts")
+        .select("id", { count: "exact", head: true })
+        .eq("farm_id", farmId!)
+        .eq("status", "open");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const openAlerts = openAlertsQuery.data ?? 0;
 
   useEffect(() => {
     if (ready && !authenticated) router.replace("/login");
@@ -132,6 +163,11 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
                   }`}
                 />
                 <span className="flex-1">{item.label}</span>
+                {item.href === "/dashboard/alertas" && openAlerts > 0 && (
+                  <span className="ml-auto rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-500">
+                    {openAlerts}
+                  </span>
+                )}
               </Link>
             );
           })}

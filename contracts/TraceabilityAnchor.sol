@@ -64,6 +64,7 @@ contract TraceabilityAnchor {
     error NotOwner();
     error AlreadyAnchored(bytes32 entityId);
     error InvalidPayloadHash();
+    error LengthMismatch();
 
     // ─── Constructor ──────────────────────────────────────────────────────────
 
@@ -108,6 +109,36 @@ contract TraceabilityAnchor {
         _entityIds.push(entityId);
 
         emit Anchored(entityId, payloadHash, entityType, msg.sender, uint64(block.timestamp));
+    }
+
+    /**
+     * @notice Ancla múltiples registros en una sola transacción. Reduce
+     *         drásticamente el coste de gas cuando se anclan decenas de
+     *         eventos por día. Solo el propietario.
+     */
+    function anchorBatch(
+        bytes32[] calldata    entityIds,
+        bytes32[] calldata    payloadHashes,
+        EntityType[] calldata entityTypes
+    ) external onlyOwner {
+        uint256 n = entityIds.length;
+        if (n != payloadHashes.length || n != entityTypes.length) revert LengthMismatch();
+        uint64 ts = uint64(block.timestamp);
+        for (uint256 i = 0; i < n; i++) {
+            bytes32 id = entityIds[i];
+            bytes32 h  = payloadHashes[i];
+            if (_records[id].timestamp != 0) revert AlreadyAnchored(id);
+            if (h == bytes32(0))             revert InvalidPayloadHash();
+            _records[id] = AnchorRecord({
+                entityId:    id,
+                payloadHash: h,
+                entityType:  entityTypes[i],
+                anchoredBy:  msg.sender,
+                timestamp:   ts
+            });
+            _entityIds.push(id);
+            emit Anchored(id, h, entityTypes[i], msg.sender, ts);
+        }
     }
 
     // ─── Funciones de lectura (gratuitas) ────────────────────────────────────

@@ -370,13 +370,21 @@ function TabRazas({ onAdd }: { onAdd: () => void }) {
       if (payload.id) {
         const { error } = await supabase
           .from("breeds")
-          .update({ name: payload.name, species: payload.species, purpose: payload.purpose })
+          .update({
+            name: payload.name,
+            species: payload.species,
+            purpose: payload.purpose,
+          } as never)
           .eq("id", payload.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("breeds")
-          .insert({ name: payload.name, species: payload.species, purpose: payload.purpose });
+          .insert({
+            name: payload.name,
+            species: payload.species,
+            purpose: payload.purpose,
+          } as never);
         if (error) throw error;
       }
     },

@@ -14,10 +14,91 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "IERC1363",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC1363__factory>;
+    getContractFactory(
+      name: "IERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC20__factory>;
+    getContractFactory(
+      name: "SafeERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SafeERC20__factory>;
+    getContractFactory(
+      name: "IERC165",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC165__factory>;
+    getContractFactory(
+      name: "ReentrancyGuard",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ReentrancyGuard__factory>;
+    getContractFactory(
+      name: "MockUSDC",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MockUSDC__factory>;
+    getContractFactory(
+      name: "IERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC20__factory>;
+    getContractFactory(
+      name: "ITraceabilityAnchor",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ITraceabilityAnchor__factory>;
+    getContractFactory(
+      name: "PaymentEscrow",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.PaymentEscrow__factory>;
+    getContractFactory(
       name: "TraceabilityAnchor",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TraceabilityAnchor__factory>;
 
+    getContractAt(
+      name: "IERC1363",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC1363>;
+    getContractAt(
+      name: "IERC20",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC20>;
+    getContractAt(
+      name: "SafeERC20",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SafeERC20>;
+    getContractAt(
+      name: "IERC165",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC165>;
+    getContractAt(
+      name: "ReentrancyGuard",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ReentrancyGuard>;
+    getContractAt(
+      name: "MockUSDC",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MockUSDC>;
+    getContractAt(
+      name: "IERC20",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC20>;
+    getContractAt(
+      name: "ITraceabilityAnchor",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ITraceabilityAnchor>;
+    getContractAt(
+      name: "PaymentEscrow",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.PaymentEscrow>;
     getContractAt(
       name: "TraceabilityAnchor",
       address: string | ethers.Addressable,
@@ -25,10 +106,91 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.TraceabilityAnchor>;
 
     deployContract(
+      name: "IERC1363",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC1363>;
+    deployContract(
+      name: "IERC20",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC20>;
+    deployContract(
+      name: "SafeERC20",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SafeERC20>;
+    deployContract(
+      name: "IERC165",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC165>;
+    deployContract(
+      name: "ReentrancyGuard",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ReentrancyGuard>;
+    deployContract(
+      name: "MockUSDC",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.MockUSDC>;
+    deployContract(
+      name: "IERC20",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC20>;
+    deployContract(
+      name: "ITraceabilityAnchor",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ITraceabilityAnchor>;
+    deployContract(
+      name: "PaymentEscrow",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.PaymentEscrow>;
+    deployContract(
       name: "TraceabilityAnchor",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TraceabilityAnchor>;
 
+    deployContract(
+      name: "IERC1363",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC1363>;
+    deployContract(
+      name: "IERC20",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC20>;
+    deployContract(
+      name: "SafeERC20",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SafeERC20>;
+    deployContract(
+      name: "IERC165",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC165>;
+    deployContract(
+      name: "ReentrancyGuard",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ReentrancyGuard>;
+    deployContract(
+      name: "MockUSDC",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.MockUSDC>;
+    deployContract(
+      name: "IERC20",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IERC20>;
+    deployContract(
+      name: "ITraceabilityAnchor",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ITraceabilityAnchor>;
+    deployContract(
+      name: "PaymentEscrow",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.PaymentEscrow>;
     deployContract(
       name: "TraceabilityAnchor",
       args: any[],

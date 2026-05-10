@@ -37,6 +37,8 @@
     "scripts",
     "test/contracts",
     "artifacts",
-    "cache-hardhat"
+    "cache-hardhat",
+    "typechain-types",
+    "hardhat.config.ts"
   ]
 }

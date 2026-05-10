@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { PrivyProvider } from "@/providers/privy-provider";
 import { SupabaseProvider } from "@/providers/supabase-provider";
 import { ThemeScript } from "@/components/theme-script";
+import OfflineBanner from "@/components/OfflineBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export const metadata: Metadata = {
     "registro",
   ],
   authors: [{ name: "Finca El Progreso" }],
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",
@@ -81,7 +83,10 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <PrivyProvider>
             <QueryProvider>
-              <SupabaseProvider>{children}</SupabaseProvider>
+              <SupabaseProvider>
+                {children}
+                <OfflineBanner />
+              </SupabaseProvider>
             </QueryProvider>
           </PrivyProvider>
         </ThemeProvider>

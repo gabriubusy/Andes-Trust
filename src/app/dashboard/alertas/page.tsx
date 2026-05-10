@@ -1,0 +1,267 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertTriangle,
+  BellRing,
+  Check,
+  Filter,
+  RotateCw,
+  Syringe,
+  Scale,
+  ShieldAlert,
+} from "lucide-react";
+import DashboardShell from "@/components/dashboard/DashboardShell";
+import { useSupabase } from "@/hooks/use-supabase";
+import { useCurrentFarm } from "@/hooks/use-current-farm";
+
+type AlertRow = {
+  id: string;
+  farm_id: string;
+  animal_id: string | null;
+  type: "vaccination_due" | "treatment_withdrawal" | "weighing_due" | "custom";
+  due_at: string;
+  status: "open" | "acknowledged" | "dismissed" | "resolved";
+  payload: { animal_tag?: string; last_applied_at?: string; last_weighing_at?: string } & Record<
+    string,
+    unknown
+  >;
+  source_table: string | null;
+  animals: { tag: string; name: string | null } | null;
+};
+
+const TYPE_LABEL: Record<AlertRow["type"], string> = {
+  vaccination_due: "Vacunación próxima",
+  treatment_withdrawal: "Período de retiro",
+  weighing_due: "Pesaje pendiente",
+  custom: "Alerta",
+};
+
+const TYPE_ICON: Record<AlertRow["type"], typeof Syringe> = {
+  vaccination_due: Syringe,
+  treatment_withdrawal: ShieldAlert,
+  weighing_due: Scale,
+  custom: AlertTriangle,
+};
+
+const STATUS_LABEL: Record<AlertRow["status"], string> = {
+  open: "Abierta",
+  acknowledged: "Reconocida",
+  dismissed: "Descartada",
+  resolved: "Resuelta",
+};
+
+export default function AlertasPage() {
+  const { supabase } = useSupabase();
+  const farmQuery = useCurrentFarm();
+  const farmId = farmQuery.data?.id;
+  const qc = useQueryClient();
+
+  const [typeFilter, setTypeFilter] = useState<"all" | AlertRow["type"]>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | AlertRow["status"]>("open");
+
+  const alertsQuery = useQuery<AlertRow[]>({
+    queryKey: ["alerts", farmId, typeFilter, statusFilter],
+    enabled: !!supabase && !!farmId,
+    queryFn: async () => {
+      let q = supabase!
+        .from("alerts")
+        .select(
+          "id, farm_id, animal_id, type, due_at, status, payload, source_table, animals(tag, name)"
+        )
+        .eq("farm_id", farmId!)
+        .order("due_at", { ascending: true });
+      if (typeFilter !== "all") q = q.eq("type", typeFilter);
+      if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as unknown as AlertRow[];
+    },
+  });
+
+  const regenerate = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase!.rpc("generate_alerts");
+      if (error) throw error;
+      const { error: closeErr } = await supabase!.rpc("close_stale_alerts");
+      if (closeErr) throw closeErr;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts"] }),
+  });
+
+  const setStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: AlertRow["status"] }) => {
+      const { error } = await supabase!
+        .from("alerts")
+        .update({ status, acknowledged_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts"] }),
+  });
+
+  const counts = useMemo(() => {
+    const all = alertsQuery.data ?? [];
+    return {
+      open: all.filter((a) => a.status === "open").length,
+      vaccination_due: all.filter((a) => a.type === "vaccination_due").length,
+      treatment_withdrawal: all.filter((a) => a.type === "treatment_withdrawal").length,
+      weighing_due: all.filter((a) => a.type === "weighing_due").length,
+    };
+  }, [alertsQuery.data]);
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" });
+
+  return (
+    <DashboardShell
+      title="Alertas"
+      subtitle="Vacunación, retiros y pesajes pendientes"
+      action={
+        <button
+          type="button"
+          onClick={() => regenerate.mutate()}
+          disabled={regenerate.isPending}
+          className="border-border hover:border-primary/40 hover:bg-primary/5 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+        >
+          <RotateCw className={`h-4 w-4 ${regenerate.isPending ? "animate-spin" : ""}`} />
+          Regenerar
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-6">
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {(
+            [
+              ["Abiertas", counts.open, BellRing, "text-amber-500"],
+              ["Vacunación", counts.vaccination_due, Syringe, "text-purple-500"],
+              ["Retiro", counts.treatment_withdrawal, ShieldAlert, "text-orange-500"],
+              ["Pesaje", counts.weighing_due, Scale, "text-blue-500"],
+            ] as const
+          ).map(([label, value, Icon, color]) => (
+            <div
+              key={label}
+              className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4"
+            >
+              <Icon className={`h-5 w-5 ${color}`} />
+              <div>
+                <div className="text-foreground/60 text-xs">{label}</div>
+                <div className="text-foreground text-xl font-semibold">{value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Filter className="text-foreground/40 h-4 w-4" />
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+            className="border-border bg-background text-foreground focus:border-primary rounded-xl border px-3 py-2 text-sm outline-none"
+          >
+            <option value="all">Todos los tipos</option>
+            {(Object.keys(TYPE_LABEL) as AlertRow["type"][]).map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABEL[t]}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="border-border bg-background text-foreground focus:border-primary rounded-xl border px-3 py-2 text-sm outline-none"
+          >
+            <option value="all">Todos los estados</option>
+            {(Object.keys(STATUS_LABEL) as AlertRow["status"][]).map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* List */}
+        <div className="bg-card border-border rounded-2xl border">
+          {alertsQuery.isLoading ? (
+            <div className="text-foreground/50 flex items-center justify-center py-16 text-sm">
+              Cargando alertas…
+            </div>
+          ) : (alertsQuery.data ?? []).length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16">
+              <BellRing className="text-foreground/20 h-10 w-10" />
+              <p className="text-foreground/50 text-sm">Sin alertas con esos filtros</p>
+            </div>
+          ) : (
+            <ul className="divide-border divide-y">
+              {(alertsQuery.data ?? []).map((alert) => {
+                const Icon = TYPE_ICON[alert.type];
+                const overdue = new Date(alert.due_at).getTime() < Date.now();
+                return (
+                  <li key={alert.id} className="flex items-start gap-4 px-6 py-4">
+                    <Icon
+                      className={`mt-0.5 h-5 w-5 shrink-0 ${overdue ? "text-red-500" : "text-foreground/60"}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-foreground text-sm font-medium">
+                          {TYPE_LABEL[alert.type]}
+                        </span>
+                        {alert.animals && (
+                          <span className="bg-muted text-foreground/70 rounded-full px-2 py-0.5 text-xs">
+                            {alert.animals.name ?? alert.animals.tag} ({alert.animals.tag})
+                          </span>
+                        )}
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs ${
+                            alert.status === "open"
+                              ? overdue
+                                ? "bg-red-500/10 text-red-500"
+                                : "bg-amber-500/10 text-amber-500"
+                              : "bg-muted text-foreground/60"
+                          }`}
+                        >
+                          {STATUS_LABEL[alert.status]}
+                        </span>
+                      </div>
+                      <p className="text-foreground/50 mt-0.5 text-xs">
+                        Vence: <strong>{formatDate(alert.due_at)}</strong>
+                        {alert.payload?.last_weighing_at && (
+                          <> · Último pesaje {formatDate(String(alert.payload.last_weighing_at))}</>
+                        )}
+                        {alert.payload?.last_applied_at && (
+                          <>
+                            {" "}
+                            · Última aplicación {formatDate(String(alert.payload.last_applied_at))}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    {alert.status === "open" && (
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          onClick={() => setStatus.mutate({ id: alert.id, status: "acknowledged" })}
+                          className="border-border hover:bg-muted rounded-lg border px-2.5 py-1.5 text-xs"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setStatus.mutate({ id: alert.id, status: "dismissed" })}
+                          className="border-border hover:bg-muted rounded-lg border px-2.5 py-1.5 text-xs"
+                        >
+                          Descartar
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    </DashboardShell>
+  );
+}

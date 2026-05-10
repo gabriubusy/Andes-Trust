@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
+import { enqueueMutation } from "@/lib/offline/db";
 
 const schema = z.object({
   weight_kg: z
@@ -41,21 +42,27 @@ export default function WeighingForm({ animalId, farmId, profileId, onDone }: Pr
 
   const mutation = useMutation({
     mutationFn: async (v: Values) => {
-      if (!supabase) throw new Error("Sesión no lista.");
       const weight = Number(v.weight_kg);
       const measuredAt = v.measured_at
         ? new Date(v.measured_at).toISOString()
         : new Date().toISOString();
-      const { error } = await supabase.from("weighings").insert({
+      const payload = {
         animal_id: animalId,
         farm_id: farmId,
         weight_kg: weight,
         measured_at: measuredAt,
         measured_by: profileId,
         notes: v.notes || null,
-      });
+      };
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (!supabase || isOffline) {
+        await enqueueMutation("weighings", payload);
+        return { queued: true };
+      }
+      const { error } = await supabase.from("weighings").insert(payload);
       if (error) throw error;
       await supabase.from("animals").update({ current_weight_kg: weight }).eq("id", animalId);
+      return { queued: false };
     },
     onSuccess: () => {
       reset();

@@ -23,6 +23,7 @@ import VaccinationForm from "@/components/VaccinationForm";
 import MilkForm from "@/components/MilkForm";
 import TreatmentForm from "@/components/TreatmentForm";
 import AnimalQrCard from "@/components/AnimalQrCard";
+import SignAnchorButton from "@/components/SignAnchorButton";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
@@ -467,6 +468,13 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                       ? `Próxima: ${new Date(v.next_due_at as string).toLocaleDateString()}`
                       : null,
                     icon: Syringe,
+                    action: (
+                      <SignAnchorButton
+                        entityType="vaccinations"
+                        entityId={v.id as string}
+                        payload={v}
+                      />
+                    ),
                   };
                 })}
               />
@@ -494,6 +502,13 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                       ? `Retiro carne hasta: ${new Date(t.withdrawal_until_meat as string).toLocaleDateString()}`
                       : (kind ?? t.dose ?? null),
                     icon: FlaskConical,
+                    action: (
+                      <SignAnchorButton
+                        entityType="treatments"
+                        entityId={t.id as string}
+                        payload={t}
+                      />
+                    ),
                   };
                 })}
                 emptyHint="Sin tratamientos registrados."
@@ -557,6 +572,7 @@ type ListRow = {
   secondary: string;
   tertiary: string | null;
   icon: typeof Beef;
+  action?: React.ReactNode;
 };
 
 function RecordList({
@@ -597,6 +613,7 @@ function RecordList({
                   <div className="text-foreground/50 mt-0.5 text-xs">{r.tertiary}</div>
                 )}
               </div>
+              {r.action && <div className="shrink-0">{r.action}</div>}
             </li>
           ))}
         </ul>

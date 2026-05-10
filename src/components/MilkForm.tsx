@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
+import { enqueueMutation } from "@/lib/offline/db";
 
 const schema = z.object({
   liters: z
@@ -56,8 +57,7 @@ export default function MilkForm({ animalId, farmId, profileId, onDone }: Props)
 
   const mutation = useMutation({
     mutationFn: async (v: Values) => {
-      if (!supabase) throw new Error("Sesión no lista.");
-      const { error } = await supabase.from("milk_records").insert({
+      const payload = {
         animal_id: animalId,
         farm_id: farmId,
         recorded_by: profileId,
@@ -66,7 +66,13 @@ export default function MilkForm({ animalId, farmId, profileId, onDone }: Props)
         recorded_on: v.recorded_on || new Date().toISOString().slice(0, 10),
         fat_pct: v.fat_pct ? Number(v.fat_pct) : null,
         protein_pct: v.protein_pct ? Number(v.protein_pct) : null,
-      });
+      };
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (!supabase || isOffline) {
+        await enqueueMutation("milk_records", payload);
+        return;
+      }
+      const { error } = await supabase.from("milk_records").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
