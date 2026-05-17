@@ -10,6 +10,8 @@ export type UploadAnimalPhotoArgs = {
   animalId: string;
   profileId: string;
   file: File;
+  entityType?: string;
+  entityId?: string;
 };
 
 export async function uploadAnimalPhoto({
@@ -18,6 +20,8 @@ export async function uploadAnimalPhoto({
   animalId,
   profileId,
   file,
+  entityType,
+  entityId,
 }: UploadAnimalPhotoArgs): Promise<{ storagePath: string; documentId: string }> {
   if (!ACCEPTED_PHOTO_MIME.includes(file.type)) {
     throw new Error("Formato no soportado. Usa JPG, PNG o WebP.");
@@ -38,8 +42,8 @@ export async function uploadAnimalPhoto({
     .from("documents")
     .insert({
       farm_id: farmId,
-      entity_type: "animal",
-      entity_id: animalId,
+      entity_type: entityType ?? "animal",
+      entity_id: entityId ?? animalId,
       storage_path: storagePath,
       filename: file.name,
       mime_type: file.type,

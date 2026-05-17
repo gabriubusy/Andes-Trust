@@ -10,7 +10,7 @@ import { useCurrentFarm } from "@/hooks/use-current-farm";
 
 type Member = {
   profile_id: string;
-  role: "owner" | "admin" | "operator" | "vet" | "viewer";
+  role: "owner" | "admin" | "operator" | "vet" | "viewer" | "regulator";
   profiles: { id: string; email: string | null; full_name: string | null; wallet_address: string | null } | null;
 };
 
@@ -23,7 +23,7 @@ type Invite = {
   expires_at: string;
 };
 
-const ROLES: Member["role"][] = ["owner", "admin", "operator", "vet", "viewer"];
+const ROLES: Member["role"][] = ["owner", "admin", "operator", "vet", "viewer", "regulator"];
 
 const ROLE_LABEL: Record<Member["role"], string> = {
   owner: "Patrón / Dueño",
@@ -31,6 +31,7 @@ const ROLE_LABEL: Record<Member["role"], string> = {
   operator: "Obrero / Operador",
   vet: "Médico veterinario",
   viewer: "Solo lectura",
+  regulator: "Regulador (INSAI)",
 };
 
 const ROLE_TINT: Record<Member["role"], string> = {
@@ -39,6 +40,7 @@ const ROLE_TINT: Record<Member["role"], string> = {
   operator: "bg-amber-500/15 text-amber-600",
   vet: "bg-emerald-500/15 text-emerald-600",
   viewer: "bg-muted text-foreground/60",
+  regulator: "bg-slate-500/15 text-slate-600",
 };
 
 export default function EquipoPage() {

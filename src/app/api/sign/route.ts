@@ -14,10 +14,10 @@
 import { NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { createPublicClient, createWalletClient, http, verifyMessage } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { createPublicClient, http, verifyMessage } from "viem";
 import { polygonAmoy } from "viem/chains";
 import { hashPayload } from "@/lib/crypto/sign";
+import { relayContractWrite } from "@/lib/blockchain/relayer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -167,11 +167,9 @@ export async function POST(req: Request) {
 
   let anchorTx: `0x${string}` | null = null;
   if (body.anchor) {
-    const relayerKey = process.env.RELAYER_PRIVATE_KEY as `0x${string}` | undefined;
     const anchorAddress = process.env.NEXT_PUBLIC_ANCHOR_CONTRACT as `0x${string}` | undefined;
-    const rpc = process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology";
 
-    if (!relayerKey || !anchorAddress) {
+    if (!anchorAddress || !process.env.PRIVY_RELAYER_WALLET_ID) {
       return NextResponse.json(
         {
           signed: true,
@@ -183,19 +181,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const account = privateKeyToAccount(relayerKey);
-    const walletClient = createWalletClient({ account, chain: polygonAmoy, transport: http(rpc) });
-    const publicClient = createPublicClient({ chain: polygonAmoy, transport: http(rpc) });
-
     const entityIdBytes32 = uuidToBytes32(body.entity_id);
     const entityTypeIdx = ENTITY_TYPE_INDEX[body.entity_type] ?? 0;
 
     try {
-      anchorTx = await walletClient.writeContract({
-        address: anchorAddress,
+      anchorTx = await relayContractWrite({
+        to: anchorAddress,
         abi: ANCHOR_ABI,
         functionName: "anchor",
         args: [entityIdBytes32, payloadHash, entityTypeIdx],
+      });
+      const publicClient = createPublicClient({
+        chain: polygonAmoy,
+        transport: http(process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology"),
       });
       const receipt = await publicClient.waitForTransactionReceipt({ hash: anchorTx });
       await sb.from("blockchain_records").insert({

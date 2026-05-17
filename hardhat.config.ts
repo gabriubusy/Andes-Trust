@@ -4,7 +4,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
-const RELAYER_PRIVATE_KEY = process.env.RELAYER_PRIVATE_KEY ?? "";
+const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY ?? "";
 const AMOY_RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology";
 
@@ -21,7 +21,7 @@ const config: HardhatUserConfig = {
     // Polygon Amoy testnet (gratuita, tokens de prueba)
     amoy: {
       url: AMOY_RPC_URL,
-      accounts: RELAYER_PRIVATE_KEY ? [RELAYER_PRIVATE_KEY] : [],
+      accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : [],
       chainId: 80002,
     },
   },

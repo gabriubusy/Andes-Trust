@@ -9,10 +9,8 @@
 import { NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { createPublicClient, createWalletClient, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { polygonAmoy } from "viem/chains";
 import { hashPayload } from "@/lib/crypto/sign";
+import { relayContractWrite } from "@/lib/blockchain/relayer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -131,19 +129,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const relayerKey = process.env.RELAYER_PRIVATE_KEY as `0x${string}` | undefined;
   const escrowAddress = process.env.NEXT_PUBLIC_PAYMENT_ESCROW as `0x${string}` | undefined;
   const anchorAddress = process.env.NEXT_PUBLIC_ANCHOR_CONTRACT as `0x${string}` | undefined;
   const tokenAddress = process.env.NEXT_PUBLIC_MOCK_USDC as `0x${string}` | undefined;
-  const rpc = process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology";
 
-  if (!relayerKey || !escrowAddress) {
+  if (!escrowAddress || !process.env.PRIVY_RELAYER_WALLET_ID) {
     return NextResponse.json({ error: "contracts_not_deployed" }, { status: 503 });
   }
-
-  const account = privateKeyToAccount(relayerKey);
-  const walletClient = createWalletClient({ account, chain: polygonAmoy, transport: http(rpc) });
-  const publicClient = createPublicClient({ chain: polygonAmoy, transport: http(rpc) });
 
   const saleIdBytes32 = uuidToBytes32(saleId);
 
@@ -187,8 +179,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       });
 
       const deadline = BigInt(Math.floor(Date.now() / 1000) + body.deadline_seconds);
-      const tx = await walletClient.writeContract({
-        address: escrowAddress,
+      const tx = await relayContractWrite({
+        to: escrowAddress,
         abi: ESCROW_ABI,
         functionName: "createEscrow",
         args: [
@@ -198,12 +190,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           tokenAddress,
           BigInt(body.amount),
           conditionsHash,
-          Number(deadline) as unknown as bigint,
+          deadline,
         ],
-        chain: polygonAmoy,
-        account,
       });
-      await publicClient.waitForTransactionReceipt({ hash: tx });
 
       await sb
         .from("sales")
@@ -229,31 +218,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return NextResponse.json({ error: "no_conditions_hash" }, { status: 400 });
 
       // 1. Anchor el conditions_hash en TraceabilityAnchor
-      const anchorTx = await walletClient
-        .writeContract({
-          address: anchorAddress,
-          abi: ANCHOR_ABI,
-          functionName: "anchor",
-          args: [saleIdBytes32, sale.conditions_hash as `0x${string}`, 4],
-          chain: polygonAmoy,
-          account,
-        })
-        .catch((e) => {
-          if (String(e).includes("AlreadyAnchored")) return null;
-          throw e;
-        });
-      if (anchorTx) await publicClient.waitForTransactionReceipt({ hash: anchorTx });
+      const anchorTx = await relayContractWrite({
+        to: anchorAddress,
+        abi: ANCHOR_ABI,
+        functionName: "anchor",
+        args: [saleIdBytes32, sale.conditions_hash as `0x${string}`, 4],
+      }).catch((e) => {
+        if (String(e).includes("AlreadyAnchored")) return null;
+        throw e;
+      });
 
       // 2. Liberar el pago
-      const releaseTx = await walletClient.writeContract({
-        address: escrowAddress,
+      const releaseTx = await relayContractWrite({
+        to: escrowAddress,
         abi: ESCROW_ABI,
         functionName: "release",
         args: [saleIdBytes32, sale.conditions_hash as `0x${string}`],
-        chain: polygonAmoy,
-        account,
       });
-      await publicClient.waitForTransactionReceipt({ hash: releaseTx });
 
       await sb
         .from("sales")
@@ -269,15 +250,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     if (body.action === "refund") {
-      const tx = await walletClient.writeContract({
-        address: escrowAddress,
+      const tx = await relayContractWrite({
+        to: escrowAddress,
         abi: ESCROW_ABI,
         functionName: "refund",
         args: [saleIdBytes32],
-        chain: polygonAmoy,
-        account,
       });
-      await publicClient.waitForTransactionReceipt({ hash: tx });
 
       await sb
         .from("sales")
