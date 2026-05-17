@@ -33,7 +33,7 @@ type Animal = {
   tag: string;
   name: string | null;
   sex: "male" | "female";
-  status: string;
+  status: "active" | "sold" | "dead" | "lost" | "slaughtered";
   current_weight_kg: number | null;
   birth_date: string | null;
   birth_weight_kg: number | null;
