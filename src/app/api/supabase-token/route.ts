@@ -74,6 +74,7 @@ export async function POST(req: Request) {
   }
 
   await ensureDefaultFarm(profile.id);
+  await acceptPendingInvitations(profile.id, email);
 
   const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET!);
   const now = Math.floor(Date.now() / 1000);
@@ -97,6 +98,32 @@ export async function POST(req: Request) {
     profileId: profile.id,
     isPlatformAdmin,
   });
+}
+
+async function acceptPendingInvitations(profileId: string, email: string | null) {
+  if (!email) return;
+  const sb = getSupabaseAdmin();
+  const { data: invites } = await sb
+    .from("farm_invitations")
+    .select("id, farm_id, role, expires_at")
+    .eq("email", email.toLowerCase())
+    .eq("status", "pending");
+  if (!invites || invites.length === 0) return;
+  const now = Date.now();
+  for (const inv of invites) {
+    if (new Date(inv.expires_at).getTime() < now) {
+      await sb.from("farm_invitations").update({ status: "expired" }).eq("id", inv.id);
+      continue;
+    }
+    await sb.from("farm_members").upsert(
+      { farm_id: inv.farm_id, profile_id: profileId, role: inv.role },
+      { onConflict: "farm_id,profile_id" },
+    );
+    await sb
+      .from("farm_invitations")
+      .update({ status: "accepted", accepted_by: profileId, accepted_at: new Date().toISOString() })
+      .eq("id", inv.id);
+  }
 }
 
 const DEFAULT_FARM_NAME = "Finca El Progreso";

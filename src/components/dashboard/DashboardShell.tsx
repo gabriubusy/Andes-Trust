@@ -21,6 +21,7 @@ import {
   Settings,
   Bell,
   BellRing,
+  Stethoscope,
   type LucideIcon,
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -55,6 +56,18 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
     matches: ["/dashboard/reportes"],
   },
   {
+    icon: Stethoscope,
+    label: "Asistente clínico",
+    href: "/dashboard/asistente-tratamiento",
+    matches: ["/dashboard/asistente-tratamiento"],
+  },
+  {
+    icon: Users,
+    label: "Equipo",
+    href: "/dashboard/equipo",
+    matches: ["/dashboard/equipo"],
+  },
+  {
     icon: Settings,
     label: "Configuración",
     href: "/dashboard/configuracion",
@@ -65,7 +78,6 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
 const comingSoonItems: { icon: LucideIcon; label: string }[] = [
   { icon: Syringe, label: "Tratamientos" },
   { icon: Receipt, label: "Ventas" },
-  { icon: Users, label: "Equipo" },
 ];
 
 type Props = {

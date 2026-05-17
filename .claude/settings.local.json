@@ -5,7 +5,9 @@
       "mcp__supabase__execute_sql",
       "mcp__supabase__get_advisors",
       "Bash(npm run *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__list_migrations"
     ]
   }
 }

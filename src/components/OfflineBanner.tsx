@@ -38,8 +38,18 @@ export default function OfflineBanner() {
     window.addEventListener("offline", onOffline);
     const t = window.setInterval(refreshCount, 5000);
 
+    // En desarrollo NO registramos el service worker: cachear chunks de
+    // /_next/static/* con CacheFirst rompe el HMR (sirve hashes viejos).
+    // En desarrollo, además, desregistramos cualquier SW existente para
+    // recuperar entornos que ya quedaron atascados.
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => null);
+      if (process.env.NODE_ENV === "production") {
+        navigator.serviceWorker.register("/sw.js").catch(() => null);
+      } else {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((r) => r.unregister());
+        });
+      }
     }
 
     return () => {
