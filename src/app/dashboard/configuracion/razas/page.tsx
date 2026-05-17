@@ -10,7 +10,7 @@ type Breed = {
   id: string;
   name: string;
   species: string;
-  purpose: string | null;
+  purpose: "dairy" | "beef" | "dual" | "breeding" | null;
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -32,7 +32,11 @@ function BreedModal({
 }: {
   breed: Partial<Breed> | null;
   onClose: () => void;
-  onSave: (data: { name: string; species: string; purpose: string | null }) => void;
+  onSave: (data: {
+    name: string;
+    species: string;
+    purpose: "dairy" | "beef" | "dual" | "breeding" | null;
+  }) => void;
   saving: boolean;
 }) {
   const [name, setName] = useState(breed?.name ?? "");
@@ -132,7 +136,7 @@ export default function RazasPage() {
       id?: string;
       name: string;
       species: string;
-      purpose: string | null;
+      purpose: "dairy" | "beef" | "dual" | "breeding" | null;
     }) => {
       if (!supabase) throw new Error("No supabase");
       if (payload.id) {

@@ -23,7 +23,12 @@ const inputClass =
 const labelClass = "text-foreground mb-1 block text-xs font-medium";
 
 // ─── types ────────────────────────────────────────────────────────────────────
-type Breed = { id: string; name: string; species: string; purpose: string | null };
+type Breed = {
+  id: string;
+  name: string;
+  species: string;
+  purpose: "dairy" | "beef" | "dual" | "breeding" | null;
+};
 type Vaccine = {
   id: string;
   name: string;
@@ -266,7 +271,11 @@ function BreedModal({
 }: {
   breed: Partial<Breed> | null;
   onClose: () => void;
-  onSave: (data: { name: string; species: string; purpose: string | null }) => void;
+  onSave: (data: {
+    name: string;
+    species: string;
+    purpose: "dairy" | "beef" | "dual" | "breeding" | null;
+  }) => void;
   saving: boolean;
 }) {
   const [name, setName] = useState(breed?.name ?? "");
@@ -364,7 +373,7 @@ function TabRazas({ onAdd }: { onAdd: () => void }) {
       id?: string;
       name: string;
       species: string;
-      purpose: string | null;
+      purpose: "dairy" | "beef" | "dual" | "breeding" | null;
     }) => {
       if (!supabase) throw new Error("No supabase");
       if (payload.id) {
@@ -378,13 +387,11 @@ function TabRazas({ onAdd }: { onAdd: () => void }) {
           .eq("id", payload.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("breeds")
-          .insert({
-            name: payload.name,
-            species: payload.species,
-            purpose: payload.purpose,
-          } as never);
+        const { error } = await supabase.from("breeds").insert({
+          name: payload.name,
+          species: payload.species,
+          purpose: payload.purpose,
+        } as never);
         if (error) throw error;
       }
     },

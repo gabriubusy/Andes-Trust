@@ -39,7 +39,7 @@ type Animal = {
   birth_weight_kg: number | null;
   color: string | null;
   photo_url: string | null;
-  purpose: string | null;
+  purpose: "dairy" | "beef" | "dual" | "breeding" | null;
   breeds: { name: string } | null;
 };
 
