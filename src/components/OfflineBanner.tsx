@@ -8,8 +8,9 @@ import { flushPending } from "@/lib/offline/sync";
 
 export default function OfflineBanner() {
   const { supabase } = useSupabase();
-  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   const refreshCount = useCallback(async () => {
@@ -28,6 +29,8 @@ export default function OfflineBanner() {
   }, [supabase, syncing, refreshCount]);
 
   useEffect(() => {
+    setMounted(true);
+    setOnline(navigator.onLine);
     void refreshCount();
     const onOnline = () => {
       setOnline(true);
@@ -63,7 +66,7 @@ export default function OfflineBanner() {
     if (online && supabase && pending > 0 && !syncing) void sync();
   }, [online, supabase, pending, syncing, sync]);
 
-  if (online && pending === 0) return null;
+  if (!mounted || (online && pending === 0)) return null;
 
   return (
     <div

@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   const isPlatformAdmin = adminDids.includes(privyDid);
 
   const supabaseAdmin = getSupabaseAdmin();
-  const { data: profile, error } = await supabaseAdmin
+  let { data: profile, error } = await supabaseAdmin
     .from("profiles")
     .upsert(
       {
@@ -69,7 +69,28 @@ export async function POST(req: Request) {
     .select("id")
     .single();
 
+  // Si hay conflicto de unicidad en email (otro perfil ya tiene ese email),
+  // reintentamos sin email para no bloquear el login.
+  if (error && error.code === "23505" && error.message.includes("email")) {
+    const retry = await supabaseAdmin
+      .from("profiles")
+      .upsert(
+        {
+          privy_did: privyDid,
+          email: null,
+          wallet_address: wallet,
+          is_platform_admin: isPlatformAdmin,
+        },
+        { onConflict: "privy_did" }
+      )
+      .select("id")
+      .single();
+    profile = retry.data;
+    error = retry.error;
+  }
+
   if (error || !profile) {
+    console.error("[supabase-token] profile_upsert_failed", error);
     return NextResponse.json({ error: "profile_upsert_failed" }, { status: 500 });
   }
 
@@ -115,10 +136,12 @@ async function acceptPendingInvitations(profileId: string, email: string | null)
       await sb.from("farm_invitations").update({ status: "expired" }).eq("id", inv.id);
       continue;
     }
-    await sb.from("farm_members").upsert(
-      { farm_id: inv.farm_id, profile_id: profileId, role: inv.role },
-      { onConflict: "farm_id,profile_id" },
-    );
+    await sb
+      .from("farm_members")
+      .upsert(
+        { farm_id: inv.farm_id, profile_id: profileId, role: inv.role },
+        { onConflict: "farm_id,profile_id" }
+      );
     await sb
       .from("farm_invitations")
       .update({ status: "accepted", accepted_by: profileId, accepted_at: new Date().toISOString() })
