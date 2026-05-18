@@ -3,10 +3,24 @@
 import { use } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink, ShieldCheck, AlertTriangle, Trash2, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  ExternalLink,
+  Link2,
+  QrCode,
+  ShieldCheck,
+  AlertTriangle,
+  Trash2,
+  Loader2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
+import SignAnchorButton from "@/components/SignAnchorButton";
+import { qrCodePngDataUrl } from "@/lib/qr/generate";
 
 const CERT_TYPE_LABELS: Record<string, string> = {
   origin: "Origen",
@@ -34,6 +48,11 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
   const router = useRouter();
   const { supabase } = useSupabase();
   const qc = useQueryClient();
+  const [origin, setOrigin] = useState("");
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+  const verifyUrl = origin ? `${origin}/api/verify/certifications/${id}` : "";
 
   const certQuery = useQuery<CertDetail>({
     queryKey: ["certification", id],
@@ -193,6 +212,74 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
                 </a>
               </div>
             )}
+          </div>
+
+          {/* Firma criptográfica */}
+          <div className="bg-card border-border rounded-2xl border p-6">
+            <h3 className="text-foreground mb-1 text-base font-bold">
+              Firma digital e inmutabilidad
+            </h3>
+            <p className="text-foreground/60 mb-4 text-xs">
+              Firma este certificado con tu wallet para anclarlo en blockchain y hacerlo verificable
+              por terceros.
+            </p>
+            <SignAnchorButton
+              entityType="certifications"
+              entityId={id}
+              anchor
+              onDone={() => qc.invalidateQueries({ queryKey: ["certification", id] })}
+            />
+          </div>
+
+          {/* QR verificable */}
+          <div className="bg-card border-border rounded-2xl border p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <QrCode className="text-primary h-5 w-5" />
+              <h3 className="text-foreground text-base font-bold">QR de verificación</h3>
+            </div>
+            <p className="text-foreground/60 mb-4 text-xs">
+              Cualquier persona puede escanear este código para verificar la autenticidad del
+              certificado.
+            </p>
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                {verifyUrl ? (
+                  <QRCodeCanvas value={verifyUrl} size={180} level="M" includeMargin={false} />
+                ) : (
+                  <div className="h-[180px] w-[180px] animate-pulse bg-neutral-100 rounded" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2 sm:pt-2">
+                {verifyUrl && (
+                  <p className="text-foreground/50 max-w-[260px] truncate font-mono text-[10px]">
+                    {verifyUrl}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!verifyUrl) return;
+                    const dataUrl = await qrCodePngDataUrl(verifyUrl, 1024);
+                    const a = document.createElement("a");
+                    a.href = dataUrl;
+                    a.download = `qr-certificado-${id}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                  }}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"
+                >
+                  <Download className="h-4 w-4" /> Descargar QR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => verifyUrl && navigator.clipboard.writeText(verifyUrl)}
+                  className="border-border text-foreground/80 hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium"
+                >
+                  <Link2 className="h-4 w-4" /> Copiar enlace
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Zona de peligro */}

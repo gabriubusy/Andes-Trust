@@ -9,6 +9,7 @@ import {
   Calendar,
   FlaskConical,
   Loader2,
+  MapPin,
   Milk,
   Pencil,
   QrCode,
@@ -46,7 +47,7 @@ type Animal = AnimalUpdate & {
   breeds: { name: string } | null;
 };
 
-type Tab = "info" | "pesajes" | "vacunas" | "tratamientos" | "leche" | "qr";
+type Tab = "info" | "pesajes" | "vacunas" | "tratamientos" | "leche" | "movimientos" | "qr";
 
 export default function AnimalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -181,6 +182,23 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
     },
   });
 
+  const movementsQuery = useQuery({
+    queryKey: ["movements", id],
+    enabled: !!supabase && tab === "movimientos",
+    queryFn: async () => {
+      if (!supabase) return [];
+      const { data, error } = await supabase
+        .from("animal_events")
+        .select("id, type, occurred_at, payload, notes")
+        .eq("animal_id", id)
+        .eq("type", "transfer")
+        .order("occurred_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -202,6 +220,7 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
     { id: "vacunas", label: "Vacunas", icon: Syringe },
     { id: "tratamientos", label: "Tratamientos", icon: FlaskConical },
     { id: "leche", label: "Leche", icon: Milk },
+    { id: "movimientos", label: "Movimientos", icon: MapPin },
     { id: "qr", label: "QR público", icon: QrCode },
   ];
 
@@ -232,6 +251,35 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
   }
 
   const farmId = farmQuery.data?.id;
+
+  const addMovement = useMutation({
+    mutationFn: async (vals: {
+      location_from: string;
+      location_to: string;
+      reason: string;
+      occurred_at: string;
+    }) => {
+      if (!supabase || !profileId || !farmId) throw new Error("Sesión no lista.");
+      const { error } = await supabase.from("animal_events").insert({
+        animal_id: id,
+        farm_id: farmId,
+        type: "transfer",
+        occurred_at: vals.occurred_at
+          ? new Date(vals.occurred_at).toISOString()
+          : new Date().toISOString(),
+        performed_by: profileId,
+        payload: {
+          location_from: vals.location_from || null,
+          location_to: vals.location_to || null,
+        },
+        notes: vals.reason || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["movements", id] });
+    },
+  });
 
   return (
     <DashboardShell
@@ -383,7 +431,9 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                       <input
                         type={type}
                         value={(editValues[key] as string) ?? ""}
-                        onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value } as Partial<Animal>))}
+                        onChange={(e) =>
+                          setEditValues((p) => ({ ...p, [key]: e.target.value }) as Partial<Animal>)
+                        }
                         className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                       />
                     </div>
@@ -395,7 +445,10 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                     <select
                       value={editValues.purpose ?? ""}
                       onChange={(e) =>
-                        setEditValues((p) => ({ ...p, purpose: (e.target.value || null) as Animal["purpose"] }))
+                        setEditValues((p) => ({
+                          ...p,
+                          purpose: (e.target.value || null) as Animal["purpose"],
+                        }))
                       }
                       className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                     >
@@ -412,7 +465,9 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                     </label>
                     <select
                       value={editValues.status ?? "active"}
-                      onChange={(e) => setEditValues((p) => ({ ...p, status: e.target.value as Animal["status"] }))}
+                      onChange={(e) =>
+                        setEditValues((p) => ({ ...p, status: e.target.value as Animal["status"] }))
+                      }
                       className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                     >
                       <option value="active">Activo</option>
@@ -437,6 +492,7 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                 <h3 className="text-foreground mb-4 text-base font-bold">Registrar pesaje</h3>
                 <WeighingForm animalId={animal.id} farmId={farmId} profileId={profileId} />
               </div>
+              <WeightChart rows={weighingsQuery.data ?? []} isLoading={weighingsQuery.isLoading} />
               <RecordList
                 title="Histórico"
                 isLoading={weighingsQuery.isLoading}
@@ -455,7 +511,12 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
             <div className="space-y-4">
               <div className="bg-card border-border rounded-2xl border p-6">
                 <h3 className="text-foreground mb-4 text-base font-bold">Registrar vacuna</h3>
-                <VaccinationForm animalId={animal.id} farmId={farmId} profileId={profileId} />
+                <VaccinationForm
+                  animalId={animal.id}
+                  farmId={farmId}
+                  profileId={profileId}
+                  animalBirthDate={animal.birth_date}
+                />
               </div>
               <RecordList
                 title="Historial"
@@ -488,7 +549,12 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
             <div className="space-y-4">
               <div className="bg-card border-border rounded-2xl border p-6">
                 <h3 className="text-foreground mb-4 text-base font-bold">Registrar tratamiento</h3>
-                <TreatmentForm animalId={animal.id} farmId={farmId} profileId={profileId} />
+                <TreatmentForm
+                  animalId={animal.id}
+                  farmId={farmId}
+                  profileId={profileId}
+                  animalWeightKg={animal.current_weight_kg}
+                />
               </div>
               <RecordList
                 title="Historial"
@@ -542,6 +608,16 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
+          {tab === "movimientos" && farmId && profileId && (
+            <MovementsTab
+              movements={(movementsQuery.data ?? []) as MovementRow[]}
+              isLoading={movementsQuery.isLoading}
+              isSaving={addMovement.isPending}
+              saveError={addMovement.error as Error | null}
+              onSubmit={(vals) => addMovement.mutate(vals)}
+            />
+          )}
+
           {tab === "qr" && tokenQuery.data && (
             <AnimalQrCard
               slug={tokenQuery.data.slug}
@@ -577,6 +653,203 @@ type ListRow = {
   icon: typeof Beef;
   action?: React.ReactNode;
 };
+
+type MovementRow = {
+  id: string;
+  occurred_at: string;
+  payload: { location_from?: string | null; location_to?: string | null } | null;
+  notes: string | null;
+};
+
+type MovementsTabProps = {
+  movements: MovementRow[];
+  isLoading: boolean;
+  isSaving: boolean;
+  saveError: Error | null;
+  onSubmit: (vals: {
+    location_from: string;
+    location_to: string;
+    reason: string;
+    occurred_at: string;
+  }) => void;
+};
+
+type MovementPayload = { location_from?: string | null; location_to?: string | null };
+
+const inputCls =
+  "border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none";
+
+function MovementsTab({ movements, isLoading, isSaving, saveError, onSubmit }: MovementsTabProps) {
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [reason, setReason] = useState("");
+  const [occurredAt, setOccurredAt] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!to.trim()) return;
+    onSubmit({ location_from: from, location_to: to, reason, occurred_at: occurredAt });
+    setFrom("");
+    setTo("");
+    setReason("");
+    setOccurredAt("");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card border-border rounded-2xl border p-6">
+        <h3 className="text-foreground mb-4 text-base font-bold">Registrar traslado</h3>
+        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label htmlFor="mv_from" className="text-foreground mb-1 block text-xs font-medium">
+              Origen (corral / potrero)
+            </label>
+            <input
+              id="mv_from"
+              className={inputCls}
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              placeholder="Corral A"
+            />
+          </div>
+          <div>
+            <label htmlFor="mv_to" className="text-foreground mb-1 block text-xs font-medium">
+              Destino *
+            </label>
+            <input
+              id="mv_to"
+              className={inputCls}
+              required
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="Potrero Norte"
+            />
+          </div>
+          <div>
+            <label htmlFor="mv_at" className="text-foreground mb-1 block text-xs font-medium">
+              Fecha / hora
+            </label>
+            <input
+              id="mv_at"
+              type="datetime-local"
+              className={inputCls}
+              value={occurredAt}
+              onChange={(e) => setOccurredAt(e.target.value)}
+            />
+          </div>
+          <div>
+            <label htmlFor="mv_reason" className="text-foreground mb-1 block text-xs font-medium">
+              Motivo
+            </label>
+            <input
+              id="mv_reason"
+              className={inputCls}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Rotación de potreros"
+            />
+          </div>
+          {saveError && <p className="text-accent text-xs md:col-span-2">{saveError.message}</p>}
+          <div className="md:col-span-2">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+            >
+              {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+              Registrar traslado
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="bg-card border-border rounded-2xl border p-6">
+        <h3 className="text-foreground mb-4 text-base font-bold">Historial de movimientos</h3>
+        {isLoading ? (
+          <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+        ) : movements.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Sin movimientos registrados.</p>
+        ) : (
+          <ul className="divide-border divide-y">
+            {movements.map((m) => {
+              const p = m.payload as MovementPayload | null;
+              return (
+                <li key={m.id} className="flex items-start gap-3 py-3">
+                  <MapPin className="text-primary mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="text-foreground text-sm font-medium">
+                      {p?.location_from ? `${p.location_from} → ` : ""}
+                      {p?.location_to ?? "—"}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {new Date(m.occurred_at).toLocaleString()}
+                      {m.notes ? ` · ${m.notes}` : ""}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type WeighingRow = { weight_kg: number; measured_at: string };
+
+function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: boolean }) {
+  if (isLoading) return null;
+  // rows come newest-first; reverse for chronological chart
+  const sorted = [...rows].reverse().slice(-24);
+  if (sorted.length < 2) return null;
+
+  const W = 480,
+    H = 120,
+    PAD = 8;
+  const weights = sorted.map((r) => r.weight_kg);
+  const minW = Math.min(...weights);
+  const maxW = Math.max(...weights);
+  const range = maxW - minW || 1;
+  const pts = sorted.map((r, i) => {
+    const x = PAD + (i / (sorted.length - 1)) * (W - PAD * 2);
+    const y = PAD + (1 - (r.weight_kg - minW) / range) * (H - PAD * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const polyline = pts.join(" ");
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+
+  return (
+    <div className="bg-card border-border rounded-2xl border p-6">
+      <h3 className="text-foreground mb-3 text-base font-bold">Tendencia de peso</h3>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Gráfica de peso">
+        <polyline
+          points={polyline}
+          fill="none"
+          className="stroke-primary"
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {sorted.map((r, i) => {
+          const [x, y] = pts[i].split(",").map(Number);
+          return <circle key={r.measured_at} cx={x} cy={y} r="3" className="fill-primary" />;
+        })}
+      </svg>
+      <div className="text-muted-foreground mt-2 flex justify-between text-xs">
+        <span>
+          {new Date(first.measured_at).toLocaleDateString()} — {first.weight_kg} kg
+        </span>
+        <span className="font-medium text-foreground">
+          {last.weight_kg} kg ({last.weight_kg >= first.weight_kg ? "+" : ""}
+          {(last.weight_kg - first.weight_kg).toFixed(1)} kg)
+        </span>
+        <span>{new Date(last.measured_at).toLocaleDateString()}</span>
+      </div>
+    </div>
+  );
+}
 
 function RecordList({
   title,

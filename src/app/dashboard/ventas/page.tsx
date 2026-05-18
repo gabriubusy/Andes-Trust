@@ -55,6 +55,14 @@ export default function VentasPage() {
 
   return (
     <DashboardShell title="Ventas" subtitle="Transacciones comerciales y escrow">
+      <div className="mb-4 flex justify-end">
+        <Link
+          href="/dashboard/ventas/nuevo"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-medium"
+        >
+          + Nueva venta
+        </Link>
+      </div>
       <div className="bg-card border-border rounded-2xl border">
         {salesQuery.isLoading ? (
           <div className="text-foreground/50 py-16 text-center text-sm">Cargando…</div>

@@ -26,6 +26,8 @@ const schema = z.object({
       message: "Peso inválido",
     }),
   color: z.string().max(60).optional(),
+  mother_id: z.string().optional(),
+  birth_health_notes: z.string().max(500).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -61,6 +63,24 @@ export default function AnimalForm() {
     },
   });
 
+  const farmId = farmQuery.data?.id;
+  const femalesQuery = useQuery({
+    queryKey: ["animals-females", farmId],
+    enabled: !!supabase && !!farmId,
+    queryFn: async () => {
+      if (!supabase || !farmId) return [];
+      const { data, error } = await supabase
+        .from("animals")
+        .select("id, tag, name")
+        .eq("farm_id", farmId)
+        .eq("sex", "female")
+        .eq("status", "active")
+        .order("tag");
+      if (error) throw error;
+      return (data ?? []) as { id: string; tag: string; name: string | null }[];
+    },
+  });
+
   const create = useMutation({
     mutationFn: async (values: FormValues) => {
       if (!supabase || !profileId || !farmQuery.data) {
@@ -82,6 +102,8 @@ export default function AnimalForm() {
           birth_weight_kg: weight,
           current_weight_kg: weight,
           color: values.color || null,
+          mother_id: values.mother_id || null,
+          notes: values.birth_health_notes || null,
         })
         .select("id")
         .single();
@@ -180,6 +202,35 @@ export default function AnimalForm() {
         <div>
           <label className={labelClass}>Color / capa</label>
           <input className={inputClass} placeholder="Negro y blanco" {...register("color")} />
+        </div>
+        <div>
+          <label htmlFor="mother_id" className={labelClass}>
+            Madre (opcional)
+          </label>
+          <select id="mother_id" className={inputClass} {...register("mother_id")}>
+            <option value="">— sin registrar —</option>
+            {femalesQuery.data?.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.tag}
+                {f.name ? ` — ${f.name}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="md:col-span-2">
+          <label htmlFor="birth_health_notes" className={labelClass}>
+            Condiciones sanitarias al nacer
+          </label>
+          <textarea
+            id="birth_health_notes"
+            rows={3}
+            className={inputClass}
+            placeholder="Parto normal, sin complicaciones. Peso adecuado para la raza..."
+            {...register("birth_health_notes")}
+          />
+          {errors.birth_health_notes && (
+            <p className="text-accent mt-1 text-xs">{errors.birth_health_notes.message}</p>
+          )}
         </div>
       </div>
 
