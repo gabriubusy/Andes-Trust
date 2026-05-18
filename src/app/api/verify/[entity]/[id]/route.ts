@@ -13,6 +13,23 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { hashPayload, verifyHashSignature } from "@/lib/crypto/sign";
 
+// Simple in-process rate limiter: max 30 requests per IP per minute.
+const ipHits = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 30;
+const WINDOW_MS = 60_000;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = ipHits.get(ip);
+  if (!entry || now > entry.resetAt) {
+    ipHits.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -37,6 +54,14 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ entity: string; id: string }> }
 ) {
+  const ip =
+    _req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    _req.headers.get("x-real-ip") ??
+    "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   const { entity, id } = await params;
   if (!ALLOWED_ENTITIES.has(entity)) {
     return NextResponse.json({ error: "entity_not_supported" }, { status: 400 });

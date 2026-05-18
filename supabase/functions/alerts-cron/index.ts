@@ -10,6 +10,8 @@
 // =====================================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @ts-ignore — web-push types not available in Deno, using fetch-based VAPID manually
+import webPush from "https://esm.sh/web-push@3.6.7";
 
 type AlertRow = {
   id: string;
@@ -27,6 +29,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM_EMAIL = Deno.env.get("ALERTS_FROM_EMAIL") ?? "alertas@finca-el-progreso.com";
+const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@finca-el-progreso.com";
 
 const TYPE_LABEL: Record<string, string> = {
   vaccination_due: "Vacunación próxima",
@@ -77,6 +82,64 @@ function renderHtml(farmName: string, alerts: AlertRow[]): string {
   </div>`;
 }
 
+type PushSub = {
+  id: string;
+  profile_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+
+async function sendPushNotifications(farmId: string, alerts: AlertRow[]) {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return 0;
+
+  // Get profile IDs for this farm's owners/admins/vets
+  const { data: members } = await supabase
+    .from("farm_members")
+    .select("profile_id")
+    .eq("farm_id", farmId)
+    .in("role", ["owner", "admin", "vet"]);
+  if (!members || members.length === 0) return 0;
+
+  const profileIds = members.map((m) => m.profile_id);
+  const { data: subs } = await supabase
+    .from("push_subscriptions")
+    .select("id, profile_id, endpoint, p256dh, auth")
+    .in("profile_id", profileIds);
+  if (!subs || subs.length === 0) return 0;
+
+  webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+
+  const payload = JSON.stringify({
+    title: `${alerts.length} alerta(s) sanitaria(s)`,
+    body: alerts.slice(0, 3).map((a) => TYPE_LABEL[a.type] ?? a.type).join(", "),
+    url: "/dashboard/alertas",
+  });
+
+  const expiredIds: string[] = [];
+  let sent = 0;
+  for (const sub of subs as PushSub[]) {
+    try {
+      await webPush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        payload
+      );
+      sent++;
+    } catch (err: unknown) {
+      // 410 Gone = subscription expired, remove it
+      if ((err as { statusCode?: number }).statusCode === 410) {
+        expiredIds.push(sub.id);
+      }
+    }
+  }
+
+  if (expiredIds.length > 0) {
+    await supabase.from("push_subscriptions").delete().in("id", expiredIds);
+  }
+
+  return sent;
+}
+
 async function recipientsForFarm(farmId: string): Promise<Recipient[]> {
   const { data, error } = await supabase
     .from("farm_members")
@@ -116,7 +179,8 @@ Deno.serve(async () => {
     byFarm.get(a.farm_id)!.push(a);
   }
 
-  let sent = 0;
+  let emailsSent = 0;
+  let pushSent = 0;
   for (const [farmId, alerts] of byFarm) {
     const { data: farm } = await supabase.from("farms").select("name").eq("id", farmId).single();
     const recipients = await recipientsForFarm(farmId);
@@ -126,8 +190,9 @@ Deno.serve(async () => {
         `[Finca El Progreso] ${alerts.length} alerta(s) sanitaria(s)`,
         renderHtml(farm?.name ?? "Finca", alerts),
       );
-      sent += recipients.length;
+      emailsSent += recipients.length;
     }
+    pushSent += await sendPushNotifications(farmId, alerts);
     await supabase
       .from("alerts")
       .update({ notified_at: new Date().toISOString() })
@@ -138,6 +203,7 @@ Deno.serve(async () => {
     generated: genRes.data ?? 0,
     closed: closeRes.data ?? 0,
     farms_notified: byFarm.size,
-    emails_sent: sent,
+    emails_sent: emailsSent,
+    push_sent: pushSent,
   });
 });

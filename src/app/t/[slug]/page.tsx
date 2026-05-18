@@ -11,9 +11,11 @@ import {
   AlertTriangle,
   Calendar,
   MapPin,
+  QrCode,
 } from "lucide-react";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { ANIMAL_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import PublicQRBlock from "@/components/PublicQRBlock";
 
 export const revalidate = 60;
 
@@ -299,6 +301,14 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
             </div>
           </section>
         )}
+
+        {/* QR de verificación */}
+        <section className="bg-card border-border rounded-2xl border p-6">
+          <h2 className="text-foreground mb-4 flex items-center gap-2 text-sm font-bold">
+            <QrCode className="text-primary h-4 w-4" /> Verificar trazabilidad
+          </h2>
+          <PublicQRBlock slug={slug} animalId={token.entity_id} />
+        </section>
 
         {/* Footer */}
         <p className="text-foreground/30 pb-4 text-center text-xs">
