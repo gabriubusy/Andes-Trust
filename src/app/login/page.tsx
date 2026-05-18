@@ -40,6 +40,14 @@ export default function LoginPage() {
     }
   }, [ready, authenticated, router]);
 
+  if (!ready || authenticated) {
+    return (
+      <div className="bg-background flex min-h-screen items-center justify-center">
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-background text-foreground relative flex min-h-screen flex-col overflow-hidden">
       <div className="absolute inset-0 z-0">

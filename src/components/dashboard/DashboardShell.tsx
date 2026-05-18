@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { useSupabase } from "@/hooks/use-supabase";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const navItems: { icon: LucideIcon; label: string; href: string; matches?: string[] }[] = [
   { icon: LayoutDashboard, label: "Resumen", href: "/dashboard" },
@@ -238,6 +239,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
           </div>
           <div className="ml-auto flex items-center gap-2">
             {action}
+            <ThemeToggle />
             <button
               type="button"
               aria-label="Notificaciones"
