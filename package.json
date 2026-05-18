@@ -61,7 +61,7 @@
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx,json,css,md}": [
-      "prettier --write --config .prettierrc-fast.json"
+      "node node_modules/prettier/bin/prettier.cjs --write --config .prettierrc-fast.json"
     ]
   }
 }

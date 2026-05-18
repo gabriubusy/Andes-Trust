@@ -22,7 +22,8 @@
       "PowerShell(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \"prettier|lint-staged\" } | Select-Object ProcessId, ParentProcessId, @{N='Cmd';E={$_.CommandLine.Substring\\(0,[Math]::Min\\(120,$_.CommandLine.Length\\)\\)}} | Format-List)",
       "PowerShell(Get-Process -Id 7052 -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Process -Id 31936 -ErrorAction SilentlyContinue)",
-      "PowerShell(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \"prettier|lint-staged\" } | Select-Object ProcessId, @{N='CPU';E={\\(Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue\\).CPU}}, @{N='Cmd';E={$_.CommandLine.Substring\\(0,[Math]::Min\\(80,$_.CommandLine.Length\\)\\)}} | Format-Table -AutoSize)"
+      "PowerShell(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \"prettier|lint-staged\" } | Select-Object ProcessId, @{N='CPU';E={\\(Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue\\).CPU}}, @{N='Cmd';E={$_.CommandLine.Substring\\(0,[Math]::Min\\(80,$_.CommandLine.Length\\)\\)}} | Format-Table -AutoSize)",
+      "PowerShell(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \"prettier|lint-staged\" } | Select-Object ProcessId, ParentProcessId, @{N='Cmd';E={$_.CommandLine.Substring\\(0,[Math]::Min\\(80,$_.CommandLine.Length\\)\\)}} | Format-Table -AutoSize)"
     ]
   }
 }
