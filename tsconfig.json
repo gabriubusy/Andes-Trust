@@ -8,6 +8,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
+    "types": ["node"],
     "strict": false,
     "noEmit": true,
     "incremental": true,
@@ -39,6 +40,7 @@
     "artifacts",
     "cache-hardhat",
     "typechain-types",
-    "hardhat.config.ts"
+    "hardhat.config.ts",
+    "supabase"
   ]
 }
