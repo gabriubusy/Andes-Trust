@@ -206,10 +206,9 @@ export default function NuevaVentaPage() {
                       )}
                     </div>
                     {hasAlert && (
-                      <AlertTriangle
-                        className="h-4 w-4 shrink-0 text-amber-500"
-                        title="Alerta sanitaria activa"
-                      />
+                      <span title="Alerta sanitaria activa">
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+                      </span>
                     )}
                   </label>
                 );

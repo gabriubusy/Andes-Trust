@@ -103,7 +103,9 @@ export default function AnimalForm() {
           current_weight_kg: weight,
           color: values.color || null,
           mother_id: values.mother_id || null,
-          notes: values.birth_health_notes || null,
+          metadata: values.birth_health_notes
+            ? { birth_health_notes: values.birth_health_notes }
+            : {},
         })
         .select("id")
         .single();
