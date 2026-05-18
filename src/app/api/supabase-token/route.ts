@@ -55,42 +55,53 @@ export async function POST(req: Request) {
   const isPlatformAdmin = adminDids.includes(privyDid);
 
   const supabaseAdmin = getSupabaseAdmin();
-  let { data: profile, error } = await supabaseAdmin
+
+  // Buscar perfil existente por privy_did
+  const { data: existing } = await supabaseAdmin
     .from("profiles")
-    .upsert(
-      {
+    .select("id")
+    .eq("privy_did", privyDid)
+    .maybeSingle();
+
+  let profile: { id: string } | null = null;
+
+  if (existing) {
+    // Actualizar perfil existente
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        wallet_address: wallet,
+        is_platform_admin: isPlatformAdmin,
+        ...(email ? { email } : {}),
+      })
+      .eq("privy_did", privyDid)
+      .select("id")
+      .single();
+    if (error) {
+      console.error("[supabase-token] update_failed", error);
+      return NextResponse.json({ error: "profile_upsert_failed" }, { status: 500 });
+    }
+    profile = data;
+  } else {
+    // Crear nuevo perfil
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
+      .insert({
         privy_did: privyDid,
         email,
         wallet_address: wallet,
         is_platform_admin: isPlatformAdmin,
-      },
-      { onConflict: "privy_did" }
-    )
-    .select("id")
-    .single();
-
-  // Si hay conflicto de unicidad en email (otro perfil ya tiene ese email),
-  // reintentamos sin email para no bloquear el login.
-  if (error && error.code === "23505" && error.message.includes("email")) {
-    const retry = await supabaseAdmin
-      .from("profiles")
-      .upsert(
-        {
-          privy_did: privyDid,
-          email: null,
-          wallet_address: wallet,
-          is_platform_admin: isPlatformAdmin,
-        },
-        { onConflict: "privy_did" }
-      )
+      })
       .select("id")
       .single();
-    profile = retry.data;
-    error = retry.error;
+    if (error) {
+      console.error("[supabase-token] insert_failed", error);
+      return NextResponse.json({ error: "profile_upsert_failed" }, { status: 500 });
+    }
+    profile = data;
   }
 
-  if (error || !profile) {
-    console.error("[supabase-token] profile_upsert_failed", error);
+  if (!profile) {
     return NextResponse.json({ error: "profile_upsert_failed" }, { status: 500 });
   }
 

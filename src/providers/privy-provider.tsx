@@ -30,6 +30,9 @@ export function PrivyProvider({ children }: { readonly children: React.ReactNode
           ethereum: {
             createOnLogin: "users-without-wallets",
           },
+          solana: {
+            createOnLogin: "off",
+          },
         },
       }}
     >

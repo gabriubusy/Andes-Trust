@@ -11,9 +11,7 @@ const baseDirectives = [
 ];
 
 const scriptSrc =
-  process.env.NODE_ENV === "development"
-    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://privy.io https://*.privy.io"
-    : "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://privy.io https://*.privy.io";
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://privy.io https://*.privy.io";
 
 export const secureHeaders = {
   "Content-Security-Policy": [scriptSrc, ...baseDirectives].join("; "),

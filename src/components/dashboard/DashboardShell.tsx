@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   LogOut,
   Loader2,
@@ -22,6 +22,8 @@ import {
   Bell,
   BellRing,
   Stethoscope,
+  Check,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -88,6 +90,22 @@ type Props = {
   action?: React.ReactNode;
 };
 
+type Alert = {
+  id: string;
+  type: string;
+  due_at: string;
+  status: string;
+  payload: Record<string, unknown> | null;
+  animal_id: string | null;
+};
+
+const ALERT_LABELS: Record<string, string> = {
+  vaccination_due: "Vacunación pendiente",
+  treatment_withdrawal: "Retiro de tratamiento",
+  weighing_due: "Pesaje pendiente",
+  custom: "Alerta personalizada",
+};
+
 export default function DashboardShell({ title, subtitle, children, action }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -95,21 +113,52 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const farmQuery = useCurrentFarm();
   const { supabase } = useSupabase();
   const farmId = farmQuery.data?.id;
-  const openAlertsQuery = useQuery<number>({
-    queryKey: ["alerts-open-count", farmId],
+  const queryClient = useQueryClient();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const alertsQuery = useQuery<Alert[]>({
+    queryKey: ["alerts-dropdown", farmId],
     enabled: !!supabase && !!farmId,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { count, error } = await supabase!
+      const { data, error } = await supabase!
         .from("alerts")
-        .select("id", { count: "exact", head: true })
+        .select("id, type, due_at, status, payload, animal_id")
         .eq("farm_id", farmId!)
-        .eq("status", "open");
+        .eq("status", "open")
+        .order("due_at", { ascending: true })
+        .limit(10);
       if (error) throw error;
-      return count ?? 0;
+      return (data ?? []) as Alert[];
     },
   });
-  const openAlerts = openAlertsQuery.data ?? 0;
+
+  const acknowledgeMutation = useMutation({
+    mutationFn: async (alertId: string) => {
+      const { error } = await supabase!
+        .from("alerts")
+        .update({ status: "acknowledged", acknowledged_at: new Date().toISOString() })
+        .eq("id", alertId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["alerts-dropdown", farmId] });
+    },
+  });
+
+  const openAlerts = alertsQuery.data?.length ?? 0;
 
   useEffect(() => {
     if (ready && !authenticated) router.replace("/login");
@@ -138,8 +187,8 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
 
   return (
     <div className="bg-background text-foreground flex min-h-screen">
-      <aside className="bg-card/40 border-border hidden w-64 shrink-0 flex-col border-r backdrop-blur-xl lg:flex">
-        <div className="border-border flex h-16 items-center border-b px-6">
+      <aside className="bg-card/40 border-border fixed inset-y-0 left-0 hidden w-64 flex-col border-r backdrop-blur-xl lg:flex">
+        <div className="border-border flex h-16 shrink-0 items-center border-b px-6">
           <Link href="/" className="inline-flex items-center gap-2">
             <Image
               src="/logo.png"
@@ -151,13 +200,13 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             />
           </Link>
         </div>
-        <div className="border-border border-b px-6 py-3">
+        <div className="border-border shrink-0 border-b px-6 py-3">
           <div className="text-foreground/60 text-[10px] font-semibold tracking-wider uppercase">
             Finca
           </div>
           <div className="text-foreground truncate text-sm font-semibold">{farmName}</div>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-4">
           {navItems.map((item) => {
             const active = isActive(item);
             return (
@@ -200,7 +249,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             ))}
           </div>
         </nav>
-        <div className="border-border border-t p-4">
+        <div className="border-border shrink-0 border-t p-4">
           <div className="bg-muted/50 border-border flex items-center gap-3 rounded-xl border p-3">
             <div className="from-primary to-secondary flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-xs font-bold text-white">
               {initials}
@@ -221,7 +270,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
         <header className="border-border bg-background/80 sticky top-0 z-10 flex h-16 items-center gap-4 border-b px-4 backdrop-blur-xl md:px-8">
           <Link href="/" className="inline-flex items-center gap-2 lg:hidden">
             <Image
@@ -240,13 +289,101 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
           <div className="ml-auto flex items-center gap-2">
             {action}
             <ThemeToggle />
-            <button
-              type="button"
-              aria-label="Notificaciones"
-              className="border-border text-foreground/70 hover:border-primary/40 hover:text-foreground relative inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors"
-            >
-              <Bell className="h-4 w-4" />
-            </button>
+
+            {/* Notificaciones */}
+            <div ref={bellRef} className="relative">
+              <button
+                type="button"
+                aria-label="Notificaciones"
+                onClick={() => setNotifOpen((o) => !o)}
+                className="border-border text-foreground/70 hover:border-primary/40 hover:text-foreground relative inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors"
+              >
+                <Bell className="h-4 w-4" />
+                {openAlerts > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {openAlerts > 9 ? "9+" : openAlerts}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="bg-card border-border absolute right-0 top-11 z-50 w-80 rounded-2xl border shadow-xl">
+                  <div className="border-border flex items-center justify-between border-b px-4 py-3">
+                    <span className="text-foreground text-sm font-semibold">Notificaciones</span>
+                    {openAlerts > 0 && (
+                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-500">
+                        {openAlerts} pendiente{openAlerts !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto">
+                    {alertsQuery.isLoading && (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="text-primary h-5 w-5 animate-spin" />
+                      </div>
+                    )}
+                    {!alertsQuery.isLoading && openAlerts === 0 && (
+                      <div className="py-10 text-center">
+                        <Bell className="text-foreground/20 mx-auto mb-2 h-8 w-8" />
+                        <p className="text-foreground/50 text-sm">Sin alertas pendientes</p>
+                      </div>
+                    )}
+                    {alertsQuery.data?.map((alert) => {
+                      const label = ALERT_LABELS[alert.type] ?? alert.type;
+                      const animalName =
+                        (alert.payload as any)?.animal_name ?? (alert.payload as any)?.name ?? null;
+                      const dueDate = alert.due_at
+                        ? new Date(alert.due_at).toLocaleDateString("es-VE", {
+                            day: "numeric",
+                            month: "short",
+                          })
+                        : null;
+                      return (
+                        <div
+                          key={alert.id}
+                          className="border-border hover:bg-muted/40 flex items-start gap-3 border-b px-4 py-3 last:border-0"
+                        >
+                          <div className="bg-primary/10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                            <BellRing className="text-primary h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-foreground text-xs font-medium">{label}</p>
+                            {animalName && (
+                              <p className="text-foreground/60 truncate text-xs">{animalName}</p>
+                            )}
+                            {dueDate && (
+                              <p className="text-foreground/40 text-xs">Vence: {dueDate}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => acknowledgeMutation.mutate(alert.id)}
+                            disabled={acknowledgeMutation.isPending}
+                            aria-label="Marcar como visto"
+                            className="text-foreground/40 hover:text-primary hover:bg-primary/10 mt-0.5 shrink-0 rounded-lg p-1 transition-colors"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="border-border border-t px-4 py-2">
+                    <Link
+                      href="/dashboard/alertas"
+                      onClick={() => setNotifOpen(false)}
+                      className="text-primary hover:text-primary/80 flex items-center justify-center gap-1.5 text-xs font-medium"
+                    >
+                      Ver todas las alertas
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={logout}
