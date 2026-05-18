@@ -59,6 +59,12 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
     matches: ["/dashboard/reportes"],
   },
   {
+    icon: Receipt,
+    label: "Ventas",
+    href: "/dashboard/ventas",
+    matches: ["/dashboard/ventas"],
+  },
+  {
     icon: Syringe,
     label: "Tratamientos",
     href: "/dashboard/tratamientos",
@@ -84,7 +90,7 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
   },
 ];
 
-const comingSoonItems: { icon: LucideIcon; label: string }[] = [{ icon: Receipt, label: "Ventas" }];
+const comingSoonItems: { icon: LucideIcon; label: string }[] = [];
 
 type Props = {
   title: string;
@@ -237,20 +243,22 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             );
           })}
 
-          <div className="border-border/50 mt-4 border-t pt-4">
-            <p className="text-foreground/40 px-3 pb-2 text-[10px] font-semibold tracking-wider uppercase">
-              Próximamente
-            </p>
-            {comingSoonItems.map((item) => (
-              <div
-                key={item.label}
-                className="text-foreground/30 flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium"
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                <span className="flex-1">{item.label}</span>
-              </div>
-            ))}
-          </div>
+          {comingSoonItems.length > 0 && (
+            <div className="border-border/50 mt-4 border-t pt-4">
+              <p className="text-foreground/40 px-3 pb-2 text-[10px] font-semibold tracking-wider uppercase">
+                Próximamente
+              </p>
+              {comingSoonItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="text-foreground/30 flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium"
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </nav>
         <div className="border-border shrink-0 border-t p-4">
           <div className="bg-muted/50 border-border flex items-center gap-3 rounded-xl border p-3">
