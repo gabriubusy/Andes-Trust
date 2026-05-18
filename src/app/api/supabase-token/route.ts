@@ -79,7 +79,10 @@ export async function POST(req: Request) {
       .single();
     if (error) {
       console.error("[supabase-token] update_failed", error);
-      return NextResponse.json({ error: "profile_upsert_failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: "profile_upsert_failed", detail: error.message, code: error.code },
+        { status: 500 }
+      );
     }
     profile = data;
   } else {
@@ -96,7 +99,10 @@ export async function POST(req: Request) {
       .single();
     if (error) {
       console.error("[supabase-token] insert_failed", error);
-      return NextResponse.json({ error: "profile_upsert_failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: "profile_upsert_failed", detail: error.message, code: error.code },
+        { status: 500 }
+      );
     }
     profile = data;
   }

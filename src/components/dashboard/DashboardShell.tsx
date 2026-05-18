@@ -59,6 +59,12 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
     matches: ["/dashboard/reportes"],
   },
   {
+    icon: Syringe,
+    label: "Tratamientos",
+    href: "/dashboard/tratamientos",
+    matches: ["/dashboard/tratamientos"],
+  },
+  {
     icon: Stethoscope,
     label: "Asistente clínico",
     href: "/dashboard/asistente-tratamiento",
@@ -78,10 +84,7 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
   },
 ];
 
-const comingSoonItems: { icon: LucideIcon; label: string }[] = [
-  { icon: Syringe, label: "Tratamientos" },
-  { icon: Receipt, label: "Ventas" },
-];
+const comingSoonItems: { icon: LucideIcon; label: string }[] = [{ icon: Receipt, label: "Ventas" }];
 
 type Props = {
   title: string;
