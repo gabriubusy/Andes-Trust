@@ -28,7 +28,7 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { getSignedPhotoUrl } from "@/lib/supabase/storage";
 
-type Animal = {
+type AnimalUpdate = {
   id: string;
   tag: string;
   name: string | null;
@@ -40,6 +40,9 @@ type Animal = {
   color: string | null;
   photo_url: string | null;
   purpose: "dairy" | "beef" | "dual" | "breeding" | null;
+};
+
+type Animal = AnimalUpdate & {
   breeds: { name: string } | null;
 };
 
@@ -132,7 +135,7 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (values: Partial<Animal> & { breed_id?: string | null }) => {
+    mutationFn: async (values: Partial<AnimalUpdate> & { breed_id?: string | null }) => {
       if (!supabase) throw new Error("Sesión no lista.");
       const { error } = await supabase.from("animals").update(values).eq("id", id);
       if (error) throw error;
@@ -380,7 +383,7 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                       <input
                         type={type}
                         value={(editValues[key] as string) ?? ""}
-                        onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
+                        onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value } as Partial<Animal>))}
                         className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                       />
                     </div>
@@ -392,7 +395,7 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                     <select
                       value={editValues.purpose ?? ""}
                       onChange={(e) =>
-                        setEditValues((p) => ({ ...p, purpose: e.target.value || null }))
+                        setEditValues((p) => ({ ...p, purpose: (e.target.value || null) as Animal["purpose"] }))
                       }
                       className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                     >
@@ -409,7 +412,7 @@ export default function AnimalDetailPage({ params }: { params: Promise<{ id: str
                     </label>
                     <select
                       value={editValues.status ?? "active"}
-                      onChange={(e) => setEditValues((p) => ({ ...p, status: e.target.value }))}
+                      onChange={(e) => setEditValues((p) => ({ ...p, status: e.target.value as Animal["status"] }))}
                       className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                     >
                       <option value="active">Activo</option>

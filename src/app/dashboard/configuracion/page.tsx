@@ -280,7 +280,7 @@ function BreedModal({
 }) {
   const [name, setName] = useState(breed?.name ?? "");
   const [species, setSpecies] = useState(breed?.species ?? "bovine");
-  const [purpose, setPurpose] = useState(breed?.purpose ?? "");
+  const [purpose, setPurpose] = useState<"dairy" | "beef" | "dual" | "breeding" | "">(breed?.purpose ?? "");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="bg-card border-border w-full max-w-md rounded-2xl border p-6 shadow-xl">
@@ -316,7 +316,7 @@ function BreedModal({
             <select
               className={inputClass}
               value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
+              onChange={(e) => setPurpose(e.target.value as "dairy" | "beef" | "dual" | "breeding" | "")}
             >
               <option value="">Sin especificar</option>
               <option value="dairy">Lechero</option>
@@ -689,7 +689,7 @@ function TabVacunas() {
   });
 
   const upsertMutation = useMutation({
-    mutationFn: async (payload: Partial<Vaccine> & { id?: string }) => {
+    mutationFn: async (payload: Omit<Vaccine, "id"> & { id?: string }) => {
       if (!supabase) throw new Error("No supabase");
       const { id, ...data } = payload;
       if (id) {
@@ -1019,7 +1019,7 @@ function TabTratamientos() {
   });
 
   const upsertMutation = useMutation({
-    mutationFn: async (payload: Partial<Treatment> & { id?: string }) => {
+    mutationFn: async (payload: Omit<Treatment, "id"> & { id?: string }) => {
       if (!supabase) throw new Error("No supabase");
       const { id, ...data } = payload;
       if (id) {

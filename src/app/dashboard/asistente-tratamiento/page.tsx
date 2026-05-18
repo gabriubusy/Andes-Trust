@@ -45,7 +45,8 @@ export default function AsistenteTratamientoPage() {
     queryKey: ["symptoms-catalog"],
     enabled: !!supabase,
     queryFn: async () => {
-      const { data, error } = await supabase!
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("symptoms_catalog")
         .select("id, name, body_system, severity_default")
         .order("body_system")
@@ -57,7 +58,8 @@ export default function AsistenteTratamientoPage() {
 
   const suggest = useMutation<Suggestion[]>({
     mutationFn: async () => {
-      const { data, error } = await supabase!.rpc("suggest_treatment", {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("suggest_treatment", {
         symptom_ids: Array.from(selected),
       });
       if (error) throw error;

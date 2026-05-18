@@ -56,7 +56,8 @@ export default function EventosPage() {
   const farmId = farmQuery.data?.id;
 
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  type EventType = "birth" | "weighing" | "vaccination" | "treatment" | "deworming" | "insemination" | "pregnancy_check" | "calving" | "transfer" | "sale" | "death" | "slaughter" | "note";
+  const [typeFilter, setTypeFilter] = useState<EventType | "all">("all");
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 25;
 
@@ -122,7 +123,7 @@ export default function EventosPage() {
             <select
               value={typeFilter}
               onChange={(e) => {
-                setTypeFilter(e.target.value);
+                setTypeFilter(e.target.value as EventType | "all");
                 setPage(0);
               }}
               className="border-border bg-background text-foreground focus:border-primary rounded-xl border px-3 py-2 text-sm outline-none"

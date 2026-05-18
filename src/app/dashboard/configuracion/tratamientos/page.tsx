@@ -195,7 +195,7 @@ export default function TratamientosCatalogoPage() {
   });
 
   const upsertMutation = useMutation({
-    mutationFn: async (payload: Partial<Treatment> & { id?: string }) => {
+    mutationFn: async (payload: Omit<Treatment, "id"> & { id?: string }) => {
       if (!supabase) throw new Error("No supabase");
       const { id, ...data } = payload;
       if (id) {

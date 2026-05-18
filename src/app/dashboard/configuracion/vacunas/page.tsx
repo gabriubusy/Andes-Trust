@@ -177,7 +177,7 @@ export default function VacunasCatalogoPage() {
   });
 
   const upsertMutation = useMutation({
-    mutationFn: async (payload: Partial<Vaccine> & { id?: string }) => {
+    mutationFn: async (payload: Omit<Vaccine, "id"> & { id?: string }) => {
       if (!supabase) throw new Error("No supabase");
       const { id, ...data } = payload;
       if (id) {

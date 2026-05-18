@@ -51,7 +51,8 @@ export default function SincronizacionPage() {
     if (!item) return;
     setBusy(true);
     try {
-      const { error } = await supabase.from(item.table).insert(item.payload);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from(item.table).insert(item.payload);
       if (error) throw error;
       await db.pending.delete(id);
     } catch (err) {

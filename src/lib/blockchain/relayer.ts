@@ -30,21 +30,20 @@ export function getRelayerWalletId() {
  * Sends a contract write via the Privy server wallet (relayer).
  * Returns the transaction hash after on-chain confirmation.
  */
-export async function relayContractWrite<
-  const TAbi extends readonly unknown[],
-  TFn extends string,
->({
+export async function relayContractWrite({
   to,
   abi,
   functionName,
   args,
 }: {
   to: `0x${string}`;
-  abi: TAbi;
-  functionName: TFn;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  abi: any;
+  functionName: string;
   args?: readonly unknown[];
 }): Promise<`0x${string}`> {
-  const data = encodeFunctionData({ abi: abi as never, functionName, args: args as never });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = encodeFunctionData({ abi, functionName, args } as any);
 
   const privy = getPrivy();
   const result = await privy.walletApi.ethereum.sendTransaction({
