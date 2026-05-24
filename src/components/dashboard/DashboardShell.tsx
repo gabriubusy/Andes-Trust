@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { useSupabase } from "@/hooks/use-supabase";
+import { clearCacheOnLogout } from "@/lib/cache/clear-on-logout";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const navItems: { icon: LucideIcon; label: string; href: string; matches?: string[] }[] = [
@@ -317,7 +318,10 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             </div>
             <button
               type="button"
-              onClick={logout}
+              onClick={() => {
+                clearCacheOnLogout();
+                logout();
+              }}
               aria-label="Cerrar sesión"
               className="text-foreground/60 hover:bg-background hover:text-foreground rounded-lg p-1.5 transition-colors"
             >
@@ -451,7 +455,10 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
 
             <button
               type="button"
-              onClick={logout}
+              onClick={() => {
+                clearCacheOnLogout();
+                logout();
+              }}
               aria-label="Cerrar sesión"
               className="border-border text-foreground hover:border-primary/40 hover:bg-primary/5 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors lg:hidden"
             >
