@@ -7,6 +7,7 @@ import {
   BellRing,
   Check,
   Filter,
+  Loader2,
   RotateCw,
   Syringe,
   Scale,
@@ -243,14 +244,24 @@ export default function AlertasPage() {
                       <div className="flex shrink-0 gap-2">
                         <button
                           onClick={() => setStatus.mutate({ id: alert.id, status: "acknowledged" })}
-                          className="border-border hover:bg-muted rounded-lg border px-2.5 py-1.5 text-xs"
+                          disabled={setStatus.isPending}
+                          title="Reconocer"
+                          className="border-border hover:bg-muted inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-xs disabled:opacity-50"
                         >
-                          <Check className="h-3.5 w-3.5" />
+                          {setStatus.isPending && setStatus.variables?.id === alert.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
                         </button>
                         <button
                           onClick={() => setStatus.mutate({ id: alert.id, status: "dismissed" })}
-                          className="border-border hover:bg-muted rounded-lg border px-2.5 py-1.5 text-xs"
+                          disabled={setStatus.isPending}
+                          className="border-border hover:bg-muted inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs disabled:opacity-50"
                         >
+                          {setStatus.isPending && setStatus.variables?.id === alert.id && (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          )}
                           Descartar
                         </button>
                       </div>

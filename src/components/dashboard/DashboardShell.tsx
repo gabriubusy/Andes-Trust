@@ -24,6 +24,8 @@ import {
   Stethoscope,
   Check,
   ExternalLink,
+  Menu,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -124,9 +126,11 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const farmId = farmQuery.data?.id;
   const queryClient = useQueryClient();
   const [notifOpen, setNotifOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar dropdown al hacer click fuera
+  // Cerrar notifications dropdown al hacer click fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
@@ -175,10 +179,27 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
 
   if (!ready || !authenticated) {
     return (
-      <div className="bg-background text-foreground flex min-h-screen items-center justify-center">
-        <div className="flex items-center gap-3">
-          <Loader2 className="text-primary h-5 w-5 animate-spin" />
-          <span className="text-foreground/70 text-sm">Verificando sesión...</span>
+      <div className="bg-background text-foreground flex min-h-screen flex-col items-center justify-center gap-8">
+        <div className="space-y-4 text-center">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Loader2 className="text-primary h-8 w-8 animate-spin" />
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-foreground text-xl font-semibold">Finca El Progreso</h1>
+            <p className="text-foreground/50 text-sm">Verificando sesión...</p>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="bg-primary/40 h-2 w-2 rounded-full"
+              style={{
+                animation: `pulse 1.5s ease-in-out infinite`,
+                animationDelay: `${i * 0.2}s`,
+              }}
+            />
+          ))}
         </div>
       </div>
     );
@@ -196,8 +217,24 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
 
   return (
     <div className="bg-background text-foreground flex min-h-screen">
-      <aside className="bg-card/40 border-border fixed inset-y-0 left-0 hidden w-64 flex-col border-r backdrop-blur-xl lg:flex">
-        <div className="border-border flex h-16 shrink-0 items-center border-b px-6">
+      {/* Overlay móvil */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={(e) => {
+            e.preventDefault();
+            setSidebarOpen(false);
+          }}
+        />
+      )}
+
+      <aside
+        ref={sidebarRef}
+        className={`bg-card/40 border-border fixed inset-y-0 left-0 z-50 w-64 flex-col border-r backdrop-blur-xl lg:static lg:z-auto lg:flex ${
+          sidebarOpen ? "flex" : "hidden"
+        }`}
+      >
+        <div className="border-border flex h-16 shrink-0 items-center justify-between border-b px-6">
           <Link href="/" className="inline-flex items-center gap-2">
             <Image
               src="/logo.png"
@@ -208,6 +245,14 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
               className="h-8 w-auto"
             />
           </Link>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Cerrar menú"
+            className="text-foreground/70 hover:text-foreground rounded-lg p-1.5 transition-colors lg:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
         <div className="border-border shrink-0 border-b px-6 py-3">
           <div className="text-foreground/60 text-[10px] font-semibold tracking-wider uppercase">
@@ -222,6 +267,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
               <Link
                 key={item.label}
                 href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
                     ? "bg-primary/10 text-primary"
@@ -282,7 +328,15 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-        <header className="border-border bg-background/80 sticky top-0 z-10 flex h-16 items-center gap-4 border-b px-4 backdrop-blur-xl md:px-8">
+        <header className="border-border bg-background/80 sticky top-0 z-50 flex h-16 items-center gap-4 border-b px-4 backdrop-blur-xl md:px-8">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
+            className="text-foreground/70 hover:text-foreground -ml-2 rounded-lg p-2 transition-colors lg:hidden"
+          >
+            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
           <Link href="/" className="inline-flex items-center gap-2 lg:hidden">
             <Image
               src="/logo.png"

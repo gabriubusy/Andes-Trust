@@ -11,7 +11,12 @@ import { useCurrentFarm } from "@/hooks/use-current-farm";
 type Member = {
   profile_id: string;
   role: "owner" | "admin" | "operator" | "vet" | "viewer" | "regulator";
-  profiles: { id: string; email: string | null; full_name: string | null; wallet_address: string | null } | null;
+  profiles: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    wallet_address: string | null;
+  } | null;
 };
 
 type Invite = {
@@ -141,10 +146,7 @@ export default function EquipoPage() {
   });
 
   return (
-    <DashboardShell
-      title="Equipo de trabajo"
-      subtitle="Miembros con acceso a la finca"
-    >
+    <DashboardShell title="Equipo de trabajo" subtitle="Miembros con acceso a la finca">
       {/* Invitar */}
       <div className="bg-card border-border mb-6 rounded-2xl border p-5">
         <h3 className="text-foreground mb-3 flex items-center gap-2 text-sm font-semibold">
@@ -164,7 +166,9 @@ export default function EquipoPage() {
             className="border-border bg-background rounded-lg border px-3 py-2 text-sm outline-none"
           >
             {ROLES.map((r) => (
-              <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+              <option key={r} value={r}>
+                {ROLE_LABEL[r]}
+              </option>
             ))}
           </select>
           <button
@@ -172,7 +176,11 @@ export default function EquipoPage() {
             disabled={!email || invite.isPending}
             className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm text-white disabled:opacity-50"
           >
-            {invite.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            {invite.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="h-4 w-4" />
+            )}
             Invitar
           </button>
         </div>
@@ -180,16 +188,20 @@ export default function EquipoPage() {
           <p className="mt-2 text-xs text-red-500">{(invite.error as Error).message}</p>
         )}
         {invite.isSuccess && invite.data?.added_directly && (
-          <p className="text-emerald-600 mt-2 text-xs">Miembro añadido directamente (ya tenía cuenta).</p>
+          <p className="text-emerald-600 mt-2 text-xs">
+            Miembro añadido directamente (ya tenía cuenta).
+          </p>
         )}
         {invite.isSuccess && invite.data?.invitation && (
           <p className="text-foreground/60 mt-2 text-xs">
-            Invitación creada. El invitado debe iniciar sesión con ese email; la aceptación es automática.
+            Invitación creada. El invitado debe iniciar sesión con ese email; la aceptación es
+            automática.
           </p>
         )}
         <p className="text-foreground/40 mt-3 text-xs">
-          <strong>Roles:</strong> Patrón gestiona finca y ventas · Administrador gestiona equipo · Médico
-          veterinario autoriza tratamientos · Obrero reporta eventos · Solo lectura visualiza.
+          <strong>Roles:</strong> Patrón gestiona finca y ventas · Administrador gestiona equipo ·
+          Médico veterinario autoriza tratamientos · Obrero reporta eventos · Solo lectura
+          visualiza.
         </p>
       </div>
 
@@ -217,23 +229,38 @@ export default function EquipoPage() {
                       <div className="text-foreground truncate text-sm font-medium">
                         {p?.full_name ?? "Sin nombre"}
                       </div>
-                      <div className="text-foreground/50 truncate text-xs">{p?.email ?? "Sin email"}</div>
+                      <div className="text-foreground/50 truncate text-xs">
+                        {p?.email ?? "Sin email"}
+                      </div>
                     </div>
                     <select
                       value={m.role}
-                      onChange={(e) => changeRole.mutate({ profileId: m.profile_id, newRole: e.target.value as Member["role"] })}
-                      className={`rounded-full px-2 py-0.5 text-xs ${ROLE_TINT[m.role]} border-none outline-none`}
+                      disabled={changeRole.isPending}
+                      onChange={(e) =>
+                        changeRole.mutate({
+                          profileId: m.profile_id,
+                          newRole: e.target.value as Member["role"],
+                        })
+                      }
+                      className={`rounded-full px-2 py-0.5 text-xs ${ROLE_TINT[m.role]} border-none outline-none disabled:opacity-50`}
                     >
                       {ROLES.map((r) => (
-                        <option key={r} value={r}>{ROLE_LABEL[r]}</option>
+                        <option key={r} value={r}>
+                          {ROLE_LABEL[r]}
+                        </option>
                       ))}
                     </select>
                     <button
                       onClick={() => removeMember.mutate(m.profile_id)}
+                      disabled={removeMember.isPending}
                       title="Eliminar miembro"
-                      className="rounded-lg border border-red-500/30 p-1.5 text-red-500 hover:bg-red-500/10"
+                      className="rounded-lg border border-red-500/30 p-1.5 text-red-500 hover:bg-red-500/10 disabled:opacity-50"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      {removeMember.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
                     </button>
                   </li>
                 );
@@ -250,7 +277,9 @@ export default function EquipoPage() {
             <span className="text-foreground/40 text-xs">({invitesQuery.data?.length ?? 0})</span>
           </div>
           {(invitesQuery.data ?? []).length === 0 ? (
-            <p className="text-foreground/50 px-5 py-8 text-center text-sm">Sin invitaciones pendientes</p>
+            <p className="text-foreground/50 px-5 py-8 text-center text-sm">
+              Sin invitaciones pendientes
+            </p>
           ) : (
             <ul className="divide-border divide-y">
               {(invitesQuery.data ?? []).map((i) => (
@@ -260,15 +289,21 @@ export default function EquipoPage() {
                     <div className="text-foreground truncate font-medium">{i.email}</div>
                     <div className="text-foreground/50 mt-0.5 flex items-center gap-1">
                       <Shield className="h-3 w-3" />
-                      {ROLE_LABEL[i.role]} · expira {new Date(i.expires_at).toLocaleDateString("es-VE")}
+                      {ROLE_LABEL[i.role]} · expira{" "}
+                      {new Date(i.expires_at).toLocaleDateString("es-VE")}
                     </div>
                   </div>
                   <button
                     onClick={() => revokeInvite.mutate(i.id)}
-                    className="rounded-lg border border-red-500/30 p-1 text-red-500 hover:bg-red-500/10"
+                    disabled={revokeInvite.isPending}
+                    className="rounded-lg border border-red-500/30 p-1 text-red-500 hover:bg-red-500/10 disabled:opacity-50"
                     title="Revocar"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    {revokeInvite.isPending ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3 w-3" />
+                    )}
                   </button>
                 </li>
               ))}
