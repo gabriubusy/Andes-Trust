@@ -3,15 +3,14 @@ const baseDirectives = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://auth.privy.io https://*.privy.io https://*.rpc.privy.systems https://explorer-api.walletconnect.com https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://*.coinbase.com wss://*.coinbase.com https://*.supabase.co wss://*.supabase.co",
-  "frame-src 'self' https://auth.privy.io https://verify.walletconnect.com https://verify.walletconnect.org https://challenges.cloudflare.com",
+  "connect-src 'self' https: wss:",
+  "frame-src 'self' https:",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "object-src 'none'",
 ];
 
-const scriptSrc =
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://privy.io https://*.privy.io";
+const scriptSrc = "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 
 export const secureHeaders = {
   "Content-Security-Policy": [scriptSrc, ...baseDirectives].join("; "),

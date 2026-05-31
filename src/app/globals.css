@@ -24,6 +24,13 @@
   --animate-float: float 3s ease-in-out infinite;
 }
 
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-primary: #1f2937;
+    --color-primary-foreground: #ffffff;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -111,6 +118,8 @@
 }
 
 .dark {
+  --color-primary: #1f2937;
+  --color-primary-foreground: #ffffff;
   --color-background: #0f172a;
   --color-foreground: #f8fafc;
   --color-card: #1e293b;

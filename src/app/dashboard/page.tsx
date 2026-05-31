@@ -17,6 +17,7 @@ import {
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { cacheStorage } from "@/lib/cache/storage";
 
 type Variant = "primary" | "secondary" | "accent";
 
@@ -47,7 +48,12 @@ const quickActions: { icon: LucideIcon; label: string; href: string; variant: Va
     variant: "secondary",
   },
   { icon: Beef, label: "Ver hato", href: "/dashboard/animales", variant: "accent" },
-  { icon: FileCheck, label: "Generar certificado", href: "#", variant: "primary" },
+  {
+    icon: FileCheck,
+    label: "Generar certificado",
+    href: "/dashboard/certificados/nuevo",
+    variant: "primary",
+  },
 ];
 
 export default function DashboardPage() {
@@ -58,7 +64,11 @@ export default function DashboardPage() {
   const summary = useQuery({
     queryKey: ["dashboard-summary", farmId],
     enabled: !!supabase && !!farmId,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour
     queryFn: async () => {
+      const cached = cacheStorage.get("dashboard-summary");
+      if (cached) return cached;
       if (!supabase || !farmId) return null;
 
       const today = new Date();
@@ -97,20 +107,29 @@ export default function DashboardPage() {
 
       const litersToday = (milkToday ?? []).reduce((acc, r) => acc + Number(r.liters ?? 0), 0);
 
-      return {
+      const result = {
         activeAnimals: activeCount ?? 0,
         litersToday,
         upcomingVacs: upcomingVacs ?? 0,
         certifications: certs ?? 0,
       };
+
+      cacheStorage.set("dashboard-summary", result, 60 * 60 * 1000);
+      return result;
     },
   });
 
   const recentAnimals = useQuery({
     queryKey: ["dashboard-recent-animals", farmId],
     enabled: !!supabase && !!farmId,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour
     queryFn: async () => {
       if (!supabase || !farmId) return [];
+
+      const cached = cacheStorage.get("dashboard-recent-animals");
+      if (cached) return cached;
+
       const { data, error } = await supabase
         .from("animals")
         .select("id, tag, name, current_weight_kg, created_at")
@@ -118,15 +137,24 @@ export default function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(5);
       if (error) throw error;
-      return data ?? [];
+
+      const result = data ?? [];
+      cacheStorage.set("dashboard-recent-animals", result, 60 * 60 * 1000);
+      return result;
     },
   });
 
   const upcomingEvents = useQuery({
     queryKey: ["dashboard-upcoming-vacs", farmId],
     enabled: !!supabase && !!farmId,
+    staleTime: 5 * 60 * 1000, // 5 minutes (más frecuente por ser tiempo-sensible)
+    gcTime: 60 * 60 * 1000, // 1 hour
     queryFn: async () => {
       if (!supabase || !farmId) return [];
+
+      const cached = cacheStorage.get("dashboard-upcoming-vacs");
+      if (cached) return cached;
+
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("vaccinations")
@@ -136,7 +164,10 @@ export default function DashboardPage() {
         .order("next_due_at", { ascending: true })
         .limit(5);
       if (error) throw error;
-      return data ?? [];
+
+      const result = data ?? [];
+      cacheStorage.set("dashboard-upcoming-vacs", result, 30 * 60 * 1000);
+      return result;
     },
   });
 

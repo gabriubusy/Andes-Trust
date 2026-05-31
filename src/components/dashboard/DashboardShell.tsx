@@ -26,6 +26,8 @@ import {
   ExternalLink,
   Menu,
   X,
+  ChevronLeft,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -128,6 +130,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const queryClient = useQueryClient();
   const [notifOpen, setNotifOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -231,37 +234,55 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
 
       <aside
         ref={sidebarRef}
-        className={`bg-card/40 border-border fixed inset-y-0 left-0 z-50 w-64 flex-col border-r backdrop-blur-xl lg:static lg:z-auto lg:flex ${
-          sidebarOpen ? "flex" : "hidden"
-        }`}
+        className={`bg-card/40 border-border fixed inset-y-0 left-0 z-50 flex-col border-r backdrop-blur-xl transition-all duration-300 ${
+          sidebarOpen ? "flex" : "hidden lg:flex"
+        } ${sidebarCollapsed ? "w-20" : "w-64"}`}
       >
-        <div className="border-border flex h-16 shrink-0 items-center justify-between border-b px-6">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <Image
-              src="/logo.png"
-              alt="Finca El Progreso"
-              width={120}
-              height={48}
-              priority
-              className="h-8 w-auto"
-            />
-          </Link>
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Cerrar menú"
-            className="text-foreground/70 hover:text-foreground rounded-lg p-1.5 transition-colors lg:hidden"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="border-border shrink-0 border-b px-6 py-3">
-          <div className="text-foreground/60 text-[10px] font-semibold tracking-wider uppercase">
-            Finca
+        <div className="border-border flex h-16 shrink-0 items-center justify-between border-b px-4 lg:px-3">
+          {!sidebarCollapsed && (
+            <Link href="/" className="inline-flex items-center gap-2">
+              <Image
+                src="/logo.png"
+                alt="Finca El Progreso"
+                width={120}
+                height={48}
+                priority
+                className="h-8 w-auto"
+              />
+            </Link>
+          )}
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Cerrar menú"
+              className="text-foreground/70 hover:text-foreground rounded-lg p-1.5 transition-colors lg:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              aria-label={sidebarCollapsed ? "Expandir" : "Colapsar"}
+              className="text-foreground/70 hover:text-foreground hidden rounded-lg p-1.5 transition-colors lg:block"
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </button>
           </div>
-          <div className="text-foreground truncate text-sm font-semibold">{farmName}</div>
         </div>
-        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-4">
+        {!sidebarCollapsed && (
+          <div className="border-border shrink-0 border-b px-4 py-3">
+            <div className="text-foreground/60 text-[10px] font-semibold tracking-wider uppercase">
+              Finca
+            </div>
+            <div className="text-foreground truncate text-sm font-semibold">{farmName}</div>
+          </div>
+        )}
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
           {navItems.map((item) => {
             const active = isActive(item);
             return (
@@ -269,22 +290,27 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
                 key={item.label}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
+                title={sidebarCollapsed ? item.label : undefined}
                 className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-foreground/70 hover:bg-muted hover:text-foreground"
-                }`}
+                } ${sidebarCollapsed ? "justify-center" : ""}`}
               >
                 <item.icon
                   className={`h-4 w-4 shrink-0 ${
                     active ? "text-primary" : "text-foreground/60 group-hover:text-foreground"
                   }`}
                 />
-                <span className="flex-1">{item.label}</span>
-                {item.href === "/dashboard/alertas" && openAlerts > 0 && (
-                  <span className="ml-auto rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-500">
-                    {openAlerts}
-                  </span>
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="flex-1">{item.label}</span>
+                    {item.href === "/dashboard/alertas" && openAlerts > 0 && (
+                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-500">
+                        {openAlerts}
+                      </span>
+                    )}
+                  </>
                 )}
               </Link>
             );
@@ -307,31 +333,33 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             </div>
           )}
         </nav>
-        <div className="border-border shrink-0 border-t p-4">
-          <div className="bg-muted/50 border-border flex items-center gap-3 rounded-xl border p-3">
-            <div className="from-primary to-secondary flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-xs font-bold text-white">
-              {initials}
+        {!sidebarCollapsed && (
+          <div className="border-border shrink-0 border-t p-3">
+            <div className="bg-muted/50 border-border flex items-center gap-3 rounded-xl border p-3">
+              <div className="from-primary to-secondary flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-xs font-bold text-white">
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-foreground truncate text-sm font-medium">{displayName}</div>
+                <div className="text-foreground/60 truncate text-xs">{email ?? "Sin email"}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  clearCacheOnLogout();
+                  logout();
+                }}
+                aria-label="Cerrar sesión"
+                className="text-foreground/60 hover:bg-background hover:text-foreground rounded-lg p-1.5 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-foreground truncate text-sm font-medium">{displayName}</div>
-              <div className="text-foreground/60 truncate text-xs">{email ?? "Sin email"}</div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                clearCacheOnLogout();
-                logout();
-              }}
-              aria-label="Cerrar sesión"
-              className="text-foreground/60 hover:bg-background hover:text-foreground rounded-lg p-1.5 transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
           </div>
-        </div>
+        )}
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-border bg-background/80 sticky top-0 z-50 flex h-16 items-center gap-4 border-b px-4 backdrop-blur-xl md:px-8">
           <button
             type="button"
@@ -466,8 +494,8 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             </button>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8">
-          <div className="mx-auto max-w-7xl space-y-8">{children}</div>
+        <main className="flex-1 p-3 md:p-4">
+          <div className="space-y-8">{children}</div>
         </main>
       </div>
     </div>

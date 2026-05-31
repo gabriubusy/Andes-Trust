@@ -25,13 +25,6 @@ function getSupabaseAdmin() {
 }
 
 export async function POST(req: Request) {
-  try {
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-    const payload = JSON.parse(Buffer.from(key.split(".")[1] ?? "", "base64").toString());
-    console.log("[supabase-token] key role:", payload.role, "| last4:", key.slice(-4));
-  } catch {
-    console.log("[supabase-token] could not decode key");
-  }
   const auth = req.headers.get("authorization");
   const privyToken = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
   if (!privyToken) {
@@ -74,7 +67,6 @@ export async function POST(req: Request) {
       .from("profiles")
       .update({
         wallet_address: wallet,
-        is_platform_admin: isPlatformAdmin,
         ...(email ? { email } : {}),
       })
       .eq("privy_did", privyDid)
@@ -96,7 +88,6 @@ export async function POST(req: Request) {
         privy_did: privyDid,
         email,
         wallet_address: wallet,
-        is_platform_admin: isPlatformAdmin,
       })
       .select("id")
       .single();
