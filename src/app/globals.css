@@ -26,8 +26,8 @@
 
 @media (prefers-color-scheme: dark) {
   @theme {
-    --color-primary: #1f2937;
-    --color-primary-foreground: #ffffff;
+    --color-primary: #60a5fa;
+    --color-primary-foreground: #0f172a;
   }
 }
 
@@ -118,8 +118,8 @@
 }
 
 .dark {
-  --color-primary: #1f2937;
-  --color-primary-foreground: #ffffff;
+  --color-primary: #60a5fa;
+  --color-primary-foreground: #0f172a;
   --color-background: #0f172a;
   --color-foreground: #f8fafc;
   --color-card: #1e293b;

@@ -10,7 +10,8 @@ const baseDirectives = [
   "object-src 'none'",
 ];
 
-const scriptSrc = "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+const scriptSrc =
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://auth.privy.io https://walletconnect.com";
 
 export const secureHeaders = {
   "Content-Security-Policy": [scriptSrc, ...baseDirectives].join("; "),
