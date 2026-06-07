@@ -12,6 +12,8 @@ import {
   Droplets,
   FlaskConical,
   CalendarDays,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -29,11 +31,13 @@ import { toast } from "sonner";
 
 type MilkRow = {
   id: string;
+  animal_id: string | null;
   recorded_on: string;
   shift: "am" | "pm" | "midday";
   liters: number;
   fat_pct: number | null;
   protein_pct: number | null;
+  notes: string | null;
   animals: { tag: string; name: string | null } | null;
 };
 
@@ -264,11 +268,243 @@ function AddRecordModal({
   );
 }
 
+function EditRecordModal({
+  record,
+  farmId,
+  onClose,
+}: {
+  record: MilkRow;
+  farmId: string;
+  onClose: () => void;
+}) {
+  const { supabase } = useSupabase();
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    liters: String(record.liters),
+    shift: record.shift,
+    recorded_on: record.recorded_on,
+    animal_id: record.animal_id ?? "",
+    fat_pct: record.fat_pct != null ? String(record.fat_pct) : "",
+    protein_pct: record.protein_pct != null ? String(record.protein_pct) : "",
+    notes: record.notes ?? "",
+  });
+
+  const animalsQuery = useQuery<{ id: string; tag: string; name: string | null }[]>({
+    queryKey: ["animals-select", farmId],
+    enabled: !!supabase,
+    queryFn: async () => {
+      if (!supabase) return [];
+      const { data, error } = await supabase
+        .from("animals")
+        .select("id, tag, name")
+        .eq("farm_id", farmId)
+        .order("tag");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!supabase) throw new Error("Sin sesión");
+      if (!form.liters || Number(form.liters) <= 0) throw new Error("Litros inválidos");
+      const { error } = await supabase
+        .from("milk_records")
+        .update({
+          animal_id: form.animal_id || null,
+          liters: Number(form.liters),
+          shift: form.shift,
+          recorded_on: form.recorded_on,
+          fat_pct: form.fat_pct ? Number(form.fat_pct) : null,
+          protein_pct: form.protein_pct ? Number(form.protein_pct) : null,
+          notes: form.notes || null,
+        })
+        .eq("id", record.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["milk-production"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      toast.success("Registro actualizado");
+      onClose();
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!supabase) throw new Error("Sin sesión");
+      const { error } = await supabase.from("milk_records").delete().eq("id", record.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["milk-production"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      toast.success("Registro eliminado");
+      onClose();
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="bg-card border-border w-full max-w-md rounded-2xl border p-6 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-foreground text-base font-bold">Editar registro</h2>
+          <button
+            onClick={onClose}
+            className="text-foreground/40 hover:text-foreground rounded-lg p-1"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>Turno *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["am", "midday", "pm"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, shift: s }))}
+                  className={`rounded-xl border py-2 text-xs font-medium transition-all ${
+                    form.shift === s
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-foreground/60 hover:border-primary/40"
+                  }`}
+                >
+                  {SHIFT_LABEL[s]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Litros *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={inputClass}
+                value={form.liters}
+                onChange={(e) => setForm((p) => ({ ...p, liters: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Fecha *</label>
+              <input
+                type="date"
+                className={inputClass}
+                value={form.recorded_on}
+                onChange={(e) => setForm((p) => ({ ...p, recorded_on: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Animal (opcional)</label>
+            <select
+              className={inputClass}
+              value={form.animal_id}
+              onChange={(e) => setForm((p) => ({ ...p, animal_id: e.target.value }))}
+            >
+              <option value="">— Producción total de finca —</option>
+              {(animalsQuery.data ?? []).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.tag}
+                  {a.name ? ` · ${a.name}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>% Grasa</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                className={inputClass}
+                value={form.fat_pct}
+                onChange={(e) => setForm((p) => ({ ...p, fat_pct: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>% Proteína</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                className={inputClass}
+                value={form.protein_pct}
+                onChange={(e) => setForm((p) => ({ ...p, protein_pct: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Notas</label>
+            <input
+              className={inputClass}
+              value={form.notes}
+              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("¿Eliminar este registro? Esta acción no se puede deshacer.")) {
+                deleteMutation.mutate();
+              }
+            }}
+            disabled={deleteMutation.isPending}
+            className="text-destructive hover:bg-destructive/10 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {deleteMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            Eliminar
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="border-border text-foreground/70 hover:bg-muted rounded-xl border px-4 py-2 text-sm font-medium"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={mutation.isPending}
+              onClick={() => mutation.mutate()}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProduccionPage() {
   const { supabase, profileId } = useSupabase();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
   const [showModal, setShowModal] = useState(false);
+  const [editRecord, setEditRecord] = useState<MilkRow | null>(null);
   const [days, setDays] = useState(30);
   const [search, setSearch] = useState("");
 
@@ -280,7 +516,9 @@ export default function ProduccionPage() {
       const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("milk_records")
-        .select("id, recorded_on, shift, liters, fat_pct, protein_pct, animals(tag, name)")
+        .select(
+          "id, animal_id, recorded_on, shift, liters, fat_pct, protein_pct, notes, animals(tag, name)"
+        )
         .eq("farm_id", farmId)
         .gte("recorded_on", since)
         .order("recorded_on", { ascending: false })
@@ -510,6 +748,7 @@ export default function ProduccionPage() {
                   <th className="px-5 py-3 text-right font-medium">Litros</th>
                   <th className="px-5 py-3 text-right font-medium">Grasa</th>
                   <th className="px-5 py-3 text-right font-medium">Proteína</th>
+                  <th className="px-5 py-3 text-right font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
@@ -560,6 +799,14 @@ export default function ProduccionPage() {
                         <span className="text-foreground/30">—</span>
                       )}
                     </td>
+                    <td className="px-3 py-3.5 text-right">
+                      <button
+                        onClick={() => setEditRecord(r)}
+                        className="text-foreground/40 hover:text-primary hover:bg-primary/10 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors"
+                      >
+                        <Pencil className="h-3 w-3" /> Editar
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -570,7 +817,7 @@ export default function ProduccionPage() {
         {filtered.length > 0 && (
           <div className="border-border text-foreground/40 flex items-center justify-between border-t px-5 py-3 text-xs">
             <span>
-              {filtered.length} resultado{filtered.length !== 1 ? "s" : ""}
+              {filtered.length} resultado{filtered.length === 1 ? "" : "s"}
             </span>
             {search && (
               <button onClick={() => setSearch("")} className="text-primary hover:underline">
@@ -583,6 +830,9 @@ export default function ProduccionPage() {
 
       {showModal && farmId && profileId && (
         <AddRecordModal farmId={farmId} profileId={profileId} onClose={() => setShowModal(false)} />
+      )}
+      {editRecord && farmId && (
+        <EditRecordModal record={editRecord} farmId={farmId} onClose={() => setEditRecord(null)} />
       )}
     </DashboardShell>
   );
