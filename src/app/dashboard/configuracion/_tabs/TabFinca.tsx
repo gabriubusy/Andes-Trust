@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, MapPin, Building2, Hash, Globe, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -80,21 +80,41 @@ export function TabFinca() {
   const set = (key: keyof typeof form, value: string) =>
     setForm((p) => ({ ...p, [key]: value || null }));
 
-  return (
-    <div className="bg-card border-border max-w-2xl rounded-2xl border p-6">
-      <p className="text-foreground/60 mb-6 text-sm">
-        Esta información aparece en los certificados y fichas públicas de tus animales.
-      </p>
-
-      {detailQuery.isLoading ? (
-        <div className="flex items-center gap-2 py-6">
-          <Loader2 className="text-primary h-4 w-4 animate-spin" />
-          <span className="text-foreground/60 text-sm">Cargando…</span>
+  if (detailQuery.isLoading) {
+    return (
+      <div className="bg-card border-border max-w-2xl rounded-2xl border p-6">
+        <div className="flex items-center gap-3 py-8 justify-center">
+          <Loader2 className="text-primary h-5 w-5 animate-spin" />
+          <span className="text-foreground/50 text-sm">Cargando datos de la finca…</span>
         </div>
-      ) : (
-        <div className="space-y-5">
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl space-y-4">
+      {/* Header card */}
+      <div className="bg-card border-border rounded-2xl border p-6">
+        <div className="flex items-start gap-3 mb-6">
+          <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+            <Building2 className="h-5 w-5" />
+          </div>
           <div>
-            <label className={labelClass}>Nombre de la finca *</label>
+            <h3 className="text-foreground text-base font-bold">Información de la finca</h3>
+            <p className="text-foreground/50 text-xs mt-0.5">
+              Aparece en certificados, fichas públicas y reportes regulatorios.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {/* Name */}
+          <div>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5">
+                <Building2 className="h-3 w-3" /> Nombre de la finca *
+              </span>
+            </label>
             <input
               className={inputClass}
               value={form.name}
@@ -102,8 +122,14 @@ export function TabFinca() {
               placeholder="Ej. Finca El Progreso"
             />
           </div>
+
+          {/* Legal ID */}
           <div>
-            <label className={labelClass}>NIT / Cédula jurídica</label>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5">
+                <Hash className="h-3 w-3" /> NIT / Cédula jurídica
+              </span>
+            </label>
             <input
               className={inputClass}
               value={form.legal_id ?? ""}
@@ -111,28 +137,40 @@ export function TabFinca() {
               placeholder="Identificación fiscal (opcional)"
             />
           </div>
+
+          {/* Country + Region */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>País</label>
+              <label className={labelClass}>
+                <span className="flex items-center gap-1.5">
+                  <Globe className="h-3 w-3" /> País
+                </span>
+              </label>
               <input
                 className={inputClass}
                 value={form.country ?? ""}
                 onChange={(e) => set("country", e.target.value)}
-                placeholder="Ej. Venezuela"
+                placeholder="Ej. Colombia"
               />
             </div>
             <div>
-              <label className={labelClass}>Región / Estado</label>
+              <label className={labelClass}>Región / Departamento</label>
               <input
                 className={inputClass}
                 value={form.region ?? ""}
                 onChange={(e) => set("region", e.target.value)}
-                placeholder="Ej. Mérida"
+                placeholder="Ej. Antioquia"
               />
             </div>
           </div>
+
+          {/* Address */}
           <div>
-            <label className={labelClass}>Dirección</label>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-3 w-3" /> Dirección
+              </span>
+            </label>
             <input
               className={inputClass}
               value={form.address ?? ""}
@@ -140,23 +178,32 @@ export function TabFinca() {
               placeholder="Vereda, municipio, km…"
             />
           </div>
-          <div className="pt-2">
-            <button
-              type="button"
-              disabled={!form.name.trim() || updateMutation.isPending}
-              onClick={() => updateMutation.mutate()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium disabled:opacity-60"
-            >
-              {updateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : saved ? (
-                <Check className="h-4 w-4" />
-              ) : null}
-              {saved ? "Guardado" : "Guardar cambios"}
-            </button>
-          </div>
         </div>
-      )}
+
+        {/* Save */}
+        <div className="mt-6 flex items-center justify-between border-t border-border pt-5">
+          <p className="text-foreground/40 text-xs">* Campo requerido</p>
+          <button
+            type="button"
+            disabled={!form.name.trim() || updateMutation.isPending}
+            onClick={() => updateMutation.mutate()}
+            className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:opacity-60 ${
+              saved
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
+          >
+            {updateMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : saved ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saved ? "Cambios guardados" : "Guardar cambios"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

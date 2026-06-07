@@ -3,15 +3,28 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Loader2,
+  Beef,
+  User,
+  BadgeDollarSign,
+  CheckSquare,
+  Square,
+  Weight,
+  CreditCard,
+  Banknote,
+  ArrowLeftRight,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 
 const inputClass =
-  "border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none";
-const labelClass = "text-foreground mb-1 block text-xs font-medium";
+  "border-border bg-muted/40 text-foreground focus:border-primary focus:bg-background focus:ring-primary/20 w-full rounded-xl border px-3 py-2.5 text-sm focus:ring-2 focus:outline-none transition-colors";
+const labelClass = "text-foreground/70 mb-1.5 block text-xs font-medium";
 
 type AnimalOption = {
   id: string;
@@ -21,6 +34,82 @@ type AnimalOption = {
 };
 type BuyerOption = { id: string; name: string; legal_id: string | null };
 type OpenAlert = { id: string; type: string; animal_id: string | null };
+
+const PAYMENT_OPTIONS = [
+  { value: "cash", label: "Efectivo", icon: Banknote },
+  { value: "transfer", label: "Transferencia", icon: ArrowLeftRight },
+  { value: "check", label: "Cheque", icon: CreditCard },
+  { value: "crypto", label: "Crypto", icon: BadgeDollarSign },
+  { value: "escrow", label: "Escrow blockchain", icon: Check },
+];
+
+function AnimalCard({
+  animal,
+  selected,
+  hasAlert,
+  onToggle,
+}: {
+  animal: AnimalOption;
+  selected: boolean;
+  hasAlert: boolean;
+  onToggle: () => void;
+}) {
+  const initials = animal.name
+    ? animal.name.slice(0, 2).toUpperCase()
+    : animal.tag
+        .replace(/[^A-Z0-9]/gi, "")
+        .slice(0, 2)
+        .toUpperCase();
+
+  return (
+    <label
+      className={`group relative flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition-all ${
+        selected
+          ? "border-primary bg-primary/10 shadow-sm shadow-primary/10"
+          : "border-border hover:border-primary/30 hover:bg-muted/30"
+      }`}
+    >
+      <input type="checkbox" className="sr-only" checked={selected} onChange={onToggle} />
+
+      {/* Avatar */}
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold transition-colors ${
+          selected ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/50"
+        }`}
+      >
+        {initials}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="text-foreground font-mono text-xs font-bold">{animal.tag}</div>
+        {animal.name && <div className="text-foreground/60 truncate text-xs">{animal.name}</div>}
+        {animal.current_weight_kg && (
+          <div className="text-foreground/40 flex items-center gap-1 text-xs mt-0.5">
+            <Weight className="h-2.5 w-2.5" />
+            {animal.current_weight_kg} kg
+          </div>
+        )}
+      </div>
+
+      {/* Checkbox indicator */}
+      <div
+        className={`shrink-0 transition-colors ${selected ? "text-primary" : "text-foreground/20"}`}
+      >
+        {selected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+      </div>
+
+      {/* Alert indicator */}
+      {hasAlert && (
+        <span
+          title="Alerta sanitaria activa"
+          className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20"
+        >
+          <AlertTriangle className="h-3 w-3 text-amber-500" />
+        </span>
+      )}
+    </label>
+  );
+}
 
 export default function NuevaVentaPage() {
   const router = useRouter();
@@ -90,21 +179,15 @@ export default function NuevaVentaPage() {
     if (animalsQuery.error)
       toast.error("Error al cargar: " + (animalsQuery.error as Error).message);
   }, [animalsQuery.error]);
-
   useEffect(() => {
     if (buyersQuery.error) toast.error("Error al cargar: " + (buyersQuery.error as Error).message);
   }, [buyersQuery.error]);
-
-  useEffect(() => {
-    if (alertsQuery.error) toast.error("Error al cargar: " + (alertsQuery.error as Error).message);
-  }, [alertsQuery.error]);
 
   const toggleAnimal = (animalId: string) => {
     setSelectedAnimalIds((prev) => {
       const next = prev.includes(animalId)
         ? prev.filter((x) => x !== animalId)
         : [...prev, animalId];
-      // check sanitary alerts for selected animals
       const blocked = next.filter((aid) =>
         alertsQuery.data?.some((a) => a.animal_id === aid && a.type !== "weighing_due")
       );
@@ -170,13 +253,11 @@ export default function NuevaVentaPage() {
       const { error: ie } = await supabase.from("sale_items").insert(items);
       if (ie) throw ie;
 
-      // Mark animals as sold
       await supabase.from("animals").update({ status: "sold" }).in("id", selectedAnimalIds);
-
       return sale.id as string;
     },
     onSuccess: (saleId) => {
-      toast.success("Guardado correctamente");
+      toast.success("Venta registrada correctamente");
       queryClient.invalidateQueries({ queryKey: ["animals"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       router.push(`/dashboard/ventas/${saleId}`);
@@ -184,68 +265,90 @@ export default function NuevaVentaPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const step = (n: number, title: string, icon: React.ReactNode) => (
+    <div className="flex items-center gap-2 mb-5">
+      <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-bold">
+        {n}
+      </div>
+      <div className="flex items-center gap-2">
+        {icon}
+        <h3 className="text-foreground text-base font-bold">{title}</h3>
+      </div>
+    </div>
+  );
+
   return (
     <DashboardShell title="Nueva venta">
-      <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-        {/* Animal selector */}
+      <div className="mx-auto max-w-3xl space-y-6">
+        {/* Step 1 — Animals */}
         <div className="bg-card border-border rounded-2xl border p-6">
-          <h3 className="text-foreground mb-4 text-base font-bold">Animales a vender</h3>
+          {step(1, "Animales a vender", <Beef className="text-primary h-4 w-4" />)}
+
           {animalsQuery.isLoading ? (
-            <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-muted/30 h-20 animate-pulse rounded-2xl" />
+              ))}
+            </div>
+          ) : (animalsQuery.data?.length ?? 0) === 0 ? (
+            <div className="text-foreground/50 rounded-2xl border border-dashed border-border py-10 text-center text-sm">
+              No hay animales activos disponibles para la venta.
+            </div>
           ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {(animalsQuery.data ?? []).map((a) => {
-                const isSelected = selectedAnimalIds.includes(a.id);
-                const hasAlert = alertsQuery.data?.some(
-                  (al) => al.animal_id === a.id && al.type !== "weighing_due"
-                );
-                return (
-                  <label
-                    key={a.id}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors ${
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:bg-muted/40"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-primary"
-                      checked={isSelected}
-                      onChange={() => toggleAnimal(a.id)}
-                    />
-                    <div className="flex-1 text-sm">
-                      <span className="text-foreground font-medium">{a.tag}</span>
-                      {a.name && <span className="text-muted-foreground"> — {a.name}</span>}
-                      {a.current_weight_kg && (
-                        <span className="text-muted-foreground"> · {a.current_weight_kg} kg</span>
-                      )}
-                    </div>
-                    {hasAlert && (
-                      <span title="Alerta sanitaria activa">
-                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-                      </span>
-                    )}
-                  </label>
-                );
-              })}
-              {animalsQuery.data?.length === 0 && (
-                <p className="text-muted-foreground col-span-2 text-sm">No hay animales activos.</p>
-              )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(animalsQuery.data ?? []).map((a) => (
+                <AnimalCard
+                  key={a.id}
+                  animal={a}
+                  selected={selectedAnimalIds.includes(a.id)}
+                  hasAlert={
+                    !!alertsQuery.data?.some(
+                      (al) => al.animal_id === a.id && al.type !== "weighing_due"
+                    )
+                  }
+                  onToggle={() => toggleAnimal(a.id)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Selection summary */}
+          {selectedAnimalIds.length > 0 && (
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-primary/5 border border-primary/20 px-4 py-2.5">
+              <span className="text-foreground/70 text-sm">
+                <span className="text-primary font-bold">{selectedAnimalIds.length}</span> animal
+                {selectedAnimalIds.length > 1 ? "es" : ""} seleccionado
+                {selectedAnimalIds.length > 1 ? "s" : ""}
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedAnimalIds([]);
+                  setSanitaryBlocked([]);
+                }}
+                className="text-foreground/40 text-xs hover:text-foreground"
+              >
+                Limpiar selección
+              </button>
             </div>
           )}
 
           {sanitaryBlocked.length > 0 && (
-            <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-              ⚠️ {sanitaryBlocked.length} animal(es) seleccionado(s) tiene(n) alertas sanitarias
-              activas (vacunación o retiro de medicamento). Resuélvelas antes de continuar.
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-400">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>
+                  {sanitaryBlocked.length} animal{sanitaryBlocked.length > 1 ? "es" : ""}
+                </strong>{" "}
+                con alertas sanitarias activas (vacunación o retiro de medicamento). Resuélvelas
+                antes de continuar.
+              </span>
             </div>
           )}
         </div>
 
-        {/* Buyer */}
+        {/* Step 2 — Buyer */}
         <div className="bg-card border-border rounded-2xl border p-6">
-          <h3 className="text-foreground mb-4 text-base font-bold">Comprador</h3>
+          {step(2, "Comprador", <User className="text-primary h-4 w-4" />)}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <label htmlFor="buyer_id" className={labelClass}>
@@ -257,7 +360,7 @@ export default function NuevaVentaPage() {
                 value={buyerId}
                 onChange={(e) => setBuyerId(e.target.value)}
               >
-                <option value="">— nuevo comprador —</option>
+                <option value="">— Nuevo comprador —</option>
                 {buyersQuery.data?.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -297,9 +400,10 @@ export default function NuevaVentaPage() {
           </div>
         </div>
 
-        {/* Pricing */}
+        {/* Step 3 — Pricing */}
         <div className="bg-card border-border rounded-2xl border p-6">
-          <h3 className="text-foreground mb-4 text-base font-bold">Condiciones económicas</h3>
+          {step(3, "Condiciones económicas", <BadgeDollarSign className="text-primary h-4 w-4" />)}
+
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label htmlFor="unit_price" className={labelClass}>
@@ -315,24 +419,6 @@ export default function NuevaVentaPage() {
                 onChange={(e) => setUnitPrice(e.target.value)}
                 placeholder="1500.00"
               />
-            </div>
-            <div>
-              <label htmlFor="payment_method" className={labelClass}>
-                Forma de pago
-              </label>
-              <select
-                id="payment_method"
-                className={inputClass}
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              >
-                <option value="">— selecciona —</option>
-                <option value="cash">Efectivo</option>
-                <option value="transfer">Transferencia</option>
-                <option value="check">Cheque</option>
-                <option value="crypto">Crypto</option>
-                <option value="escrow">Escrow blockchain</option>
-              </select>
             </div>
             <div>
               <label htmlFor="invoice_number" className={labelClass}>
@@ -359,6 +445,26 @@ export default function NuevaVentaPage() {
               />
             </div>
             <div className="md:col-span-2">
+              <label className={labelClass}>Forma de pago</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {PAYMENT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setPaymentMethod(paymentMethod === opt.value ? "" : opt.value)}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all ${
+                      paymentMethod === opt.value
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border text-foreground/60 hover:border-primary/40 hover:text-foreground"
+                    }`}
+                  >
+                    <opt.icon className="h-3.5 w-3.5 shrink-0" />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="md:col-span-2">
               <label htmlFor="notes" className={labelClass}>
                 Notas
               </label>
@@ -368,29 +474,35 @@ export default function NuevaVentaPage() {
                 className={inputClass}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                placeholder="Observaciones adicionales…"
               />
             </div>
           </div>
 
+          {/* Total summary */}
           {selectedAnimalIds.length > 0 && unitPrice && (
-            <div className="bg-muted/30 border-border mt-4 rounded-xl border px-4 py-3">
-              <p className="text-foreground text-sm font-medium">
-                Total estimado:{" "}
-                <span className="text-primary">
-                  ${totalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USD
-                </span>{" "}
-                ({selectedAnimalIds.length} animal{selectedAnimalIds.length > 1 ? "es" : ""} × $
-                {Number(unitPrice).toLocaleString("es-VE", { minimumFractionDigits: 2 })})
-              </p>
+            <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-baseline justify-between">
+                <span className="text-foreground/60 text-sm">Total estimado</span>
+                <span className="text-primary text-2xl font-bold tabular-nums">
+                  ${totalAmount.toLocaleString("es-CO", { minimumFractionDigits: 2 })}
+                  <span className="text-primary/60 ml-1 text-sm font-normal">USD</span>
+                </span>
+              </div>
+              <div className="text-foreground/40 mt-1 text-xs">
+                {selectedAnimalIds.length} animal{selectedAnimalIds.length > 1 ? "es" : ""} × $
+                {Number(unitPrice).toLocaleString("es-CO", { minimumFractionDigits: 2 })} USD c/u
+              </div>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-3">
+        {/* Actions */}
+        <div className="flex items-center justify-between gap-3 pb-4">
           <button
             type="button"
             onClick={() => router.back()}
-            className="border-border text-foreground/80 hover:bg-muted rounded-lg border px-4 py-2 text-sm"
+            className="border-border text-foreground/70 hover:bg-muted rounded-xl border px-5 py-2.5 text-sm font-medium transition-colors"
           >
             Cancelar
           </button>
@@ -400,7 +512,7 @@ export default function NuevaVentaPage() {
               create.isPending || selectedAnimalIds.length === 0 || sanitaryBlocked.length > 0
             }
             onClick={() => create.mutate()}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-medium disabled:opacity-60 transition-colors"
           >
             {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             Confirmar venta

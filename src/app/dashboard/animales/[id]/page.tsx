@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -49,14 +50,15 @@ type Animal = AnimalUpdate & {
 
 type Tab = "info" | "pesajes" | "vacunas" | "tratamientos" | "leche" | "movimientos" | "qr";
 
-export default function AnimalDetailPage({ params }: { params: Promise<{ id: string }> }) {
+function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { supabase, profileId } = useSupabase();
   const farmQuery = useCurrentFarm();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("info");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(searchParams.get("edit") === "1");
   const [editValues, setEditValues] = useState<Partial<Animal>>({});
 
   const animalQuery = useQuery<Animal | null>({
@@ -895,5 +897,13 @@ function RecordList({
         </ul>
       )}
     </div>
+  );
+}
+
+export default function AnimalDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense>
+      <AnimalDetailContent params={params} />
+    </Suspense>
   );
 }

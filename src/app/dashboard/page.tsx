@@ -259,7 +259,7 @@ export default function DashboardPage() {
     },
   });
 
-  // Animal species/breed distribution
+  // Animal breed distribution
   const speciesChart = useQuery({
     queryKey: ["dashboard-species-chart", farmId],
     enabled: !!supabase && !!farmId,
@@ -269,12 +269,12 @@ export default function DashboardPage() {
       if (!supabase || !farmId) return [];
       const { data } = await supabase
         .from("animals")
-        .select("species")
+        .select("breeds(name)")
         .eq("farm_id", farmId)
         .eq("status", "active");
       const counts: Record<string, number> = {};
       for (const a of data ?? []) {
-        const s = (a.species as string) || "Sin clasificar";
+        const s = (a.breeds as { name?: string } | null)?.name ?? "Sin raza";
         counts[s] = (counts[s] ?? 0) + 1;
       }
       return Object.entries(counts).map(([name, value]) => ({ name, value }));
@@ -290,7 +290,7 @@ export default function DashboardPage() {
     queryFn: async () => {
       if (!supabase || !farmId) return [];
       const { data } = await supabase
-        .from("weighing_records")
+        .from("weighings")
         .select("weighed_on, weight_kg")
         .eq("farm_id", farmId)
         .order("weighed_on", { ascending: false })
@@ -510,7 +510,7 @@ export default function DashboardPage() {
         <div className="bg-card border-border rounded-2xl border p-6">
           <div className="mb-5">
             <h2 className="text-foreground text-base font-bold">Composición del hato</h2>
-            <p className="text-foreground/50 text-xs mt-0.5">Por especie · animales activos</p>
+            <p className="text-foreground/50 text-xs mt-0.5">Por raza · animales activos</p>
           </div>
           {speciesChart.isLoading ? (
             <ChartSkeleton h={200} />
