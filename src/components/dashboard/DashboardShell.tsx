@@ -22,6 +22,7 @@ import {
   Bell,
   BellRing,
   Stethoscope,
+  HeartPulse,
   Check,
   ExternalLink,
   Menu,
@@ -79,6 +80,13 @@ const navItems: {
     href: "/dashboard/ventas",
     matches: ["/dashboard/ventas"],
     roles: ["owner", "admin"],
+  },
+  {
+    icon: HeartPulse,
+    label: "Reproducción",
+    href: "/dashboard/reproduccion",
+    matches: ["/dashboard/reproduccion"],
+    roles: ["owner", "admin", "vet", "operator"],
   },
   {
     icon: Syringe,

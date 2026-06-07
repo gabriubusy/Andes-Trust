@@ -7,6 +7,7 @@ import { PrivyProvider } from "@/providers/privy-provider";
 import { SupabaseProvider } from "@/providers/supabase-provider";
 import { ThemeScript } from "@/components/theme-script";
 import OfflineBanner from "@/components/OfflineBanner";
+import PWAInstallButton from "@/components/PWAInstallButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -86,6 +87,7 @@ export default function RootLayout({
               <SupabaseProvider>
                 {children}
                 <OfflineBanner />
+                <PWAInstallButton />
               </SupabaseProvider>
             </QueryProvider>
           </PrivyProvider>

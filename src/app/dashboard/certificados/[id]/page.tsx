@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { QRCodeCanvas } from "qrcode.react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
@@ -49,10 +50,39 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
   const { supabase } = useSupabase();
   const qc = useQueryClient();
   const [origin, setOrigin] = useState("");
+  const [downloading, setDownloading] = useState(false);
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
   const verifyUrl = origin ? `${origin}/api/verify/certifications/${id}` : "";
+
+  const { getAccessToken } = usePrivy();
+
+  async function downloadPdf() {
+    setDownloading(true);
+    try {
+      const token = await getAccessToken();
+      const res = await fetch("/api/reports/certificado", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ certification_id: id }),
+      });
+      if (!res.ok) throw new Error("Error generando PDF");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `certificado-${id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   const certQuery = useQuery<CertDetail>({
     queryKey: ["certification", id],
@@ -200,8 +230,21 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
               </div>
             )}
 
-            {cert.document_url && (
-              <div className="mt-5">
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={downloadPdf}
+                disabled={downloading}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60"
+              >
+                {downloading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {downloading ? "Generando PDF…" : "Descargar PDF"}
+              </button>
+              {cert.document_url && (
                 <a
                   href={cert.document_url}
                   target="_blank"
@@ -210,8 +253,8 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
                 >
                   <ExternalLink className="h-4 w-4" /> Ver documento oficial
                 </a>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Firma criptográfica */}

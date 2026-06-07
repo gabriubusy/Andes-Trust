@@ -10,6 +10,12 @@ export type SyncResult = { synced: number; failed: number };
 
 const MAX_ATTEMPTS = 5;
 
+function invalidateSWApiCache() {
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    navigator.serviceWorker.controller?.postMessage({ type: "INVALIDATE_API_CACHE" });
+  }
+}
+
 export async function flushPending(supabase: SupabaseClient): Promise<SyncResult> {
   const db = getOfflineDb();
   const items = await db.pending.orderBy("created_at").toArray();
@@ -27,6 +33,7 @@ export async function flushPending(supabase: SupabaseClient): Promise<SyncResult
         await db.pending.delete(item.id!);
       });
       synced += 1;
+      invalidateSWApiCache();
     } catch (err) {
       failed += 1;
       const nextAttempts = (item.attempts ?? 0) + 1;
