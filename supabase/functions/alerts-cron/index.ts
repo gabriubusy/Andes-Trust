@@ -6,12 +6,13 @@
 //   - Supabase Scheduled Functions
 //   - Manualmente con `supabase functions invoke alerts-cron`
 // Variables requeridas:
-//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, ALERTS_FROM_EMAIL
+//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SMTP_USER, SMTP_PASS
 // =====================================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // @ts-ignore — web-push types not available in Deno, using fetch-based VAPID manually
 import webPush from "https://esm.sh/web-push@3.6.7";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 type AlertRow = {
   id: string;
@@ -27,8 +28,8 @@ type Recipient = { email: string; full_name: string | null };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const FROM_EMAIL = Deno.env.get("ALERTS_FROM_EMAIL") ?? "alertas@finca-el-progreso.com";
+const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
+const SMTP_PASS = Deno.env.get("SMTP_PASS") ?? "";
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@finca-el-progreso.com";
@@ -45,15 +46,14 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
 });
 
 async function sendEmail(to: string[], subject: string, html: string) {
-  if (!RESEND_KEY || to.length === 0) return;
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+  if (!SMTP_USER || !SMTP_PASS || to.length === 0) return;
+  const client = new SMTPClient({
+    connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: SMTP_USER, password: SMTP_PASS } },
   });
+  for (const recipient of to) {
+    await client.send({ from: SMTP_USER, to: recipient, subject, html });
+  }
+  await client.close();
 }
 
 function renderHtml(farmName: string, alerts: AlertRow[]): string {

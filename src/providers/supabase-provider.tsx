@@ -5,6 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { toast } from "sonner";
 
 type TokenState = { token: string; expiresAt: number; profileId: string } | null;
 
@@ -65,6 +66,12 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       if ((s as unknown as string) === "not_invited") {
         setNotInvited(true);
         setState(null);
+        toast.error("No tienes acceso a esta plataforma", {
+          description:
+            "Esta plataforma es solo por invitación. Contacta al administrador de tu finca para recibir acceso.",
+          duration: 6000,
+        });
+        void logout();
       } else {
         setState(s);
       }
@@ -72,48 +79,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [ready, authenticated, getAccessToken]);
+  }, [ready, authenticated, getAccessToken, logout]);
 
   const supabase = state ? createSupabaseBrowserClient(state.token) : null;
-
-  if (notInvited) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background text-foreground p-6">
-        <div className="max-w-sm w-full rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
-            <svg
-              className="h-7 w-7 text-red-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h1 className="text-lg font-semibold text-foreground mb-2">Acceso restringido</h1>
-          <p className="text-sm text-foreground/60 mb-6">
-            Esta plataforma es por invitación. Contacta al administrador de tu finca para recibir
-            acceso.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setNotInvited(false);
-              logout();
-            }}
-            className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-          >
-            Volver al inicio
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <SupabaseContext.Provider

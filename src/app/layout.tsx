@@ -8,6 +8,7 @@ import { SupabaseProvider } from "@/providers/supabase-provider";
 import { ThemeScript } from "@/components/theme-script";
 import OfflineBanner from "@/components/OfflineBanner";
 import PWAInstallButton from "@/components/PWAInstallButton";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -88,6 +89,7 @@ export default function RootLayout({
                 {children}
                 <OfflineBanner />
                 <PWAInstallButton />
+                <Toaster richColors position="top-center" />
               </SupabaseProvider>
             </QueryProvider>
           </PrivyProvider>

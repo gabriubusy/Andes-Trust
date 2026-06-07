@@ -1,20 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useLoginWithEmail } from "@privy-io/react-auth";
+import { toast } from "sonner";
 import {
   ArrowRight,
   Loader2,
   ShieldCheck,
-  Mail,
-  CircleUser,
-  Wallet,
   Lock,
   Database,
   Globe,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,15 +23,17 @@ const valueProps: { icon: LucideIcon; label: string }[] = [
   { icon: Globe, label: "Acceso desde cualquier dispositivo" },
 ];
 
-const loginMethods: { icon: LucideIcon; label: string; hint: string }[] = [
-  { icon: Mail, label: "Email", hint: "Código de verificación" },
-  { icon: CircleUser, label: "Google", hint: "Inicio de sesión SSO" },
-  { icon: Wallet, label: "Wallet", hint: "MetaMask, WalletConnect" },
-];
+type Step = "email" | "code";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { ready, authenticated, login } = usePrivy();
+  const { ready, authenticated } = usePrivy();
+  const { sendCode, loginWithCode, state: privyState } = useLoginWithEmail();
+
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (ready && authenticated) {
@@ -46,6 +47,65 @@ export default function LoginPage() {
         <Loader2 className="text-primary h-8 w-8 animate-spin" />
       </div>
     );
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = (await res.json()) as { allowed?: boolean };
+
+      if (!data.allowed) {
+        toast.error("No tienes acceso a esta plataforma", {
+          description:
+            "Esta plataforma es solo por invitación. Contacta al administrador de tu finca.",
+          duration: 6000,
+        });
+        return;
+      }
+
+      await sendCode({ email: trimmed });
+      setStep("code");
+    } catch {
+      toast.error("Error al verificar el correo. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCodeSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!code.trim()) return;
+
+    setLoading(true);
+    try {
+      await loginWithCode({ code: code.trim() });
+    } catch {
+      toast.error("Código incorrecto o expirado. Solicita uno nuevo.");
+      setCode("");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    setLoading(true);
+    try {
+      await sendCode({ email: email.trim().toLowerCase() });
+      toast.success("Código reenviado a " + email);
+    } catch {
+      toast.error("No se pudo reenviar el código.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -127,62 +187,121 @@ export default function LoginPage() {
                     <ShieldCheck className="text-primary h-8 w-8" />
                   </div>
                   <h2 className="text-foreground mb-2 text-2xl font-bold tracking-tight md:text-3xl">
-                    Inicia sesión
+                    {step === "email" ? "Inicia sesión" : "Revisa tu correo"}
                   </h2>
-                  <p className="text-foreground/70 text-sm">Continúa donde lo dejaste</p>
+                  <p className="text-foreground/70 text-sm">
+                    {step === "email"
+                      ? "Continúa donde lo dejaste"
+                      : `Enviamos un código a ${email}`}
+                  </p>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={!ready}
-                  onClick={login}
-                  className="group bg-primary text-primary-foreground shadow-primary/40 hover:bg-primary/90 hover:shadow-primary/60 disabled:bg-primary/60 flex w-full items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-semibold shadow-lg transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:shadow-none"
-                >
-                  {!ready ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Cargando...
-                    </>
-                  ) : (
-                    <>
-                      Continuar
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </>
-                  )}
-                </button>
+                {step === "email" ? (
+                  <form onSubmit={handleEmailSubmit} className="space-y-3">
+                    <div>
+                      <label htmlFor="email" className="text-foreground/70 mb-1.5 block text-sm">
+                        Correo electrónico
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        required
+                        autoFocus
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="tu@correo.com"
+                        className="border-border bg-muted/40 text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-primary/20 w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-2 transition-colors"
+                      />
+                    </div>
 
-                <div className="my-6 flex items-center gap-3">
-                  <div className="border-border flex-1 border-t" />
-                  <span className="text-foreground/50 text-xs tracking-wider uppercase">
-                    Métodos disponibles
-                  </span>
-                  <div className="border-border flex-1 border-t" />
-                </div>
-
-                <ul className="space-y-2.5">
-                  {loginMethods.map(({ icon: Icon, label, hint }) => (
-                    <li
-                      key={label}
-                      onClick={login}
-                      className="bg-muted/40 border-border hover:border-primary/30 flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors"
+                    <button
+                      type="submit"
+                      disabled={loading || !email.trim()}
+                      className="group bg-primary text-primary-foreground shadow-primary/40 hover:bg-primary/90 disabled:bg-primary/60 flex w-full items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-semibold shadow-lg transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:shadow-none"
                     >
-                      <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
-                        <Icon className="text-primary h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-foreground text-sm font-medium">{label}</div>
-                        <div className="text-foreground/60 text-xs">{hint}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Verificando...
+                        </>
+                      ) : (
+                        <>
+                          Continuar
+                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleCodeSubmit} className="space-y-3">
+                    <div>
+                      <label htmlFor="code" className="text-foreground/70 mb-1.5 block text-sm">
+                        Código de verificación
+                      </label>
+                      <input
+                        id="code"
+                        type="text"
+                        required
+                        autoFocus
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                        placeholder="123456"
+                        className="border-border bg-muted/40 text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-primary/20 w-full rounded-xl border px-4 py-3 text-center text-xl font-mono tracking-widest outline-none focus:ring-2 transition-colors"
+                      />
+                    </div>
 
-                <p className="text-foreground/60 mt-8 text-center text-xs leading-relaxed">
-                  ¿No tienes cuenta?{" "}
-                  <Link href="/contacto" className="text-primary font-medium hover:underline">
-                    Solicita acceso
-                  </Link>
-                </p>
+                    <button
+                      type="submit"
+                      disabled={loading || code.length < 6}
+                      className="group bg-primary text-primary-foreground shadow-primary/40 hover:bg-primary/90 disabled:bg-primary/60 flex w-full items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-semibold shadow-lg transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:shadow-none"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Entrando...
+                        </>
+                      ) : (
+                        <>
+                          Entrar
+                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </>
+                      )}
+                    </button>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep("email");
+                          setCode("");
+                        }}
+                        className="text-foreground/50 hover:text-foreground text-xs transition-colors"
+                      >
+                        ← Cambiar correo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResend}
+                        disabled={loading}
+                        className="text-primary hover:text-primary/80 flex items-center gap-1 text-xs transition-colors disabled:opacity-50"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Reenviar código
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {step === "email" && (
+                  <p className="text-foreground/60 mt-8 text-center text-xs leading-relaxed">
+                    ¿No tienes cuenta?{" "}
+                    <Link href="/contacto" className="text-primary font-medium hover:underline">
+                      Solicita acceso
+                    </Link>
+                  </p>
+                )}
               </div>
             </div>
 

@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { buildInviteEmail } from "@/lib/email/invite-template";
 
 export const runtime = "nodejs";
@@ -118,23 +118,28 @@ export async function POST(req: Request) {
   const invitedByEmail = inviterProfile?.email ?? "El administrador";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
   const { html, text } = buildInviteEmail({ farmName, role: body.role, invitedByEmail, appUrl });
 
-  const { data: emailData, error: emailError } = await resend.emails.send({
-    from: "Finca El Progreso <no-reply@fincaelprogreso.com>",
-    to: email,
-    subject: `Te invitaron a unirte a ${farmName}`,
-    html,
-    text,
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   });
 
-  if (emailError) {
-    console.error("[invite] resend_error", emailError);
-    return NextResponse.json({ invitation: invite, email_error: emailError.message });
+  try {
+    const info = await transporter.sendMail({
+      from: `"Finca El Progreso" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: `Te invitaron a unirte a ${farmName}`,
+      html,
+      text,
+    });
+    console.log("[invite] email_sent", info.messageId, "→", email);
+  } catch (emailError) {
+    console.error("[invite] smtp_error", emailError);
+    return NextResponse.json({ invitation: invite, email_error: String(emailError) });
   }
-
-  console.log("[invite] email_sent", emailData?.id, "→", email);
   return NextResponse.json({ invitation: invite, email_sent: true });
 }
 
