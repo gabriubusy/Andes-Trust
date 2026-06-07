@@ -7,6 +7,7 @@ import { FileDown, FileText, Loader2, Droplets } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { toast } from "sonner";
 
 type AnimalLite = { id: string; tag: string; name: string | null };
 type ReportRow = {
@@ -96,6 +97,7 @@ export default function ReportesPage() {
       downloadBlob(await res.blob(), `insai-${Date.now()}.pdf`);
     },
     onSuccess: () => reportsQuery.refetch(),
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const generateMilk = useMutation({
@@ -125,6 +127,8 @@ export default function ReportesPage() {
       const name = cd.match(/filename="(.+?)"/)?.[1] ?? `calidad-lactea-${Date.now()}.pdf`;
       downloadBlob(await res.blob(), name);
     },
+    onError: (err) => toast.error((err as Error).message),
+    onSuccess: () => toast.success("Guardado correctamente"),
   });
 
   const toggle = (id: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
@@ -219,9 +223,6 @@ export default function ReportesPage() {
               )}
               Generar PDF
             </button>
-            {generateInsai.isError && (
-              <p className="text-xs text-red-500">{(generateInsai.error as Error)?.message}</p>
-            )}
           </div>
 
           {/* Historial */}
@@ -312,12 +313,6 @@ export default function ReportesPage() {
                 )}
                 {generateMilk.isPending ? "Generando…" : "Generar PDF"}
               </button>
-              {generateMilk.isError && (
-                <p className="text-xs text-red-500">{(generateMilk.error as Error)?.message}</p>
-              )}
-              {generateMilk.isSuccess && (
-                <p className="text-xs text-green-600">PDF descargado correctamente.</p>
-              )}
             </div>
 
             {/* Selector de animales */}

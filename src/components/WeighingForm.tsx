@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { enqueueMutation } from "@/lib/offline/db";
+import { toast } from "sonner";
 
 const schema = z.object({
   weight_kg: z
@@ -65,12 +66,14 @@ export default function WeighingForm({ animalId, farmId, profileId, onDone }: Pr
       return { queued: false };
     },
     onSuccess: () => {
+      toast.success("Guardado correctamente");
       reset();
       queryClient.invalidateQueries({ queryKey: ["animal", animalId] });
       queryClient.invalidateQueries({ queryKey: ["weighings", animalId] });
       queryClient.invalidateQueries({ queryKey: ["animals"] });
       onDone?.();
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   return (
@@ -98,7 +101,6 @@ export default function WeighingForm({ animalId, farmId, profileId, onDone }: Pr
           <input className={inputClass} {...register("notes")} />
         </div>
       </div>
-      {mutation.error && <p className="text-accent text-sm">{(mutation.error as Error).message}</p>}
       <button
         type="submit"
         disabled={mutation.isPending}

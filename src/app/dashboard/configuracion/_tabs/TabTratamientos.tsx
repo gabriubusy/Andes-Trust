@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, FlaskConical } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { inputClass, labelClass, type Treatment } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
+import { toast } from "sonner";
 
 function TreatmentModal({
   item,
@@ -177,6 +178,10 @@ export function TabTratamientos() {
     },
   });
 
+  useEffect(() => {
+    if (query.error) toast.error("Error al cargar: " + (query.error as Error).message);
+  }, [query.error]);
+
   const upsertMutation = useMutation({
     mutationFn: async (payload: Omit<Treatment, "id"> & { id?: string }) => {
       if (!supabase) throw new Error("No supabase");
@@ -192,7 +197,9 @@ export function TabTratamientos() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["treatments-catalog"] });
       setModal(false);
+      toast.success("Guardado correctamente");
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const deleteMutation = useMutation({
@@ -205,6 +212,7 @@ export function TabTratamientos() {
       queryClient.invalidateQueries({ queryKey: ["treatments-catalog"] });
       setDeleteId(null);
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const items = query.data ?? [];
@@ -229,12 +237,6 @@ export function TabTratamientos() {
             <Plus className="h-4 w-4" /> Nuevo tratamiento
           </button>
         </div>
-
-        {query.error && (
-          <div className="text-accent px-5 py-4 text-sm">
-            Error: {(query.error as Error).message}
-          </div>
-        )}
 
         {!query.isLoading && items.length === 0 && (
           <div className="px-5 py-12 text-center">

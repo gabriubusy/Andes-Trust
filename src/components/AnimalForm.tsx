@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { uploadAnimalPhoto } from "@/lib/supabase/storage";
@@ -81,6 +82,15 @@ export default function AnimalForm() {
     },
   });
 
+  useEffect(() => {
+    if (breedsQuery.error) toast.error("Error al cargar: " + (breedsQuery.error as Error).message);
+  }, [breedsQuery.error]);
+
+  useEffect(() => {
+    if (femalesQuery.error)
+      toast.error("Error al cargar: " + (femalesQuery.error as Error).message);
+  }, [femalesQuery.error]);
+
   const create = useMutation({
     mutationFn: async (values: FormValues) => {
       if (!supabase || !profileId || !farmQuery.data) {
@@ -139,9 +149,11 @@ export default function AnimalForm() {
       return animal.id as string;
     },
     onSuccess: (animalId) => {
+      toast.success("Guardado correctamente");
       queryClient.invalidateQueries({ queryKey: ["animals"] });
       router.push(`/dashboard/animales/${animalId}`);
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const disabled = create.isPending || !farmQuery.data;
@@ -240,8 +252,6 @@ export default function AnimalForm() {
         <label className={labelClass}>Foto del animal</label>
         <AnimalPhotoUploader value={photo} onChange={setPhoto} disabled={disabled} />
       </div>
-
-      {create.error && <p className="text-accent text-sm">{(create.error as Error).message}</p>}
 
       <div className="flex items-center justify-end gap-3">
         <button

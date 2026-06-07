@@ -9,7 +9,8 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { enqueueMutation } from "@/lib/offline/db";
 import AnimalPhotoUploader from "@/components/AnimalPhotoUploader";
 import { uploadAnimalPhoto } from "@/lib/supabase/storage";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 const schema = z.object({
   treatment_id: z.string().uuid("Selecciona un tratamiento").optional().or(z.literal("")),
@@ -81,6 +82,11 @@ export default function TreatmentForm({
       return (data ?? []) as CatalogRow[];
     },
   });
+
+  useEffect(() => {
+    if (catalogQuery.error)
+      toast.error("Error al cargar: " + (catalogQuery.error as Error).message);
+  }, [catalogQuery.error]);
 
   const watchTreatment = watch("treatment_id");
   const watchStarted = watch("started_at");
@@ -160,8 +166,10 @@ export default function TreatmentForm({
       reset();
       setPhoto(null);
       queryClient.invalidateQueries({ queryKey: ["treatments", animalId] });
+      toast.success("Guardado correctamente");
       onDone?.();
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   return (
@@ -189,8 +197,8 @@ export default function TreatmentForm({
 
         {calculatedDose && (
           <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-xs text-blue-700 md:col-span-2 dark:text-blue-400">
-            Dosis calculada según peso ({animalWeightKg} kg): <strong>{calculatedDose}</strong> — puedes
-            ajustarla manualmente abajo.
+            Dosis calculada según peso ({animalWeightKg} kg): <strong>{calculatedDose}</strong> —
+            puedes ajustarla manualmente abajo.
           </div>
         )}
 
@@ -244,7 +252,6 @@ export default function TreatmentForm({
         )}
       </div>
 
-      {mutation.error && <p className="text-accent text-sm">{(mutation.error as Error).message}</p>}
       <button
         type="submit"
         disabled={mutation.isPending}

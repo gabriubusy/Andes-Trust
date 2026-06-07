@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Dna } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { inputClass, labelClass, PURPOSE_LABELS, type Breed } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
+import { toast } from "sonner";
 
 function BreedModal({
   breed,
@@ -116,6 +117,10 @@ export function TabRazas() {
     },
   });
 
+  useEffect(() => {
+    if (breedsQuery.error) toast.error("Error al cargar: " + (breedsQuery.error as Error).message);
+  }, [breedsQuery.error]);
+
   const upsertMutation = useMutation({
     mutationFn: async (payload: {
       id?: string;
@@ -146,7 +151,9 @@ export function TabRazas() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["breeds"] });
       setModal(false);
+      toast.success("Guardado correctamente");
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const deleteMutation = useMutation({
@@ -159,6 +166,7 @@ export function TabRazas() {
       queryClient.invalidateQueries({ queryKey: ["breeds"] });
       setDeleteId(null);
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const breeds = breedsQuery.data ?? [];
@@ -183,12 +191,6 @@ export function TabRazas() {
             <Plus className="h-4 w-4" /> Nueva raza
           </button>
         </div>
-
-        {breedsQuery.error && (
-          <div className="text-accent px-5 py-4 text-sm">
-            Error al cargar: {(breedsQuery.error as Error).message}
-          </div>
-        )}
 
         {!breedsQuery.isLoading && breeds.length === 0 && (
           <div className="px-5 py-12 text-center">

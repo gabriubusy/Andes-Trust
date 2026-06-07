@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Syringe } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { inputClass, labelClass, type Vaccine } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
+import { toast } from "sonner";
 
 function VaccineModal({
   vaccine,
@@ -160,6 +161,11 @@ export function TabVacunas() {
     },
   });
 
+  useEffect(() => {
+    if (vaccinesQuery.error)
+      toast.error("Error al cargar: " + (vaccinesQuery.error as Error).message);
+  }, [vaccinesQuery.error]);
+
   const upsertMutation = useMutation({
     mutationFn: async (payload: Omit<Vaccine, "id"> & { id?: string }) => {
       if (!supabase) throw new Error("No supabase");
@@ -175,7 +181,9 @@ export function TabVacunas() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vaccines-catalog"] });
       setModal(false);
+      toast.success("Guardado correctamente");
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const deleteMutation = useMutation({
@@ -188,6 +196,7 @@ export function TabVacunas() {
       queryClient.invalidateQueries({ queryKey: ["vaccines-catalog"] });
       setDeleteId(null);
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const vaccines = vaccinesQuery.data ?? [];
@@ -212,12 +221,6 @@ export function TabVacunas() {
             <Plus className="h-4 w-4" /> Nueva vacuna
           </button>
         </div>
-
-        {vaccinesQuery.error && (
-          <div className="text-accent px-5 py-4 text-sm">
-            Error: {(vaccinesQuery.error as Error).message}
-          </div>
-        )}
 
         {!vaccinesQuery.isLoading && vaccines.length === 0 && (
           <div className="px-5 py-12 text-center">

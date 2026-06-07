@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Check } from "lucide-react";
+import { toast } from "sonner";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { inputClass, labelClass, type FarmDetail } from "./shared";
@@ -47,6 +48,10 @@ export function TabFinca() {
       });
   }, [detailQuery.data]);
 
+  useEffect(() => {
+    if (detailQuery.error) toast.error("Error al cargar: " + (detailQuery.error as Error).message);
+  }, [detailQuery.error]);
+
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!supabase || !farmId) throw new Error("Sin sesión");
@@ -67,7 +72,9 @@ export function TabFinca() {
       queryClient.invalidateQueries({ queryKey: ["current-farm"] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
+      toast.success("Guardado correctamente");
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const set = (key: keyof typeof form, value: string) =>
@@ -133,9 +140,6 @@ export function TabFinca() {
               placeholder="Vereda, municipio, km…"
             />
           </div>
-          {updateMutation.error && (
-            <p className="text-accent text-sm">{(updateMutation.error as Error).message}</p>
-          )}
           <div className="pt-2">
             <button
               type="button"

@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { ShieldCheck, Loader2, ShieldAlert } from "lucide-react";
 import { usePrivy, useSignMessage, useWallets } from "@privy-io/react-auth";
+import { toast } from "sonner";
 
 type Props = {
   entityType: "animals" | "vaccinations" | "treatments" | "weighings" | "certifications" | "sales";
@@ -46,7 +47,11 @@ export default function SignAnchorButton({ entityType, entityId, anchor = true, 
       if (!res.ok || json.error) throw new Error(json.error ?? "fail");
       return json as { payload_hash: string; anchor_tx: string | null };
     },
-    onSuccess: (data) => onDone?.(data),
+    onSuccess: (data) => {
+      toast.success("Guardado correctamente");
+      onDone?.(data);
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const Icon = mut.isError ? ShieldAlert : ShieldCheck;

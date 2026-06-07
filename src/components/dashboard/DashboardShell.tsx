@@ -38,6 +38,15 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 type FarmRole = "owner" | "admin" | "operator" | "vet" | "viewer" | "regulator";
 
+const ROLE_LABEL: Record<FarmRole, string> = {
+  owner: "Patrón / Dueño",
+  admin: "Administrador",
+  operator: "Operador",
+  vet: "Veterinario",
+  viewer: "Solo lectura",
+  regulator: "Regulador",
+};
+
 const navItems: {
   icon: LucideIcon;
   label: string;
@@ -371,6 +380,9 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
               <div className="min-w-0 flex-1">
                 <div className="text-foreground truncate text-sm font-medium">{displayName}</div>
                 <div className="text-foreground/60 truncate text-xs">{email ?? "Sin email"}</div>
+                <span className="mt-1 inline-block rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  {ROLE_LABEL[currentRole]}
+                </span>
               </div>
               <button
                 type="button"

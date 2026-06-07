@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, FileCheck, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -54,6 +56,10 @@ export default function CertificadosPage() {
     },
   });
 
+  useEffect(() => {
+    if (certsQuery.error) toast.error("Error al cargar: " + (certsQuery.error as Error).message);
+  }, [certsQuery.error]);
+
   const certs = certsQuery.data ?? [];
   const fmt = (d: string | null) =>
     d
@@ -92,12 +98,6 @@ export default function CertificadosPage() {
             </p>
           </div>
         </div>
-
-        {certsQuery.error && (
-          <div className="text-destructive px-5 py-4 text-sm">
-            Error al cargar: {(certsQuery.error as Error).message}
-          </div>
-        )}
 
         {!certsQuery.isLoading && certs.length === 0 && (
           <div className="px-5 py-12 text-center">

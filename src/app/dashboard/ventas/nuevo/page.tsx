@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -85,6 +86,19 @@ export default function NuevaVentaPage() {
     },
   });
 
+  useEffect(() => {
+    if (animalsQuery.error)
+      toast.error("Error al cargar: " + (animalsQuery.error as Error).message);
+  }, [animalsQuery.error]);
+
+  useEffect(() => {
+    if (buyersQuery.error) toast.error("Error al cargar: " + (buyersQuery.error as Error).message);
+  }, [buyersQuery.error]);
+
+  useEffect(() => {
+    if (alertsQuery.error) toast.error("Error al cargar: " + (alertsQuery.error as Error).message);
+  }, [alertsQuery.error]);
+
   const toggleAnimal = (animalId: string) => {
     setSelectedAnimalIds((prev) => {
       const next = prev.includes(animalId)
@@ -162,10 +176,12 @@ export default function NuevaVentaPage() {
       return sale.id as string;
     },
     onSuccess: (saleId) => {
+      toast.success("Guardado correctamente");
       queryClient.invalidateQueries({ queryKey: ["animals"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       router.push(`/dashboard/ventas/${saleId}`);
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   return (
@@ -369,8 +385,6 @@ export default function NuevaVentaPage() {
             </div>
           )}
         </div>
-
-        {create.error && <p className="text-accent text-sm">{(create.error as Error).message}</p>}
 
         <div className="flex justify-end gap-3">
           <button

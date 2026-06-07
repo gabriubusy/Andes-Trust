@@ -9,7 +9,8 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { enqueueMutation } from "@/lib/offline/db";
 import AnimalPhotoUploader from "@/components/AnimalPhotoUploader";
 import { uploadAnimalPhoto } from "@/lib/supabase/storage";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 const schema = z.object({
   vaccine_id: z.string().uuid("Selecciona una vacuna"),
@@ -42,7 +43,12 @@ type Props = {
   readonly onDone?: () => void;
 };
 
-type VaccineRow = { id: string; name: string; booster_days: number | null; min_age_days: number | null };
+type VaccineRow = {
+  id: string;
+  name: string;
+  booster_days: number | null;
+  min_age_days: number | null;
+};
 
 function getAnimalAgeDays(birthDate: string | null | undefined): number | null {
   if (!birthDate) return null;
@@ -87,6 +93,11 @@ export default function VaccinationForm({
       return (data ?? []) as VaccineRow[];
     },
   });
+
+  useEffect(() => {
+    if (vaccinesQuery.error)
+      toast.error("Error al cargar: " + (vaccinesQuery.error as Error).message);
+  }, [vaccinesQuery.error]);
 
   const watchVaccine = watch("vaccine_id");
   const watchApplied = watch("applied_at");
@@ -165,8 +176,10 @@ export default function VaccinationForm({
       setAgeWarning(null);
       queryClient.invalidateQueries({ queryKey: ["vaccinations", animalId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      toast.success("Guardado correctamente");
       onDone?.();
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   return (
@@ -191,8 +204,15 @@ export default function VaccinationForm({
           )}
         </div>
         <div>
-          <label htmlFor="applied_at" className={labelClass}>Aplicada el</label>
-          <input id="applied_at" type="datetime-local" className={inputClass} {...register("applied_at")} />
+          <label htmlFor="applied_at" className={labelClass}>
+            Aplicada el
+          </label>
+          <input
+            id="applied_at"
+            type="datetime-local"
+            className={inputClass}
+            {...register("applied_at")}
+          />
         </div>
 
         {ageWarning && (
@@ -202,7 +222,9 @@ export default function VaccinationForm({
         )}
 
         <div>
-          <label htmlFor="dose_ml" className={labelClass}>Dosis (ml)</label>
+          <label htmlFor="dose_ml" className={labelClass}>
+            Dosis (ml)
+          </label>
           <input
             id="dose_ml"
             type="number"
@@ -213,15 +235,21 @@ export default function VaccinationForm({
           />
         </div>
         <div>
-          <label htmlFor="batch_number" className={labelClass}>Lote</label>
+          <label htmlFor="batch_number" className={labelClass}>
+            Lote
+          </label>
           <input id="batch_number" className={inputClass} {...register("batch_number")} />
         </div>
         <div>
-          <label htmlFor="next_due_at" className={labelClass}>Próxima dosis</label>
+          <label htmlFor="next_due_at" className={labelClass}>
+            Próxima dosis
+          </label>
           <input id="next_due_at" type="date" className={inputClass} {...register("next_due_at")} />
         </div>
         <div className="md:col-span-2">
-          <label htmlFor="vax_notes" className={labelClass}>Notas</label>
+          <label htmlFor="vax_notes" className={labelClass}>
+            Notas
+          </label>
           <input id="vax_notes" className={inputClass} {...register("notes")} />
         </div>
 
@@ -248,7 +276,6 @@ export default function VaccinationForm({
         )}
       </div>
 
-      {mutation.error && <p className="text-accent text-sm">{(mutation.error as Error).message}</p>}
       <button
         type="submit"
         disabled={mutation.isPending}

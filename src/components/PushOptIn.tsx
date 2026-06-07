@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
+import { toast } from "sonner";
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -59,6 +60,7 @@ export default function PushOptIn() {
       setStatus("subscribed");
     } catch (e) {
       console.error(e);
+      toast.error((e as Error).message);
       if (Notification.permission === "denied") setStatus("denied");
     } finally {
       setBusy(false);

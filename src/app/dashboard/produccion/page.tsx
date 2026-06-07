@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Milk, Plus, Loader2, TrendingUp } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { toast } from "sonner";
 
 type MilkRow = {
   id: string;
@@ -80,8 +81,10 @@ function AddRecordModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["milk-production"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      toast.success("Guardado correctamente");
       onClose();
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   return (
@@ -175,9 +178,6 @@ function AddRecordModal({
               onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
             />
           </div>
-          {mutation.error && (
-            <p className="text-accent text-sm">{(mutation.error as Error).message}</p>
-          )}
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <button
@@ -226,6 +226,11 @@ export default function ProduccionPage() {
       return (data ?? []) as unknown as MilkRow[];
     },
   });
+
+  useEffect(() => {
+    if (recordsQuery.error)
+      toast.error("Error al cargar: " + (recordsQuery.error as Error).message);
+  }, [recordsQuery.error]);
 
   const records = recordsQuery.data ?? [];
   const totalLiters = records.reduce((s, r) => s + Number(r.liters), 0);

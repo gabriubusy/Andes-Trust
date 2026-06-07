@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, QrCode, Tag } from "lucide-react";
+import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -37,6 +39,11 @@ export default function AnimalesListPage() {
       return (data ?? []) as unknown as AnimalRow[];
     },
   });
+
+  useEffect(() => {
+    if (animalsQuery.error)
+      toast.error("Error al cargar: " + (animalsQuery.error as Error).message);
+  }, [animalsQuery.error]);
 
   const animals = animalsQuery.data ?? [];
 
@@ -74,12 +81,6 @@ export default function AnimalesListPage() {
             </p>
           </div>
         </div>
-
-        {animalsQuery.error && (
-          <div className="text-accent px-5 py-4 text-sm">
-            Error al cargar: {(animalsQuery.error as Error).message}
-          </div>
-        )}
 
         {!animalsQuery.isLoading && animals.length === 0 && (
           <div className="px-5 py-12 text-center">
