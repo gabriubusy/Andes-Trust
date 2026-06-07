@@ -6,6 +6,8 @@
 import { NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
+import { buildInviteEmail } from "@/lib/email/invite-template";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +23,7 @@ function getAdmin() {
     _admin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false } },
+      { auth: { persistSession: false } }
     );
   }
   return _admin;
@@ -71,12 +73,18 @@ export async function POST(req: Request) {
   const email = body.email.trim().toLowerCase();
 
   // ¿Ya existe profile con ese email? Súmalo directo.
-  const { data: existing } = await sb.from("profiles").select("id").eq("email", email).maybeSingle();
+  const { data: existing } = await sb
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
   if (existing) {
-    await sb.from("farm_members").upsert(
-      { farm_id: body.farm_id, profile_id: existing.id, role: body.role },
-      { onConflict: "farm_id,profile_id" },
-    );
+    await sb
+      .from("farm_members")
+      .upsert(
+        { farm_id: body.farm_id, profile_id: existing.id, role: body.role },
+        { onConflict: "farm_id,profile_id" }
+      );
     return NextResponse.json({ added_directly: true, profile_id: existing.id });
   }
 
@@ -92,13 +100,42 @@ export async function POST(req: Request) {
         created_by: me.id,
         expires_at: new Date(Date.now() + 14 * 86400_000).toISOString(),
       },
-      { onConflict: "farm_id,email" },
+      { onConflict: "farm_id,email" }
     )
     .select("id, token")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ invitation: invite });
+  // Obtener datos para el email
+  const { data: farm } = await sb.from("farms").select("name").eq("id", body.farm_id).single();
+  const { data: inviterProfile } = await sb
+    .from("profiles")
+    .select("email")
+    .eq("id", me.id)
+    .single();
+
+  const farmName = farm?.name ?? "la finca";
+  const invitedByEmail = inviterProfile?.email ?? "El administrador";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const { html, text } = buildInviteEmail({ farmName, role: body.role, invitedByEmail, appUrl });
+
+  const { data: emailData, error: emailError } = await resend.emails.send({
+    from: "Finca El Progreso <no-reply@fincaelprogreso.com>",
+    to: email,
+    subject: `Te invitaron a unirte a ${farmName}`,
+    html,
+    text,
+  });
+
+  if (emailError) {
+    console.error("[invite] resend_error", emailError);
+    return NextResponse.json({ invitation: invite, email_error: emailError.message });
+  }
+
+  console.log("[invite] email_sent", emailData?.id, "→", email);
+  return NextResponse.json({ invitation: invite, email_sent: true });
 }
 
 export async function DELETE(req: Request) {

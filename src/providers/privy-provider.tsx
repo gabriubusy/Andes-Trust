@@ -25,6 +25,8 @@ export function PrivyProvider({ children }: { readonly children: React.ReactNode
           accentColor: "#3b82f6",
           logo: "/logo.png",
           showWalletLoginFirst: false,
+          landingHeader: "Inicia sesión o regístrate",
+          loginMessage: "Continúa con tu cuenta para acceder a la plataforma",
         },
         embeddedWallets: {
           ethereum: {

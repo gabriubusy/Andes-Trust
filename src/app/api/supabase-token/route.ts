@@ -81,6 +81,14 @@ export async function POST(req: Request) {
     }
     profile = data;
   } else {
+    // Usuario nuevo: solo se permite si es admin de plataforma o tiene invitación pendiente válida
+    if (!isPlatformAdmin) {
+      const hasInvitation = await hasPendingInvitation(supabaseAdmin, email);
+      if (!hasInvitation) {
+        return NextResponse.json({ error: "not_invited" }, { status: 403 });
+      }
+    }
+
     // Crear nuevo perfil
     const { data, error } = await supabaseAdmin
       .from("profiles")
@@ -105,8 +113,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "profile_upsert_failed" }, { status: 500 });
   }
 
-  await ensureDefaultFarm(profile.id);
   await acceptPendingInvitations(profile.id, email);
+  await ensureDefaultFarm(profile.id);
 
   const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET!);
   const now = Math.floor(Date.now() / 1000);
@@ -130,6 +138,22 @@ export async function POST(req: Request) {
     profileId: profile.id,
     isPlatformAdmin,
   });
+}
+
+async function hasPendingInvitation(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  email: string | null
+): Promise<boolean> {
+  if (!email) return false;
+  const { data } = await sb
+    .from("farm_invitations")
+    .select("id, expires_at")
+    .eq("email", email.toLowerCase())
+    .eq("status", "pending")
+    .limit(1)
+    .maybeSingle();
+  if (!data) return false;
+  return new Date(data.expires_at).getTime() > Date.now();
 }
 
 async function acceptPendingInvitations(profileId: string, email: string | null) {
@@ -164,6 +188,13 @@ const DEFAULT_FARM_NAME = "Finca El Progreso";
 
 async function ensureDefaultFarm(profileId: string) {
   const supabaseAdmin = getSupabaseAdmin();
+
+  // Si ya es miembro de alguna finca (por invitación u otra razón), no crear finca propia
+  const { count: memberCount } = await supabaseAdmin
+    .from("farm_members")
+    .select("farm_id", { count: "exact", head: true })
+    .eq("profile_id", profileId);
+  if ((memberCount ?? 0) > 0) return;
 
   // Check if this profile already owns a farm
   const { data: existing, error: selectError } = await supabaseAdmin

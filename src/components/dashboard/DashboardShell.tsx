@@ -35,7 +35,15 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { clearCacheOnLogout } from "@/lib/cache/clear-on-logout";
 import ThemeToggle from "@/components/ThemeToggle";
 
-const navItems: { icon: LucideIcon; label: string; href: string; matches?: string[] }[] = [
+type FarmRole = "owner" | "admin" | "operator" | "vet" | "viewer" | "regulator";
+
+const navItems: {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+  matches?: string[];
+  roles?: FarmRole[]; // undefined = todos los roles
+}[] = [
   { icon: LayoutDashboard, label: "Resumen", href: "/dashboard" },
   { icon: Beef, label: "Animales", href: "/dashboard/animales", matches: ["/dashboard/animales"] },
   {
@@ -56,42 +64,49 @@ const navItems: { icon: LucideIcon; label: string; href: string; matches?: strin
     label: "Certificados",
     href: "/dashboard/certificados",
     matches: ["/dashboard/certificados"],
+    roles: ["owner", "admin", "vet", "viewer", "regulator"],
   },
   {
     icon: BarChart3,
     label: "Reportes",
     href: "/dashboard/reportes",
     matches: ["/dashboard/reportes"],
+    roles: ["owner", "admin", "regulator"],
   },
   {
     icon: Receipt,
     label: "Ventas",
     href: "/dashboard/ventas",
     matches: ["/dashboard/ventas"],
+    roles: ["owner", "admin"],
   },
   {
     icon: Syringe,
     label: "Tratamientos",
     href: "/dashboard/tratamientos",
     matches: ["/dashboard/tratamientos"],
+    roles: ["owner", "admin", "vet", "operator"],
   },
   {
     icon: Stethoscope,
     label: "Asistente clínico",
     href: "/dashboard/asistente-tratamiento",
     matches: ["/dashboard/asistente-tratamiento"],
+    roles: ["owner", "admin", "vet"],
   },
   {
     icon: Users,
     label: "Equipo",
     href: "/dashboard/equipo",
     matches: ["/dashboard/equipo"],
+    roles: ["owner", "admin"],
   },
   {
     icon: Settings,
     label: "Configuración",
     href: "/dashboard/configuracion",
     matches: ["/dashboard/configuracion"],
+    roles: ["owner", "admin"],
   },
 ];
 
@@ -214,6 +229,12 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const initials = displayName.slice(0, 2).toUpperCase();
   const farmName = farmQuery.data?.name ?? "Cargando finca…";
 
+  const currentRole = (farmQuery.data?.role ?? "viewer") as FarmRole;
+
+  const visibleNavItems = navItems.filter(
+    (item) => !item.roles || item.roles.includes(currentRole)
+  );
+
   const isActive = (item: (typeof navItems)[number]) => {
     if (item.matches?.some((m) => pathname.startsWith(m))) return true;
     return pathname === item.href;
@@ -283,7 +304,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
           </div>
         )}
         <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = isActive(item);
             return (
               <Link
@@ -359,7 +380,9 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
         )}
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div
+        className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${sidebarCollapsed ? "lg:pl-20" : "lg:pl-64"}`}
+      >
         <header className="border-border bg-background/80 sticky top-0 z-50 flex h-16 items-center gap-4 border-b px-4 backdrop-blur-xl md:px-8">
           <button
             type="button"
