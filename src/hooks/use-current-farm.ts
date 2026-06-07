@@ -10,8 +10,7 @@ export type CurrentFarm = {
   role: string;
 };
 
-const FARM_CACHE_KEY = "current_farm";
-const FARM_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 horas
+const FARM_CACHE_TTL = 60 * 60 * 1000; // 1 hora
 
 export function useCurrentFarm() {
   const { supabase, profileId, ready } = useSupabase();
@@ -19,13 +18,14 @@ export function useCurrentFarm() {
   return useQuery<CurrentFarm | null>({
     queryKey: ["current-farm", profileId],
     enabled: ready && !!supabase && !!profileId,
-    staleTime: 60 * 60 * 1000, // 1 hour
-    gcTime: 24 * 60 * 60 * 1000, // 24 hours (formerly cacheTime)
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 60 * 60 * 1000,
     queryFn: async () => {
       if (!supabase || !profileId) return null;
 
-      // Try to get from localStorage first
-      const cached = cacheStorage.get<CurrentFarm>(FARM_CACHE_KEY);
+      // Cache key incluye profileId para aislar entre usuarios
+      const cacheKey = `current_farm_${profileId}`;
+      const cached = cacheStorage.get<CurrentFarm>(cacheKey);
       if (cached) return cached;
 
       const { data, error } = await supabase
@@ -40,8 +40,7 @@ export function useCurrentFarm() {
       const farm = Array.isArray(data.farms) ? data.farms[0] : data.farms;
       const result = { id: farm.id, name: farm.name, role: data.role };
 
-      // Store in localStorage
-      cacheStorage.set(FARM_CACHE_KEY, result, FARM_CACHE_TTL);
+      cacheStorage.set(cacheKey, result, FARM_CACHE_TTL);
 
       return result;
     },

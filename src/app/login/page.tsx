@@ -163,7 +163,8 @@ export default function LoginPage() {
                   {loginMethods.map(({ icon: Icon, label, hint }) => (
                     <li
                       key={label}
-                      className="bg-muted/40 border-border hover:border-primary/30 flex items-center gap-3 rounded-xl border p-3 transition-colors"
+                      onClick={login}
+                      className="bg-muted/40 border-border hover:border-primary/30 flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors"
                     >
                       <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
                         <Icon className="text-primary h-4 w-4" />
