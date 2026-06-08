@@ -692,6 +692,7 @@ function InseminationModal({
             <label className="text-foreground/60 mb-1 block text-xs font-medium">Fecha</label>
             <input
               type="date"
+              max={new Date().toISOString().slice(0, 10)}
               value={performedAt}
               onChange={(e) => setPerformedAt(e.target.value)}
               className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none"
@@ -852,6 +853,7 @@ function PregnancyModal({
               </label>
               <input
                 type="date"
+                max={new Date().toISOString().slice(0, 10)}
                 value={confirmedAt}
                 onChange={(e) => setConfirmedAt(e.target.value)}
                 className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none"

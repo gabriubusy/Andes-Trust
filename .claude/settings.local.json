@@ -28,7 +28,8 @@
       "Bash(Get-ChildItem -Path \"d:\\\\Pruebas\\\\andes-trust\" -Directory)",
       "Bash(Select-Object Name)",
       "mcp__supabase__get_publishable_keys",
-      "PowerShell(Select-String -Path \"d:\\\\Pruebas\\\\andes-trust\\\\.env.local\" -Pattern \"SUPABASE_SERVICE_ROLE_KEY\" | Select-Object -ExpandProperty Line | ForEach-Object { if \\($_ -match \"=\\(.+\\)\"\\) { $val = $matches[1]; \"Presente: $\\($val.Length\\) chars, empieza con: $\\($val.Substring\\(0, [Math]::Min\\(10, $val.Length\\)\\)\\)...\" } })"
+      "PowerShell(Select-String -Path \"d:\\\\Pruebas\\\\andes-trust\\\\.env.local\" -Pattern \"SUPABASE_SERVICE_ROLE_KEY\" | Select-Object -ExpandProperty Line | ForEach-Object { if \\($_ -match \"=\\(.+\\)\"\\) { $val = $matches[1]; \"Presente: $\\($val.Length\\) chars, empieza con: $\\($val.Substring\\(0, [Math]::Min\\(10, $val.Length\\)\\)\\)...\" } })",
+      "Bash(npx supabase *)"
     ]
   }
 }

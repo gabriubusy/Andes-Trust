@@ -19,7 +19,16 @@ const schema = z.object({
   breed_id: z.string().optional(),
   sex: z.enum(["male", "female"]),
   purpose: z.enum(["", "dairy", "beef", "dual", "breeding"]).optional(),
-  birth_date: z.string().optional(),
+  birth_date: z
+    .string()
+    .optional()
+    .refine(
+      (v) => {
+        if (!v) return true;
+        return new Date(v) <= new Date();
+      },
+      { message: "La fecha de nacimiento no puede ser futura." }
+    ),
   current_weight_kg: z
     .string()
     .optional()
@@ -200,7 +209,15 @@ export default function AnimalForm() {
         </div>
         <div>
           <label className={labelClass}>Fecha de nacimiento</label>
-          <input type="date" className={inputClass} {...register("birth_date")} />
+          <input
+            type="date"
+            className={inputClass}
+            max={new Date().toISOString().slice(0, 10)}
+            {...register("birth_date")}
+          />
+          {errors.birth_date && (
+            <p className="text-accent mt-1 text-xs">{errors.birth_date.message}</p>
+          )}
         </div>
         <div>
           <label className={labelClass}>Peso actual (kg)</label>

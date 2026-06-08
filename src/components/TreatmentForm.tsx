@@ -12,16 +12,40 @@ import { uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
-const schema = z.object({
-  treatment_id: z.string().uuid("Selecciona un tratamiento").optional().or(z.literal("")),
-  started_at: z.string().optional(),
-  ended_at: z.string().optional(),
-  dose: z.string().max(120).optional(),
-  notes: z.string().max(500).optional(),
-  vet_approved: z.boolean().refine((v) => v === true, {
-    message: "Se requiere aprobación veterinaria antes de registrar.",
-  }),
-});
+const schema = z
+  .object({
+    treatment_id: z.string().uuid("Selecciona un tratamiento").optional().or(z.literal("")),
+    started_at: z.string().optional(),
+    ended_at: z.string().optional(),
+    dose: z.string().max(120).optional(),
+    notes: z.string().max(500).optional(),
+    vet_approved: z.boolean().refine((v) => v === true, {
+      message: "Se requiere aprobación veterinaria antes de registrar.",
+    }),
+  })
+  .superRefine((data, ctx) => {
+    const now = new Date();
+    const started = data.started_at ? new Date(data.started_at) : null;
+    const ended = data.ended_at ? new Date(data.ended_at) : null;
+    if (started && started > now)
+      ctx.addIssue({
+        code: "custom",
+        path: ["started_at"],
+        message: "La fecha de inicio no puede ser futura.",
+      });
+    if (ended && ended > now)
+      ctx.addIssue({
+        code: "custom",
+        path: ["ended_at"],
+        message: "La fecha de fin no puede ser futura.",
+      });
+    if (started && ended && ended <= started)
+      ctx.addIssue({
+        code: "custom",
+        path: ["ended_at"],
+        message: "La fecha de fin debe ser posterior al inicio.",
+      });
+  });
 
 type Values = z.infer<typeof schema>;
 
@@ -34,6 +58,7 @@ type Props = {
   farmId: string | undefined;
   profileId: string | undefined;
   animalWeightKg?: number | null;
+  animalBirthDate?: string | null;
   onDone?: () => void;
 };
 
@@ -51,11 +76,16 @@ export default function TreatmentForm({
   farmId,
   profileId,
   animalWeightKg,
+  animalBirthDate,
   onDone,
 }: Props) {
   const { supabase } = useSupabase();
   const queryClient = useQueryClient();
   const [photo, setPhoto] = useState<File | null>(null);
+  const todayStr = new Date().toISOString().slice(0, 16);
+  const birthDateStr = animalBirthDate
+    ? new Date(animalBirthDate).toISOString().slice(0, 16)
+    : undefined;
 
   const {
     register,
@@ -214,11 +244,27 @@ export default function TreatmentForm({
 
         <div>
           <label className={labelClass}>Inicio</label>
-          <input type="datetime-local" className={inputClass} {...register("started_at")} />
+          <input
+            type="datetime-local"
+            className={inputClass}
+            max={todayStr}
+            min={birthDateStr}
+            {...register("started_at")}
+          />
+          {errors.started_at && (
+            <p className="text-accent mt-1 text-xs">{errors.started_at.message}</p>
+          )}
         </div>
         <div>
           <label className={labelClass}>Fin</label>
-          <input type="datetime-local" className={inputClass} {...register("ended_at")} />
+          <input
+            type="datetime-local"
+            className={inputClass}
+            max={todayStr}
+            min={birthDateStr}
+            {...register("ended_at")}
+          />
+          {errors.ended_at && <p className="text-accent mt-1 text-xs">{errors.ended_at.message}</p>}
         </div>
         <div>
           <label className={labelClass}>Dosis</label>

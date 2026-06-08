@@ -12,22 +12,50 @@ import { uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
-const schema = z.object({
-  vaccine_id: z.string().uuid("Selecciona una vacuna"),
-  applied_at: z.string().optional(),
-  dose_ml: z
-    .string()
-    .optional()
-    .refine((v) => !v || (!Number.isNaN(Number(v)) && Number(v) > 0), {
-      message: "Dosis inválida",
+const schema = z
+  .object({
+    vaccine_id: z.string().uuid("Selecciona una vacuna"),
+    applied_at: z.string().optional(),
+    dose_ml: z
+      .string()
+      .optional()
+      .refine((v) => !v || (!Number.isNaN(Number(v)) && Number(v) > 0), {
+        message: "Dosis inválida",
+      }),
+    batch_number: z.string().max(60).optional(),
+    next_due_at: z.string().optional(),
+    notes: z.string().max(280).optional(),
+    vet_approved: z.boolean().refine((v) => v === true, {
+      message: "Se requiere confirmación del veterinario responsable.",
     }),
-  batch_number: z.string().max(60).optional(),
-  next_due_at: z.string().optional(),
-  notes: z.string().max(280).optional(),
-  vet_approved: z.boolean().refine((v) => v === true, {
-    message: "Se requiere confirmación del veterinario responsable.",
-  }),
-});
+  })
+  .superRefine((data, ctx) => {
+    const now = new Date();
+    const applied = data.applied_at ? new Date(data.applied_at) : null;
+    const nextDue = data.next_due_at ? new Date(data.next_due_at) : null;
+
+    if (applied && applied > now) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["applied_at"],
+        message: "La fecha de aplicación no puede ser futura.",
+      });
+    }
+    if (nextDue && applied && nextDue <= applied) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["next_due_at"],
+        message: "La próxima dosis debe ser posterior a la fecha de aplicación.",
+      });
+    }
+    if (nextDue && nextDue < now) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["next_due_at"],
+        message: "La próxima dosis no puede estar en el pasado.",
+      });
+    }
+  });
 
 type Values = z.infer<typeof schema>;
 
@@ -67,6 +95,10 @@ export default function VaccinationForm({
   const queryClient = useQueryClient();
   const [photo, setPhoto] = useState<File | null>(null);
   const [ageWarning, setAgeWarning] = useState<string | null>(null);
+  const [dateWarning, setDateWarning] = useState<string | null>(null);
+
+  const todayStr = new Date().toISOString().slice(0, 16); // para datetime-local max
+  const birthDateStr = animalBirthDate ?? null;
 
   const {
     register,
@@ -101,6 +133,27 @@ export default function VaccinationForm({
 
   const watchVaccine = watch("vaccine_id");
   const watchApplied = watch("applied_at");
+
+  // Validar fecha de aplicación vs nacimiento y vs hoy
+  useEffect(() => {
+    setDateWarning(null);
+    if (!watchApplied) return;
+    const applied = new Date(watchApplied);
+    const now = new Date();
+    if (applied > now) {
+      setDateWarning("La fecha de aplicación no puede ser futura.");
+      return;
+    }
+    if (birthDateStr) {
+      const birth = new Date(birthDateStr);
+      if (applied < birth) {
+        setDateWarning(
+          `La vacuna no puede aplicarse antes del nacimiento del animal (${new Date(birthDateStr).toLocaleDateString("es-VE")}).`
+        );
+        return;
+      }
+    }
+  }, [watchApplied, birthDateStr]);
 
   const handleVaccineChange = (id: string) => {
     setValue("vaccine_id", id, { shouldValidate: true });
@@ -211,8 +264,16 @@ export default function VaccinationForm({
             id="applied_at"
             type="datetime-local"
             className={inputClass}
+            max={todayStr}
+            min={birthDateStr ? new Date(birthDateStr).toISOString().slice(0, 16) : undefined}
             {...register("applied_at")}
           />
+          {errors.applied_at && (
+            <p className="text-accent mt-1 text-xs">{errors.applied_at.message}</p>
+          )}
+          {dateWarning && !errors.applied_at && (
+            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">⚠️ {dateWarning}</p>
+          )}
         </div>
 
         {ageWarning && (
@@ -245,6 +306,9 @@ export default function VaccinationForm({
             Próxima dosis
           </label>
           <input id="next_due_at" type="date" className={inputClass} {...register("next_due_at")} />
+          {errors.next_due_at && (
+            <p className="text-accent mt-1 text-xs">{errors.next_due_at.message}</p>
+          )}
         </div>
         <div className="md:col-span-2">
           <label htmlFor="vax_notes" className={labelClass}>

@@ -15,7 +15,16 @@ const schema = z.object({
     .min(1, "Litros requeridos")
     .refine((v) => !Number.isNaN(Number(v)) && Number(v) > 0, { message: "Valor inválido" }),
   shift: z.enum(["am", "pm", "midday"]),
-  recorded_on: z.string().optional(),
+  recorded_on: z
+    .string()
+    .optional()
+    .refine(
+      (v) => {
+        if (!v) return true;
+        return new Date(v) <= new Date();
+      },
+      { message: "La fecha no puede ser futura." }
+    ),
   fat_pct: z
     .string()
     .optional()
@@ -104,7 +113,15 @@ export default function MilkForm({ animalId, farmId, profileId, onDone }: Props)
         </div>
         <div>
           <label className={labelClass}>Fecha</label>
-          <input type="date" className={inputClass} {...register("recorded_on")} />
+          <input
+            type="date"
+            className={inputClass}
+            max={new Date().toISOString().slice(0, 10)}
+            {...register("recorded_on")}
+          />
+          {errors.recorded_on && (
+            <p className="text-accent mt-1 text-xs">{errors.recorded_on.message}</p>
+          )}
         </div>
         <div>
           <label className={labelClass}>% Grasa</label>

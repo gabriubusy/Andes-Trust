@@ -182,6 +182,7 @@ function AddRecordModal({
               <input
                 type="date"
                 className={inputClass}
+                max={new Date().toISOString().slice(0, 10)}
                 value={form.recorded_on}
                 onChange={(e) => setForm((p) => ({ ...p, recorded_on: e.target.value }))}
               />
@@ -397,6 +398,7 @@ function EditRecordModal({
               <input
                 type="date"
                 className={inputClass}
+                max={new Date().toISOString().slice(0, 10)}
                 value={form.recorded_on}
                 onChange={(e) => setForm((p) => ({ ...p, recorded_on: e.target.value }))}
               />

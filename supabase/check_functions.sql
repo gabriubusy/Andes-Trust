@@ -1,0 +1,1 @@
+SELECT proname, prosecdef, proconfig FROM pg_proc WHERE proname IN ('is_any_farm_member','is_platform_admin','current_profile_id','current_privy_did','is_farm_member') AND pronamespace = 'public'::regnamespace;

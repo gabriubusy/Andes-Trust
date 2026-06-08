@@ -206,7 +206,12 @@ export default function NuevoCertificadoPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Fecha de emisión</label>
-              <input type="date" {...register("issued_at")} className={inputCls} />
+              <input
+                type="date"
+                max={new Date().toISOString().slice(0, 10)}
+                {...register("issued_at")}
+                className={inputCls}
+              />
             </div>
             <div>
               <label className={labelCls}>Fecha de vencimiento</label>

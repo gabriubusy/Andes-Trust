@@ -439,6 +439,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       <input
                         type={type}
                         value={(editValues[key] as string) ?? ""}
+                        max={type === "date" ? new Date().toISOString().slice(0, 10) : undefined}
                         onChange={(e) =>
                           setEditValues((p) => ({ ...p, [key]: e.target.value }) as Partial<Animal>)
                         }
@@ -921,6 +922,7 @@ function MovementForm({
           id="mv_at"
           type="datetime-local"
           className={inputCls}
+          max={new Date().toISOString().slice(0, 16)}
           value={occurredAt}
           onChange={(e) => setOccurredAt(e.target.value)}
         />
@@ -989,53 +991,132 @@ function MovementsList({ movements, isLoading }: { movements: MovementRow[]; isL
 type WeighingRow = { weight_kg: number; measured_at: string };
 
 function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: boolean }) {
-  if (isLoading) return null;
-  // rows come newest-first; reverse for chronological chart
-  const sorted = [...rows].reverse().slice(-24);
-  if (sorted.length < 2) return null;
+  if (isLoading)
+    return (
+      <div className="bg-card border-border rounded-2xl border p-6 animate-pulse">
+        <div className="bg-muted/40 mb-4 h-4 w-36 rounded" />
+        <div className="bg-muted/20 h-32 rounded-xl" />
+      </div>
+    );
 
-  const W = 480,
-    H = 120,
-    PAD = 8;
-  const weights = sorted.map((r) => r.weight_kg);
-  const minW = Math.min(...weights);
-  const maxW = Math.max(...weights);
-  const range = maxW - minW || 1;
-  const pts = sorted.map((r, i) => {
-    const x = PAD + (i / (sorted.length - 1)) * (W - PAD * 2);
-    const y = PAD + (1 - (r.weight_kg - minW) / range) * (H - PAD * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  const polyline = pts.join(" ");
+  const sorted = [...rows].reverse().slice(-24);
+  if (sorted.length === 0) return null;
+
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
+  const delta = last.weight_kg - first.weight_kg;
+  const gain = delta >= 0;
+  const pctChange = first.weight_kg > 0 ? ((delta / first.weight_kg) * 100).toFixed(1) : "0";
+
+  // KPIs
+  const avg = sorted.reduce((s, r) => s + r.weight_kg, 0) / sorted.length;
+  const max = Math.max(...sorted.map((r) => r.weight_kg));
+
+  if (sorted.length < 2)
+    return (
+      <div className="bg-card border-border rounded-2xl border p-6">
+        <p className="text-foreground/50 text-sm">
+          Solo hay un pesaje. Registra más para ver la tendencia.
+        </p>
+      </div>
+    );
+
+  // SVG chart
+  const W = 500,
+    H = 110,
+    PL = 10,
+    PR = 10,
+    PT = 10,
+    PB = 10;
+  const weights = sorted.map((r) => r.weight_kg);
+  const minW = Math.min(...weights) * 0.98;
+  const maxW = Math.max(...weights) * 1.02;
+  const range = maxW - minW || 1;
+  const pts = sorted.map((r, i) => {
+    const x = PL + (i / (sorted.length - 1)) * (W - PL - PR);
+    const y = PT + (1 - (r.weight_kg - minW) / range) * (H - PT - PB);
+    return { x: +x.toFixed(1), y: +y.toFixed(1), r };
+  });
+
+  const polyline = pts.map((p) => `${p.x},${p.y}`).join(" ");
+  // Area fill path
+  const areaPath =
+    `M${pts[0].x},${H - PB} ` +
+    pts.map((p) => `L${p.x},${p.y}`).join(" ") +
+    ` L${pts[pts.length - 1].x},${H - PB} Z`;
 
   return (
-    <div className="bg-card border-border rounded-2xl border p-6">
-      <h3 className="text-foreground mb-3 text-base font-bold">Tendencia de peso</h3>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Gráfica de peso">
-        <polyline
-          points={polyline}
-          fill="none"
-          className="stroke-primary"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {sorted.map((r, i) => {
-          const [x, y] = pts[i].split(",").map(Number);
-          return <circle key={r.measured_at} cx={x} cy={y} r="3" className="fill-primary" />;
-        })}
-      </svg>
-      <div className="text-muted-foreground mt-2 flex justify-between text-xs">
-        <span>
-          {new Date(first.measured_at).toLocaleDateString()} — {first.weight_kg} kg
+    <div className="bg-card border-border rounded-2xl border p-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-foreground text-base font-bold">Tendencia de peso</h3>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${gain ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"}`}
+        >
+          {gain ? "▲" : "▼"} {gain ? "+" : ""}
+          {delta.toFixed(1)} kg ({gain ? "+" : ""}
+          {pctChange}%)
         </span>
-        <span className="font-medium text-foreground">
-          {last.weight_kg} kg ({last.weight_kg >= first.weight_kg ? "+" : ""}
-          {(last.weight_kg - first.weight_kg).toFixed(1)} kg)
-        </span>
-        <span>{new Date(last.measured_at).toLocaleDateString()}</span>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Peso actual", value: `${last.weight_kg} kg`, highlight: true },
+          { label: "Promedio", value: `${avg.toFixed(1)} kg`, highlight: false },
+          { label: "Máximo", value: `${max} kg`, highlight: false },
+        ].map((k) => (
+          <div key={k.label} className="bg-muted/40 rounded-xl px-3 py-2.5">
+            <div className="text-foreground/50 text-xs">{k.label}</div>
+            <div
+              className={`text-sm font-bold mt-0.5 ${k.highlight ? "text-primary" : "text-foreground"}`}
+            >
+              {k.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* SVG */}
+      <div className="rounded-xl overflow-hidden bg-muted/20 px-2 pt-2 pb-0">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Gráfica de peso">
+          <defs>
+            <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={areaPath} fill="url(#wGrad)" />
+          <polyline
+            points={polyline}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          {pts.map((p, i) => (
+            <g key={i}>
+              <circle cx={p.x} cy={p.y} r="4" fill="#3b82f6" />
+              <circle cx={p.x} cy={p.y} r="7" fill="#3b82f6" fillOpacity="0.15" />
+            </g>
+          ))}
+        </svg>
+        {/* X axis labels */}
+        <div className="flex justify-between px-2 pb-2 mt-1">
+          <span className="text-foreground/40 text-[10px]">
+            {new Date(first.measured_at).toLocaleDateString("es-VE", {
+              day: "2-digit",
+              month: "short",
+            })}
+          </span>
+          <span className="text-foreground/40 text-[10px]">
+            {new Date(last.measured_at).toLocaleDateString("es-VE", {
+              day: "2-digit",
+              month: "short",
+            })}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -1053,33 +1134,48 @@ function RecordList({
   emptyHint?: string;
 }) {
   return (
-    <div className="bg-card border-border rounded-2xl border p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="bg-card border-border rounded-2xl border overflow-hidden">
+      <div className="border-border flex items-center justify-between border-b px-5 py-4">
         <h3 className="text-foreground text-base font-bold">{title}</h3>
-        <Calendar className="text-foreground/30 h-4 w-4" />
+        <span className="text-foreground/40 bg-muted rounded-full px-2 py-0.5 text-xs">
+          {isLoading ? "…" : rows.length}
+        </span>
       </div>
-      {isLoading && <p className="text-foreground/60 text-sm">Cargando…</p>}
+      {isLoading && (
+        <div className="divide-border divide-y">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-4 px-5 py-4">
+              <div className="bg-muted/40 h-9 w-9 animate-pulse rounded-lg shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="bg-muted/40 h-3 w-24 animate-pulse rounded" />
+                <div className="bg-muted/20 h-2.5 w-40 animate-pulse rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {!isLoading && rows.length === 0 && (
-        <p className="text-foreground/60 text-sm">{emptyHint ?? "Sin registros aún."}</p>
+        <div className="px-5 py-10 text-center">
+          <Calendar className="text-foreground/20 mx-auto mb-2 h-8 w-8" />
+          <p className="text-foreground/50 text-sm">{emptyHint ?? "Sin registros aún."}</p>
+        </div>
       )}
       {rows.length > 0 && (
-        <ul className="space-y-1">
+        <ul className="divide-border divide-y">
           {rows.map((r) => (
             <li
               key={r.id}
-              className="hover:bg-muted/50 flex items-start gap-4 rounded-xl p-3 transition-colors"
+              className="hover:bg-muted/30 flex items-start gap-4 px-5 py-3.5 transition-colors"
             >
-              <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+              <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
                 <r.icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-foreground text-sm font-medium">{r.primary}</div>
-                <div className="text-foreground/60 text-xs">{r.secondary}</div>
-                {r.tertiary && (
-                  <div className="text-foreground/50 mt-0.5 text-xs">{r.tertiary}</div>
-                )}
+                <div className="text-foreground text-sm font-semibold">{r.primary}</div>
+                <div className="text-foreground/50 mt-0.5 text-xs">{r.secondary}</div>
+                {r.tertiary && <div className="text-primary/70 mt-0.5 text-xs">{r.tertiary}</div>}
               </div>
-              {r.action && <div className="shrink-0">{r.action}</div>}
+              {r.action && <div className="shrink-0 pt-0.5">{r.action}</div>}
             </li>
           ))}
         </ul>

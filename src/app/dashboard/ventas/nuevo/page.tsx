@@ -440,6 +440,7 @@ export default function NuevaVentaPage() {
                 id="sold_at"
                 type="datetime-local"
                 className={inputClass}
+                max={new Date().toISOString().slice(0, 16)}
                 value={soldAt}
                 onChange={(e) => setSoldAt(e.target.value)}
               />

@@ -14,7 +14,16 @@ const schema = z.object({
     .string()
     .min(1, "Peso requerido")
     .refine((v) => !Number.isNaN(Number(v)) && Number(v) > 0, { message: "Peso inválido" }),
-  measured_at: z.string().optional(),
+  measured_at: z
+    .string()
+    .optional()
+    .refine(
+      (v) => {
+        if (!v) return true;
+        return new Date(v) <= new Date();
+      },
+      { message: "La fecha no puede ser futura." }
+    ),
   notes: z.string().max(280).optional(),
 });
 
@@ -94,7 +103,15 @@ export default function WeighingForm({ animalId, farmId, profileId, onDone }: Pr
         </div>
         <div>
           <label className={labelClass}>Fecha</label>
-          <input type="datetime-local" className={inputClass} {...register("measured_at")} />
+          <input
+            type="datetime-local"
+            className={inputClass}
+            max={new Date().toISOString().slice(0, 16)}
+            {...register("measured_at")}
+          />
+          {errors.measured_at && (
+            <p className="text-accent mt-1 text-xs">{errors.measured_at.message}</p>
+          )}
         </div>
         <div>
           <label className={labelClass}>Notas</label>
