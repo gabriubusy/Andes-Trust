@@ -4,7 +4,8 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
-const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY ?? "";
+const DEPLOYER_PRIVATE_KEY =
+  process.env.RELAYER_PRIVATE_KEY ?? process.env.DEPLOYER_PRIVATE_KEY ?? "";
 const AMOY_RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology";
 

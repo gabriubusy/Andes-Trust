@@ -1,33 +1,32 @@
-import { PrivyClient } from "@privy-io/server-auth";
-import { createPublicClient, encodeFunctionData, http } from "viem";
+import { createPublicClient, createWalletClient, encodeFunctionData, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { polygonAmoy } from "viem/chains";
 
-const CAIP2 = "eip155:80002"; // Polygon Amoy
-
-let _privy: PrivyClient | null = null;
-function getPrivy() {
-  if (!_privy) _privy = new PrivyClient(process.env.PRIVY_APP_ID!, process.env.PRIVY_APP_SECRET!);
-  return _privy;
-}
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology";
 
 let _public: ReturnType<typeof createPublicClient> | null = null;
 function getPublicClient() {
-  if (!_public)
-    _public = createPublicClient({
-      chain: polygonAmoy,
-      transport: http(process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology"),
-    });
+  if (!_public) _public = createPublicClient({ chain: polygonAmoy, transport: http(RPC_URL) });
   return _public;
 }
 
-export function getRelayerWalletId() {
-  const id = process.env.PRIVY_RELAYER_WALLET_ID;
-  if (!id) throw new Error("PRIVY_RELAYER_WALLET_ID not configured");
-  return id;
+function getWalletClient() {
+  const pk = process.env.RELAYER_PRIVATE_KEY;
+  if (!pk) throw new Error("RELAYER_PRIVATE_KEY not configured");
+  const key = pk.startsWith("0x") ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
+  const account = privateKeyToAccount(key);
+  return createWalletClient({ account, chain: polygonAmoy, transport: http(RPC_URL) });
+}
+
+export function getRelayerAddress(): `0x${string}` {
+  const pk = process.env.RELAYER_PRIVATE_KEY;
+  if (!pk) throw new Error("RELAYER_PRIVATE_KEY not configured");
+  const key = pk.startsWith("0x") ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
+  return privateKeyToAccount(key).address;
 }
 
 /**
- * Sends a contract write via the Privy server wallet (relayer).
+ * Sends a contract write via the relayer private key.
  * Returns the transaction hash after on-chain confirmation.
  */
 export async function relayContractWrite({
@@ -44,15 +43,8 @@ export async function relayContractWrite({
 }): Promise<`0x${string}`> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = encodeFunctionData({ abi, functionName, args } as any);
-
-  const privy = getPrivy();
-  const result = await privy.walletApi.ethereum.sendTransaction({
-    walletId: getRelayerWalletId(),
-    caip2: CAIP2,
-    transaction: { to, data },
-  });
-
-  const hash = result.hash as `0x${string}`;
+  const wallet = getWalletClient();
+  const hash = await wallet.sendTransaction({ to, data });
   await getPublicClient().waitForTransactionReceipt({ hash });
   return hash;
 }
