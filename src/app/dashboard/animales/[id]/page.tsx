@@ -123,14 +123,22 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       if (!supabase) return [];
       const { data, error } = await supabase
         .from("vaccinations")
-        .select(
-          "id, applied_at, dose_ml, batch_number, next_due_at, notes, vaccines_catalog(name), blockchain_records(tx_hash)"
-        )
+        .select("id, applied_at, dose_ml, batch_number, next_due_at, notes, vaccines_catalog(name)")
         .eq("animal_id", id)
         .order("applied_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      if (!rows.length) return rows;
+      const ids = rows.map((r) => r.id as string);
+      const { data: brs } = await supabase
+        .from("blockchain_records")
+        .select("entity_id, tx_hash")
+        .eq("entity_type", "vaccinations")
+        .in("entity_id", ids);
+      const brMap: Record<string, string> = {};
+      for (const br of brs ?? []) brMap[br.entity_id as string] = br.tx_hash as string;
+      return rows.map((r) => ({ ...r, tx_hash: brMap[r.id as string] ?? null }));
     },
   });
 
@@ -195,13 +203,23 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       const { data, error } = await supabase
         .from("treatments")
         .select(
-          "id, started_at, ended_at, dose, notes, withdrawal_until_meat, withdrawal_until_milk, treatments_catalog(name, kind), blockchain_records(tx_hash)"
+          "id, started_at, ended_at, dose, notes, withdrawal_until_meat, withdrawal_until_milk, treatments_catalog(name, kind)"
         )
         .eq("animal_id", id)
         .order("started_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      if (!rows.length) return rows;
+      const ids = rows.map((r) => r.id as string);
+      const { data: brs } = await supabase
+        .from("blockchain_records")
+        .select("entity_id, tx_hash")
+        .eq("entity_type", "treatments")
+        .in("entity_id", ids);
+      const brMap: Record<string, string> = {};
+      for (const br of brs ?? []) brMap[br.entity_id as string] = br.tx_hash as string;
+      return rows.map((r) => ({ ...r, tx_hash: brMap[r.id as string] ?? null }));
     },
   });
 
@@ -871,10 +889,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       <SignAnchorButton
                         entityType="vaccinations"
                         entityId={v.id as string}
-                        txHash={
-                          (v.blockchain_records as { tx_hash: string }[] | null)?.[0]?.tx_hash ??
-                          null
-                        }
+                        txHash={(v as unknown as { tx_hash?: string | null }).tx_hash ?? null}
                       />
                     ),
                   };
@@ -958,10 +973,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       <SignAnchorButton
                         entityType="treatments"
                         entityId={t.id as string}
-                        txHash={
-                          (t.blockchain_records as { tx_hash: string }[] | null)?.[0]?.tx_hash ??
-                          null
-                        }
+                        txHash={(t as unknown as { tx_hash?: string | null }).tx_hash ?? null}
                       />
                     ),
                   };
