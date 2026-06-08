@@ -147,7 +147,7 @@ export async function POST(req: Request) {
 
   const sigOk = await verifyMessage({
     address: body.signer_address,
-    message: { raw: payloadHash },
+    message: payloadHash,
     signature: body.signature,
   }).catch(() => false);
   if (!sigOk) return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
