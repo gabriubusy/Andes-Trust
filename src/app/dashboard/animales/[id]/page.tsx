@@ -203,6 +203,55 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
     },
   });
 
+  // Fotos de evidencia por entidad — después de las queries principales
+  const vacDocsQuery = useQuery<Record<string, string>>({
+    queryKey: ["docs-vac", id],
+    enabled: !!supabase && tab === "vacunas" && !!vaccinationsQuery.data?.length,
+    queryFn: async () => {
+      if (!supabase) return {};
+      const vacIds = (vaccinationsQuery.data ?? []).map((v) => v.id as string);
+      if (!vacIds.length) return {};
+      const { data } = await supabase
+        .from("documents")
+        .select("entity_id, storage_path")
+        .eq("entity_type", "vaccination")
+        .in("entity_id", vacIds)
+        .limit(100);
+      const map: Record<string, string> = {};
+      for (const d of data ?? []) {
+        const { data: pub } = supabase.storage
+          .from("animal-photos")
+          .getPublicUrl(d.storage_path as string);
+        if (pub?.publicUrl) map[d.entity_id as string] = pub.publicUrl;
+      }
+      return map;
+    },
+  });
+
+  const treatDocsQuery = useQuery<Record<string, string>>({
+    queryKey: ["docs-treat", id],
+    enabled: !!supabase && tab === "tratamientos" && !!treatmentsQuery.data?.length,
+    queryFn: async () => {
+      if (!supabase) return {};
+      const tIds = (treatmentsQuery.data ?? []).map((t) => t.id as string);
+      if (!tIds.length) return {};
+      const { data } = await supabase
+        .from("documents")
+        .select("entity_id, storage_path")
+        .eq("entity_type", "treatment")
+        .in("entity_id", tIds)
+        .limit(100);
+      const map: Record<string, string> = {};
+      for (const d of data ?? []) {
+        const { data: pub } = supabase.storage
+          .from("animal-photos")
+          .getPublicUrl(d.storage_path as string);
+        if (pub?.publicUrl) map[d.entity_id as string] = pub.publicUrl;
+      }
+      return map;
+    },
+  });
+
   const milkQuery = useQuery({
     queryKey: ["milk", id],
     enabled: !!supabase && tab === "leche",
@@ -428,6 +477,45 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
         </div>
 
         <div className="space-y-6">
+          {/* Banner compacto del animal — visible en todas las tabs */}
+          <div className="bg-card border-border flex items-center gap-3 rounded-2xl border px-4 py-3">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl">
+              {photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={photoUrl} alt={animal.tag} className="h-full w-full object-cover" />
+              ) : (
+                <div className="bg-muted/50 flex h-full w-full items-center justify-center">
+                  <Beef className="text-foreground/20 h-5 w-5" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-foreground font-mono text-sm font-bold">{animal.tag}</p>
+              <p className="text-foreground/50 truncate text-xs">
+                {animal.sex === "female" ? "Hembra" : "Macho"}
+                {animal.breeds?.name ? ` · ${animal.breeds.name}` : ""}
+                {animal.current_weight_kg ? ` · ${animal.current_weight_kg} kg` : ""}
+              </p>
+            </div>
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                animal.status === "active"
+                  ? "bg-emerald-500/15 text-emerald-600"
+                  : animal.status === "sold"
+                    ? "bg-blue-500/15 text-blue-600"
+                    : "bg-red-500/15 text-red-500"
+              }`}
+            >
+              {animal.status === "active"
+                ? "Activo"
+                : animal.status === "sold"
+                  ? "Vendido"
+                  : animal.status === "dead"
+                    ? "Fallecido"
+                    : animal.status}
+            </span>
+          </div>
+
           <div className="bg-muted/30 border-border flex flex-wrap gap-1 rounded-2xl border p-1">
             {tabs.map((t) => (
               <button
@@ -658,41 +746,48 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                 </div>
               )}
-              <WeightChart rows={weighingsQuery.data ?? []} isLoading={weighingsQuery.isLoading} />
-              <RecordList
-                title="Histórico de pesajes"
-                titleIcon={TrendingUp}
-                isLoading={weighingsQuery.isLoading}
-                emptyIcon={TrendingUp}
-                emptyHint="Aún no hay pesajes registrados."
-                iconBg="bg-violet-500/10"
-                iconColor="text-violet-500"
-                rows={(weighingsQuery.data ?? []).map((w, i, arr) => {
-                  const prev = arr[i + 1];
-                  const delta = prev ? w.weight_kg - prev.weight_kg : null;
-                  return {
-                    id: w.id as string,
-                    primary: `${w.weight_kg} kg`,
-                    secondary: new Date(w.measured_at as string).toLocaleString("es-VE", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }),
-                    tertiary: w.notes ?? null,
-                    badge:
-                      delta !== null ? `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} kg` : undefined,
-                    badgeColor:
-                      delta === null
-                        ? undefined
-                        : delta >= 0
-                          ? "bg-emerald-500/10 text-emerald-600"
-                          : "bg-red-500/10 text-red-500",
-                    icon: TrendingUp,
-                  };
-                })}
-              />
+              <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+                <WeightChart
+                  rows={weighingsQuery.data ?? []}
+                  isLoading={weighingsQuery.isLoading}
+                />
+                <RecordList
+                  title="Histórico de pesajes"
+                  titleIcon={TrendingUp}
+                  isLoading={weighingsQuery.isLoading}
+                  emptyIcon={TrendingUp}
+                  emptyHint="Aún no hay pesajes registrados."
+                  iconBg="bg-violet-500/10"
+                  iconColor="text-violet-500"
+                  rows={(weighingsQuery.data ?? []).map((w, i, arr) => {
+                    const prev = arr[i + 1];
+                    const delta = prev ? w.weight_kg - prev.weight_kg : null;
+                    return {
+                      id: w.id as string,
+                      primary: `${w.weight_kg} kg`,
+                      secondary: new Date(w.measured_at as string).toLocaleString("es-VE", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }),
+                      tertiary: w.notes ?? null,
+                      badge:
+                        delta !== null
+                          ? `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} kg`
+                          : undefined,
+                      badgeColor:
+                        delta === null
+                          ? undefined
+                          : delta >= 0
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : "bg-red-500/10 text-red-500",
+                      icon: TrendingUp,
+                    };
+                  })}
+                />
+              </div>
             </div>
           )}
 
@@ -769,6 +864,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     badge: v.dose_ml ? `${v.dose_ml} ml` : undefined,
                     badgeColor: "bg-emerald-500/10 text-emerald-600",
                     icon: Syringe,
+                    photo: vacDocsQuery.data?.[v.id as string] ?? null,
                     action: (
                       <SignAnchorButton
                         entityType="vaccinations"
@@ -852,6 +948,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       ? "bg-amber-500/15 text-amber-600"
                       : "bg-muted text-foreground/50",
                     icon: FlaskConical,
+                    photo: treatDocsQuery.data?.[t.id as string] ?? null,
                     action: (
                       <SignAnchorButton
                         entityType="treatments"
@@ -1043,6 +1140,7 @@ type ListRow = {
   badge?: string;
   badgeColor?: string;
   icon: typeof Beef;
+  photo?: string | null;
   action?: React.ReactNode;
 };
 
@@ -1424,10 +1522,17 @@ function RecordList({
               key={r.id}
               className="hover:bg-muted/20 flex items-center gap-4 px-5 py-3.5 transition-colors"
             >
-              <div
-                className={`${iconBg} ${iconColor} flex h-10 w-10 shrink-0 items-center justify-center rounded-xl`}
-              >
-                <r.icon className="h-4 w-4" />
+              <div className="relative h-10 w-10 shrink-0">
+                {r.photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={r.photo} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                ) : (
+                  <div
+                    className={`${iconBg} ${iconColor} flex h-10 w-10 items-center justify-center rounded-xl`}
+                  >
+                    <r.icon className="h-4 w-4" />
+                  </div>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
