@@ -150,6 +150,35 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
     },
   });
 
+  const addMovement = useMutation({
+    mutationFn: async (vals: {
+      location_from: string;
+      location_to: string;
+      reason: string;
+      occurred_at: string;
+    }) => {
+      if (!supabase || !profileId || !farmQuery.data?.id) throw new Error("Sesión no lista.");
+      const { error } = await supabase.from("animal_events").insert({
+        animal_id: id,
+        farm_id: farmQuery.data.id,
+        type: "transfer",
+        occurred_at: vals.occurred_at
+          ? new Date(vals.occurred_at).toISOString()
+          : new Date().toISOString(),
+        performed_by: profileId,
+        payload: {
+          location_from: vals.location_from || null,
+          location_to: vals.location_to || null,
+        },
+        notes: vals.reason || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["movements", id] });
+    },
+  });
+
   const treatmentsQuery = useQuery({
     queryKey: ["treatments", id],
     enabled: !!supabase && tab === "tratamientos",
@@ -253,35 +282,6 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const farmId = farmQuery.data?.id;
-
-  const addMovement = useMutation({
-    mutationFn: async (vals: {
-      location_from: string;
-      location_to: string;
-      reason: string;
-      occurred_at: string;
-    }) => {
-      if (!supabase || !profileId || !farmId) throw new Error("Sesión no lista.");
-      const { error } = await supabase.from("animal_events").insert({
-        animal_id: id,
-        farm_id: farmId,
-        type: "transfer",
-        occurred_at: vals.occurred_at
-          ? new Date(vals.occurred_at).toISOString()
-          : new Date().toISOString(),
-        performed_by: profileId,
-        payload: {
-          location_from: vals.location_from || null,
-          location_to: vals.location_to || null,
-        },
-        notes: vals.reason || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["movements", id] });
-    },
-  });
 
   return (
     <DashboardShell

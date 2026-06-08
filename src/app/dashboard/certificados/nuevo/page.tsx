@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, UploadCloud, FileText, X, Link2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { toast } from "sonner";
 
 const CERT_TYPES = [
   { value: "origin", label: "Origen" },
@@ -27,11 +28,14 @@ const schema = z.object({
   issuer: z.string().max(200).optional().or(z.literal("")),
   issued_at: z.string().optional().or(z.literal("")),
   valid_until: z.string().optional().or(z.literal("")),
-  document_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  document_url: z.string().optional().or(z.literal("")),
   notes: z.string().max(1000).optional().or(z.literal("")),
 });
 
 type FormData = z.infer<typeof schema>;
+
+const ACCEPTED = ".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp";
+const MAX_MB = 10;
 
 export default function NuevoCertificadoPage() {
   const router = useRouter();
@@ -39,15 +43,23 @@ export default function NuevoCertificadoPage() {
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
   const [serverError, setServerError] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; url: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [urlMode, setUrlMode] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { type: "health" },
   });
+
+  const docUrl = watch("document_url");
 
   const animalsQuery = useQuery<{ id: string; tag: string; name: string | null }[]>({
     queryKey: ["animals-select", farmId],
@@ -65,11 +77,49 @@ export default function NuevoCertificadoPage() {
     },
   });
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !supabase || !farmId) return;
+
+    if (file.size > MAX_MB * 1024 * 1024) {
+      toast.error(`El archivo no puede superar ${MAX_MB} MB`);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${farmId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("certificate-docs")
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      if (upErr) throw upErr;
+
+      const { data: urlData } = supabase.storage.from("certificate-docs").getPublicUrl(path);
+
+      setUploadedFile({ name: file.name, url: urlData.publicUrl });
+      setValue("document_url", urlData.publicUrl);
+      toast.success("Archivo subido correctamente");
+    } catch (err) {
+      toast.error("Error al subir: " + (err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  function removeFile() {
+    setUploadedFile(null);
+    setValue("document_url", "");
+  }
+
   const onSubmit = async (values: FormData) => {
     if (!supabase || !farmId) return;
     setServerError(null);
 
-    const payload = {
+    const { error } = await supabase.from("certifications").insert({
       farm_id: farmId,
       type: values.type,
       animal_id: values.animal_id || null,
@@ -78,9 +128,8 @@ export default function NuevoCertificadoPage() {
       valid_until: values.valid_until || null,
       document_url: values.document_url || null,
       metadata: values.notes ? { notes: values.notes } : {},
-    };
+    });
 
-    const { error } = await supabase.from("certifications").insert(payload);
     if (error) {
       setServerError(error.message);
       return;
@@ -125,7 +174,7 @@ export default function NuevoCertificadoPage() {
             {errors.type && <p className={errorCls}>{errors.type.message}</p>}
           </div>
 
-          {/* Animal (opcional) */}
+          {/* Animal */}
           <div>
             <label className={labelCls}>Animal (opcional)</label>
             <select {...register("animal_id")} className={inputCls}>
@@ -165,11 +214,78 @@ export default function NuevoCertificadoPage() {
             </div>
           </div>
 
-          {/* URL del documento */}
+          {/* Documento */}
           <div>
-            <label className={labelCls}>URL del documento</label>
-            <input {...register("document_url")} placeholder="https://..." className={inputCls} />
-            {errors.document_url && <p className={errorCls}>{errors.document_url.message}</p>}
+            <div className="mb-2 flex items-center justify-between">
+              <label className={labelCls}>Documento oficial</label>
+              <button
+                type="button"
+                onClick={() => setUrlMode((v) => !v)}
+                className="text-foreground/40 hover:text-primary flex items-center gap-1 text-xs transition-colors"
+              >
+                <Link2 className="h-3 w-3" />
+                {urlMode ? "Subir archivo" : "Pegar URL"}
+              </button>
+            </div>
+
+            {/* Archivo ya subido */}
+            {uploadedFile && !urlMode ? (
+              <div className="border-border bg-muted/30 flex items-center gap-3 rounded-xl border px-4 py-3">
+                <FileText className="text-primary h-5 w-5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-foreground truncate text-sm font-medium">
+                    {uploadedFile.name}
+                  </p>
+                  <a
+                    href={uploadedFile.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary truncate text-xs hover:underline"
+                  >
+                    Ver archivo
+                  </a>
+                </div>
+                <button
+                  type="button"
+                  onClick={removeFile}
+                  className="text-foreground/40 hover:text-destructive shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : urlMode ? (
+              <input {...register("document_url")} placeholder="https://..." className={inputCls} />
+            ) : (
+              /* Drop zone */
+              <label
+                className={`border-border hover:border-primary/60 hover:bg-primary/5 flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 transition-colors ${uploading ? "opacity-60 pointer-events-none" : ""}`}
+              >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept={ACCEPTED}
+                  className="sr-only"
+                  onChange={handleFileChange}
+                  disabled={uploading}
+                />
+                {uploading ? (
+                  <Loader2 className="text-primary h-7 w-7 animate-spin" />
+                ) : (
+                  <UploadCloud className="text-foreground/30 h-7 w-7" />
+                )}
+                <span className="text-foreground/50 text-sm">
+                  {uploading ? "Subiendo…" : "Haz clic o arrastra el archivo aquí"}
+                </span>
+                <span className="text-foreground/30 text-xs">
+                  PDF, Word, JPG, PNG · máx. {MAX_MB} MB
+                </span>
+              </label>
+            )}
+
+            {/* Muestra URL si viene de modo URL */}
+            {urlMode && docUrl && (
+              <p className="text-foreground/40 mt-1 truncate text-xs">{docUrl}</p>
+            )}
           </div>
 
           {/* Notas */}
@@ -192,7 +308,7 @@ export default function NuevoCertificadoPage() {
           <div className="flex gap-3 pt-2">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || uploading}
               className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium disabled:opacity-60"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
