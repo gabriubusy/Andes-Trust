@@ -64,7 +64,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
         .limit(15),
       supabase
         .from("vaccinations")
-        .select("applied_at, next_due_at, notes, vaccines_catalog(name, disease)")
+        .select("id, applied_at, next_due_at, notes, vaccines_catalog(name, disease)")
         .eq("animal_id", token.entity_id)
         .order("applied_at", { ascending: false }),
       supabase
@@ -101,6 +101,28 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
   const certifications = certificationsRes.data ?? [];
   const milkRows = milkRes.data ?? [];
   const farm = farmRes.data;
+
+  // Fetch evidence photos for vaccinations
+  const vacIds = vaccinations.map((v) => v.id as string).filter(Boolean);
+  let vacPhotos: Record<string, string> = {};
+  if (vacIds.length > 0) {
+    const { data: vacDocs } = await supabase
+      .from("documents")
+      .select("entity_id, storage_path")
+      .eq("entity_type", "vaccination")
+      .in("entity_id", vacIds)
+      .eq("bucket", "animal-photos");
+    if (vacDocs) {
+      for (const doc of vacDocs) {
+        if (doc.entity_id && doc.storage_path) {
+          const { data: pub } = supabase.storage
+            .from(ANIMAL_PHOTOS_BUCKET)
+            .getPublicUrl(doc.storage_path);
+          if (pub?.publicUrl) vacPhotos[doc.entity_id] = pub.publicUrl;
+        }
+      }
+    }
+  }
 
   const milkTotal = milkRows.reduce((acc, r) => acc + Number(r.liters ?? 0), 0);
   const latestWeight = weighings[0]?.weight_kg ?? animal.current_weight_kg;
@@ -141,53 +163,53 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
 
   return (
     <main className="bg-background text-foreground min-h-screen">
-      <div className="mx-auto max-w-lg">
-        {/* ── HERO ─────────────────────────────────────────── */}
-        <div className="relative">
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt={animal.tag} className="h-80 w-full object-cover" />
-          ) : (
-            <div className="bg-muted/20 flex h-80 w-full items-center justify-center">
-              <Beef className="text-foreground/10 h-24 w-24" />
-            </div>
-          )}
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-          {/* Logo + farm top */}
-          <div className="absolute top-4 left-0 right-0 flex items-center justify-center">
-            <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-1.5 flex items-center gap-2">
-              <Image src="/logo.png" alt="Logo" width={80} height={32} className="h-5 w-auto" />
-              {farm && (
-                <span className="text-white/70 text-xs flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {[farm.name, farm.region].filter(Boolean).join(" · ")}
-                </span>
-              )}
-            </div>
+      {/* ── HERO full-width ───────────────────────────────── */}
+      <div className="relative h-[60vh] min-h-72 w-full">
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photoUrl} alt={animal.tag} className="h-full w-full object-cover" />
+        ) : (
+          <div className="bg-muted/20 flex h-full w-full items-center justify-center">
+            <Beef className="text-foreground/10 h-32 w-32" />
           </div>
+        )}
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
-          {/* Animal name over image */}
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <p className="text-white/50 text-[10px] font-bold tracking-widest uppercase mb-1">
-              Ficha pública · trazabilidad verificada
-            </p>
-            <h1 className="text-white text-3xl font-bold leading-tight">
-              {animal.name ?? animal.tag}
-            </h1>
-            {animal.name && <p className="text-white/60 font-mono text-sm mt-0.5">{animal.tag}</p>}
+        {/* Logo + farm top */}
+        <div className="absolute top-4 left-0 right-0 flex items-center justify-center">
+          <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-1.5 flex items-center gap-2">
+            <Image src="/logo.png" alt="Logo" width={80} height={32} className="h-5 w-auto" />
+            {farm && (
+              <span className="text-white/70 text-xs flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {[farm.name, farm.region].filter(Boolean).join(" · ")}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* ── VERIFIED BADGE ───────────────────────────────── */}
-        <div className="bg-primary/10 border-primary/20 border-b border-t flex items-center justify-center gap-2 px-4 py-2.5">
-          <ShieldCheck className="text-primary h-4 w-4 shrink-0" />
-          <p className="text-primary text-xs font-medium">
-            Verificado por {farm?.name ?? "Finca El Progreso"} · {fmt.format(new Date())}
+        {/* Animal name sobre la imagen */}
+        <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-lg px-6 pb-8">
+          <p className="text-white/50 text-[10px] font-bold tracking-widest uppercase mb-1">
+            Ficha pública · trazabilidad verificada
           </p>
+          <h1 className="text-white text-4xl font-bold leading-tight drop-shadow-lg">
+            {animal.name ?? animal.tag}
+          </h1>
+          {animal.name && <p className="text-white/60 font-mono text-sm mt-0.5">{animal.tag}</p>}
         </div>
+      </div>
 
+      {/* ── VERIFIED BADGE ───────────────────────────────── */}
+      <div className="bg-primary/10 border-primary/20 border-b border-t flex items-center justify-center gap-2 px-4 py-2.5">
+        <ShieldCheck className="text-primary h-4 w-4 shrink-0" />
+        <p className="text-primary text-xs font-medium">
+          Verificado por {farm?.name ?? "Finca El Progreso"} · {fmt.format(new Date())}
+        </p>
+      </div>
+
+      <div className="mx-auto max-w-lg">
         <div className="space-y-4 p-4">
           {/* ── STATS GRID ───────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
@@ -292,47 +314,70 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
               color="text-emerald-500"
               count={vaccinations.length}
             >
-              <ul className="divide-border divide-y">
+              <div className="divide-border divide-y">
                 {vaccinations.map((v, i) => {
                   const cat = v.vaccines_catalog as { name?: string; disease?: string } | null;
                   const isDue = v.next_due_at && new Date(v.next_due_at).getTime() < now;
+                  const photoUrl = vacPhotos[v.id as string];
                   return (
-                    <li key={i} className="flex items-start gap-3 px-4 py-3">
-                      <div className="bg-emerald-500/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5">
-                        <Syringe className="text-emerald-500 h-3.5 w-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-foreground text-sm font-medium">
-                            {cat?.name ?? "Vacuna"}
-                          </span>
-                          {isDue && (
-                            <span className="bg-red-500/10 text-red-500 text-[10px] font-semibold rounded-full px-1.5 py-0.5">
-                              Refuerzo pendiente
-                            </span>
-                          )}
+                    <div key={i} className="p-4 space-y-3">
+                      {/* Evidence photo */}
+                      {photoUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={photoUrl}
+                          alt={`Evidencia ${cat?.name ?? "vacuna"}`}
+                          className="w-full h-36 object-cover rounded-xl"
+                        />
+                      )}
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl mt-0.5 ${isDue ? "bg-red-500/10" : "bg-emerald-500/10"}`}
+                        >
+                          <Syringe
+                            className={`h-4 w-4 ${isDue ? "text-red-500" : "text-emerald-500"}`}
+                          />
                         </div>
-                        {cat?.disease && (
-                          <p className="text-foreground/40 text-xs mt-0.5">Contra: {cat.disease}</p>
-                        )}
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-foreground/40 text-xs">
-                            {fmtShort.format(new Date(v.applied_at as string))}
-                          </span>
-                          {v.next_due_at && (
-                            <span
-                              className={`text-xs flex items-center gap-1 ${isDue ? "text-red-400" : "text-foreground/40"}`}
-                            >
-                              <Clock className="h-3 w-3" />
-                              Próxima: {fmtShort.format(new Date(v.next_due_at))}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-foreground text-sm font-semibold">
+                              {cat?.name ?? "Vacuna"}
                             </span>
+                            {isDue ? (
+                              <span className="bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1">
+                                <AlertTriangle className="h-2.5 w-2.5" />
+                                Refuerzo pendiente
+                              </span>
+                            ) : (
+                              <span className="bg-emerald-500/10 text-emerald-600 text-[10px] font-bold rounded-full px-2 py-0.5">
+                                Al día
+                              </span>
+                            )}
+                          </div>
+                          {cat?.disease && (
+                            <p className="text-foreground/40 text-xs mt-0.5">
+                              Contra: {cat.disease}
+                            </p>
                           )}
+                          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                            <span className="text-foreground/50 text-xs bg-muted/40 rounded-lg px-2 py-0.5">
+                              {fmtShort.format(new Date(v.applied_at as string))}
+                            </span>
+                            {v.next_due_at && (
+                              <span
+                                className={`text-xs flex items-center gap-1 ${isDue ? "text-red-400" : "text-foreground/40"}`}
+                              >
+                                <Clock className="h-3 w-3" />
+                                Próxima: {fmtShort.format(new Date(v.next_due_at))}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
             </Section>
           )}
 
