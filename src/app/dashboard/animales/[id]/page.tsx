@@ -851,12 +851,12 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                   return {
                     id: v.id as string,
                     primary: name ?? "Vacuna",
-                    secondary: new Date(v.applied_at as string).toLocaleString("es-VE", {
+                    secondary: new Date(
+                      (v.applied_at as string).slice(0, 10) + "T12:00:00"
+                    ).toLocaleDateString("es-VE", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
                     }),
                     tertiary: v.next_due_at
                       ? `Próxima dosis: ${new Date(v.next_due_at as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}`
@@ -866,11 +866,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     icon: Syringe,
                     photo: vacDocsQuery.data?.[v.id as string] ?? null,
                     action: (
-                      <SignAnchorButton
-                        entityType="vaccinations"
-                        entityId={v.id as string}
-                        payload={v}
-                      />
+                      <SignAnchorButton entityType="vaccinations" entityId={v.id as string} />
                     ),
                   };
                 })}
@@ -949,13 +945,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       : "bg-muted text-foreground/50",
                     icon: FlaskConical,
                     photo: treatDocsQuery.data?.[t.id as string] ?? null,
-                    action: (
-                      <SignAnchorButton
-                        entityType="treatments"
-                        entityId={t.id as string}
-                        payload={t}
-                      />
-                    ),
+                    action: <SignAnchorButton entityType="treatments" entityId={t.id as string} />,
                   };
                 })}
               />

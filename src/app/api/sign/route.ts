@@ -1,20 +1,19 @@
 // =====================================================================
 // POST /api/sign
-//   Body: { entity_type, entity_id, signature, signer_address, anchor? }
-//   1. Verifica el JWT Privy.
-//   2. Lee la fila desde Supabase (con service role) y recalcula el
-//      hash canónico keccak256.
-//   3. Verifica EIP-191 que la firma corresponde al hash y a
-//      `signer_address`.
-//   4. Persiste fila en `signatures`.
-//   5. Si `anchor === true`, llama `TraceabilityAnchor.anchor()` desde la
-//      wallet relayer del servidor y persiste fila en `blockchain_records`.
+//   Body: { entity_type, entity_id, anchor? }
+//   1. Verifica el JWT Privy del usuario (solo autenticación).
+//   2. Lee la fila desde Supabase y calcula el hash keccak256 canónico.
+//   3. El relayer ancla directamente en TraceabilityAnchor on-chain.
+//   4. Persiste en blockchain_records.
+//
+//   No se requiere wallet del usuario — toda la firma la hace el relayer
+//   del servidor (única wallet de la plataforma).
 // =====================================================================
 
 import { NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { createPublicClient, http, verifyMessage } from "viem";
+import { createPublicClient, http } from "viem";
 import { polygonAmoy } from "viem/chains";
 import { hashPayload } from "@/lib/crypto/sign";
 import { relayContractWrite } from "@/lib/blockchain/relayer";
@@ -31,7 +30,6 @@ const ALLOWED_ENTITIES = new Set([
   "sales",
 ]);
 
-// EntityType enum del contrato TraceabilityAnchor
 const ENTITY_TYPE_INDEX: Record<string, number> = {
   animals: 0,
   vaccinations: 1,
@@ -74,10 +72,10 @@ function getAdmin() {
 }
 
 function uuidToBytes32(uuid: string): `0x${string}` {
-  const hex = uuid.replace(/-/g, "");
-  return ("0x" + hex.padEnd(64, "0")) as `0x${string}`;
+  return ("0x" + uuid.replace(/-/g, "").padEnd(64, "0")) as `0x${string}`;
 }
 
+// GET — devuelve el hash del payload para mostrar en UI
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const entity_type = url.searchParams.get("entity_type") ?? "";
@@ -91,6 +89,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ payload_hash: hashPayload(row) });
 }
 
+// POST — ancla el registro en blockchain usando el relayer de la plataforma
 export async function POST(req: Request) {
   const auth = req.headers.get("authorization");
   const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -107,8 +106,6 @@ export async function POST(req: Request) {
   const body = (await req.json()) as {
     entity_type: string;
     entity_id: string;
-    signature: `0x${string}`;
-    signer_address: `0x${string}`;
     anchor?: boolean;
   };
 
@@ -133,7 +130,6 @@ export async function POST(req: Request) {
   if (!row) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!row.farm_id) return NextResponse.json({ error: "no_farm_id" }, { status: 400 });
 
-  // Comprobar membresía con la columna user_role correspondiente
   const { data: membership } = await sb
     .from("farm_members")
     .select("role")
@@ -146,38 +142,14 @@ export async function POST(req: Request) {
 
   const payloadHash = hashPayload(row);
 
-  const sigOk = await verifyMessage({
-    address: body.signer_address,
-    message: { raw: payloadHash as `0x${string}` },
-    signature: body.signature,
-  }).catch(() => false);
-  if (!sigOk) return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
-
-  await sb.from("signatures").upsert(
-    {
-      farm_id: row.farm_id,
-      entity_type: body.entity_type,
-      entity_id: body.entity_id,
-      signer_address: body.signer_address.toLowerCase(),
-      signer_profile: profile.id,
-      payload_hash: payloadHash,
-      signature: body.signature,
-    },
-    { onConflict: "entity_type,entity_id,signer_address" }
-  );
-
+  // Anclar en blockchain via relayer (sin wallet del usuario)
   let anchorTx: `0x${string}` | null = null;
-  if (body.anchor) {
+  if (body.anchor !== false) {
     const anchorAddress = process.env.NEXT_PUBLIC_ANCHOR_CONTRACT as `0x${string}` | undefined;
 
     if (!anchorAddress || !process.env.PRIVY_RELAYER_WALLET_ID) {
       return NextResponse.json(
-        {
-          signed: true,
-          anchored: false,
-          error: "relayer_or_contract_not_configured",
-          payload_hash: payloadHash,
-        },
+        { anchored: false, error: "relayer_not_configured", payload_hash: payloadHash },
         { status: 200 }
       );
     }
@@ -210,14 +182,13 @@ export async function POST(req: Request) {
       });
     } catch (err) {
       return NextResponse.json(
-        { signed: true, anchored: false, error: (err as Error).message, payload_hash: payloadHash },
+        { anchored: false, error: (err as Error).message, payload_hash: payloadHash },
         { status: 502 }
       );
     }
   }
 
   return NextResponse.json({
-    signed: true,
     anchored: !!anchorTx,
     anchor_tx: anchorTx,
     payload_hash: payloadHash,
