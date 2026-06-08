@@ -86,7 +86,9 @@ export async function GET(req: Request) {
   const sb = getAdmin();
   const { data: row } = await sb.from(entity_type).select("*").eq("id", entity_id).single();
   if (!row) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  return NextResponse.json({ payload_hash: hashPayload(row) });
+  const rawHash = hashPayload(row);
+  const paddedHash = ("0x" + rawHash.slice(2).padStart(64, "0")) as `0x${string}`;
+  return NextResponse.json({ payload_hash: paddedHash });
 }
 
 // POST — ancla el registro en blockchain usando el relayer de la plataforma
@@ -140,7 +142,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const payloadHash = hashPayload(row);
+  const rawHash = hashPayload(row);
+  const payloadHash = ("0x" + rawHash.slice(2).padStart(64, "0")) as `0x${string}`;
 
   // Anclar en blockchain via relayer (sin wallet del usuario)
   let anchorTx: `0x${string}` | null = null;
