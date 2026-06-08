@@ -13,6 +13,7 @@ import {
   MapPin,
   Milk,
   Pencil,
+  Plus,
   QrCode,
   Syringe,
   TrendingUp,
@@ -59,6 +60,11 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const [tab, setTab] = useState<Tab>("info");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(searchParams.get("edit") === "1");
+  const [vacModal, setVacModal] = useState(false);
+  const [weighModal, setWeighModal] = useState(false);
+  const [treatModal, setTreatModal] = useState(false);
+  const [milkModal, setMilkModal] = useState(false);
+  const [movModal, setMovModal] = useState(false);
   const [editValues, setEditValues] = useState<Partial<Animal>>({});
 
   const animalQuery = useQuery<Animal | null>({
@@ -490,10 +496,46 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
           {tab === "pesajes" && farmId && profileId && (
             <div className="space-y-4">
-              <div className="bg-card border-border rounded-2xl border p-6">
-                <h3 className="text-foreground mb-4 text-base font-bold">Registrar pesaje</h3>
-                <WeighingForm animalId={animal.id} farmId={farmId} profileId={profileId} />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setWeighModal(true)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  <Plus className="h-4 w-4" /> Registrar pesaje
+                </button>
               </div>
+              {weighModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setWeighModal(false)}
+                  />
+                  <div className="bg-card border-border relative z-10 w-full max-w-lg rounded-2xl border shadow-2xl">
+                    <div className="border-border flex items-center justify-between border-b px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="text-primary h-5 w-5" />
+                        <h2 className="text-foreground text-base font-bold">Registrar pesaje</h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setWeighModal(false)}
+                        className="text-foreground/40 hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="p-6">
+                      <WeighingForm
+                        animalId={animal.id}
+                        farmId={farmId}
+                        profileId={profileId}
+                        onDone={() => setWeighModal(false)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               <WeightChart rows={weighingsQuery.data ?? []} isLoading={weighingsQuery.isLoading} />
               <RecordList
                 title="Histórico"
@@ -511,15 +553,49 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
           {tab === "vacunas" && farmId && profileId && (
             <div className="space-y-4">
-              <div className="bg-card border-border rounded-2xl border p-6">
-                <h3 className="text-foreground mb-4 text-base font-bold">Registrar vacuna</h3>
-                <VaccinationForm
-                  animalId={animal.id}
-                  farmId={farmId}
-                  profileId={profileId}
-                  animalBirthDate={animal.birth_date}
-                />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setVacModal(true)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  <Plus className="h-4 w-4" /> Registrar vacuna
+                </button>
               </div>
+
+              {vacModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setVacModal(false)}
+                  />
+                  <div className="bg-card border-border relative z-10 w-full max-w-2xl rounded-2xl border shadow-2xl">
+                    <div className="border-border flex items-center justify-between border-b px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Syringe className="text-primary h-5 w-5" />
+                        <h2 className="text-foreground text-base font-bold">Registrar vacuna</h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setVacModal(false)}
+                        className="text-foreground/40 hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="max-h-[80vh] overflow-y-auto p-6">
+                      <VaccinationForm
+                        animalId={animal.id}
+                        farmId={farmId}
+                        profileId={profileId}
+                        animalBirthDate={animal.birth_date}
+                        onDone={() => setVacModal(false)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <RecordList
                 title="Historial"
                 isLoading={vaccinationsQuery.isLoading}
@@ -549,15 +625,49 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
           {tab === "tratamientos" && farmId && profileId && (
             <div className="space-y-4">
-              <div className="bg-card border-border rounded-2xl border p-6">
-                <h3 className="text-foreground mb-4 text-base font-bold">Registrar tratamiento</h3>
-                <TreatmentForm
-                  animalId={animal.id}
-                  farmId={farmId}
-                  profileId={profileId}
-                  animalWeightKg={animal.current_weight_kg}
-                />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setTreatModal(true)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  <Plus className="h-4 w-4" /> Registrar tratamiento
+                </button>
               </div>
+              {treatModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setTreatModal(false)}
+                  />
+                  <div className="bg-card border-border relative z-10 w-full max-w-2xl rounded-2xl border shadow-2xl">
+                    <div className="border-border flex items-center justify-between border-b px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <FlaskConical className="text-primary h-5 w-5" />
+                        <h2 className="text-foreground text-base font-bold">
+                          Registrar tratamiento
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTreatModal(false)}
+                        className="text-foreground/40 hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="max-h-[80vh] overflow-y-auto p-6">
+                      <TreatmentForm
+                        animalId={animal.id}
+                        farmId={farmId}
+                        profileId={profileId}
+                        animalWeightKg={animal.current_weight_kg}
+                        onDone={() => setTreatModal(false)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               <RecordList
                 title="Historial"
                 isLoading={treatmentsQuery.isLoading}
@@ -589,10 +699,48 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
           {tab === "leche" && farmId && profileId && (
             <div className="space-y-4">
-              <div className="bg-card border-border rounded-2xl border p-6">
-                <h3 className="text-foreground mb-4 text-base font-bold">Registrar producción</h3>
-                <MilkForm animalId={animal.id} farmId={farmId} profileId={profileId} />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setMilkModal(true)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  <Plus className="h-4 w-4" /> Registrar producción
+                </button>
               </div>
+              {milkModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setMilkModal(false)}
+                  />
+                  <div className="bg-card border-border relative z-10 w-full max-w-lg rounded-2xl border shadow-2xl">
+                    <div className="border-border flex items-center justify-between border-b px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Milk className="text-primary h-5 w-5" />
+                        <h2 className="text-foreground text-base font-bold">
+                          Registrar producción
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMilkModal(false)}
+                        className="text-foreground/40 hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="p-6">
+                      <MilkForm
+                        animalId={animal.id}
+                        farmId={farmId}
+                        profileId={profileId}
+                        onDone={() => setMilkModal(false)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               <RecordList
                 title="Histórico"
                 isLoading={milkQuery.isLoading}
@@ -611,13 +759,54 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
           )}
 
           {tab === "movimientos" && farmId && profileId && (
-            <MovementsTab
-              movements={(movementsQuery.data ?? []) as MovementRow[]}
-              isLoading={movementsQuery.isLoading}
-              isSaving={addMovement.isPending}
-              saveError={addMovement.error as Error | null}
-              onSubmit={(vals) => addMovement.mutate(vals)}
-            />
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setMovModal(true)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  <Plus className="h-4 w-4" /> Registrar traslado
+                </button>
+              </div>
+              {movModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                    onClick={() => setMovModal(false)}
+                  />
+                  <div className="bg-card border-border relative z-10 w-full max-w-lg rounded-2xl border shadow-2xl">
+                    <div className="border-border flex items-center justify-between border-b px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="text-primary h-5 w-5" />
+                        <h2 className="text-foreground text-base font-bold">Registrar traslado</h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMovModal(false)}
+                        className="text-foreground/40 hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <div className="p-6">
+                      <MovementForm
+                        isSaving={addMovement.isPending}
+                        saveError={addMovement.error as Error | null}
+                        onSubmit={(vals) => {
+                          addMovement.mutate(vals);
+                          setMovModal(false);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <MovementsList
+                movements={(movementsQuery.data ?? []) as MovementRow[]}
+                isLoading={movementsQuery.isLoading}
+              />
+            </div>
           )}
 
           {tab === "qr" && tokenQuery.data && (
@@ -663,9 +852,16 @@ type MovementRow = {
   notes: string | null;
 };
 
-type MovementsTabProps = {
-  movements: MovementRow[];
-  isLoading: boolean;
+type MovementPayload = { location_from?: string | null; location_to?: string | null };
+
+const inputCls =
+  "border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none";
+
+function MovementForm({
+  isSaving,
+  saveError,
+  onSubmit,
+}: {
   isSaving: boolean;
   saveError: Error | null;
   onSubmit: (vals: {
@@ -674,14 +870,7 @@ type MovementsTabProps = {
     reason: string;
     occurred_at: string;
   }) => void;
-};
-
-type MovementPayload = { location_from?: string | null; location_to?: string | null };
-
-const inputCls =
-  "border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none";
-
-function MovementsTab({ movements, isLoading, isSaving, saveError, onSubmit }: MovementsTabProps) {
+}) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [reason, setReason] = useState("");
@@ -698,102 +887,101 @@ function MovementsTab({ movements, isLoading, isSaving, saveError, onSubmit }: M
   };
 
   return (
-    <div className="space-y-4">
-      <div className="bg-card border-border rounded-2xl border p-6">
-        <h3 className="text-foreground mb-4 text-base font-bold">Registrar traslado</h3>
-        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label htmlFor="mv_from" className="text-foreground mb-1 block text-xs font-medium">
-              Origen (corral / potrero)
-            </label>
-            <input
-              id="mv_from"
-              className={inputCls}
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              placeholder="Corral A"
-            />
-          </div>
-          <div>
-            <label htmlFor="mv_to" className="text-foreground mb-1 block text-xs font-medium">
-              Destino *
-            </label>
-            <input
-              id="mv_to"
-              className={inputCls}
-              required
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              placeholder="Potrero Norte"
-            />
-          </div>
-          <div>
-            <label htmlFor="mv_at" className="text-foreground mb-1 block text-xs font-medium">
-              Fecha / hora
-            </label>
-            <input
-              id="mv_at"
-              type="datetime-local"
-              className={inputCls}
-              value={occurredAt}
-              onChange={(e) => setOccurredAt(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="mv_reason" className="text-foreground mb-1 block text-xs font-medium">
-              Motivo
-            </label>
-            <input
-              id="mv_reason"
-              className={inputCls}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Rotación de potreros"
-            />
-          </div>
-          {saveError && <p className="text-accent text-xs md:col-span-2">{saveError.message}</p>}
-          <div className="md:col-span-2">
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
-            >
-              {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Registrar traslado
-            </button>
-          </div>
-        </form>
+    <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+      <div>
+        <label htmlFor="mv_from" className="text-foreground mb-1 block text-xs font-medium">
+          Origen (corral / potrero)
+        </label>
+        <input
+          id="mv_from"
+          className={inputCls}
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          placeholder="Corral A"
+        />
       </div>
+      <div>
+        <label htmlFor="mv_to" className="text-foreground mb-1 block text-xs font-medium">
+          Destino *
+        </label>
+        <input
+          id="mv_to"
+          className={inputCls}
+          required
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          placeholder="Potrero Norte"
+        />
+      </div>
+      <div>
+        <label htmlFor="mv_at" className="text-foreground mb-1 block text-xs font-medium">
+          Fecha / hora
+        </label>
+        <input
+          id="mv_at"
+          type="datetime-local"
+          className={inputCls}
+          value={occurredAt}
+          onChange={(e) => setOccurredAt(e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="mv_reason" className="text-foreground mb-1 block text-xs font-medium">
+          Motivo
+        </label>
+        <input
+          id="mv_reason"
+          className={inputCls}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Rotación de potreros"
+        />
+      </div>
+      {saveError && <p className="text-accent text-xs md:col-span-2">{saveError.message}</p>}
+      <div className="md:col-span-2">
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+        >
+          {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+          Registrar traslado
+        </button>
+      </div>
+    </form>
+  );
+}
 
-      <div className="bg-card border-border rounded-2xl border p-6">
-        <h3 className="text-foreground mb-4 text-base font-bold">Historial de movimientos</h3>
-        {isLoading ? (
-          <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
-        ) : movements.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Sin movimientos registrados.</p>
-        ) : (
-          <ul className="divide-border divide-y">
-            {movements.map((m) => {
-              const p = m.payload as MovementPayload | null;
-              return (
-                <li key={m.id} className="flex items-start gap-3 py-3">
-                  <MapPin className="text-primary mt-0.5 h-4 w-4 shrink-0" />
-                  <div>
-                    <p className="text-foreground text-sm font-medium">
-                      {p?.location_from ? `${p.location_from} → ` : ""}
-                      {p?.location_to ?? "—"}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {new Date(m.occurred_at).toLocaleString()}
-                      {m.notes ? ` · ${m.notes}` : ""}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+function MovementsList({ movements, isLoading }: { movements: MovementRow[]; isLoading: boolean }) {
+  return (
+    <div className="bg-card border-border rounded-2xl border p-6">
+      <h3 className="text-foreground mb-4 text-base font-bold">Historial de movimientos</h3>
+      {isLoading ? (
+        <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+      ) : movements.length === 0 ? (
+        <p className="text-muted-foreground text-sm">Sin movimientos registrados.</p>
+      ) : (
+        <ul className="divide-border divide-y">
+          {movements.map((m) => {
+            const p = m.payload as MovementPayload | null;
+            return (
+              <li key={m.id} className="flex items-start gap-3 py-3">
+                <MapPin className="text-primary mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="text-foreground text-sm font-medium">
+                    {p?.location_from ? `${p.location_from} → ` : ""}
+                    {p?.location_to ?? "—"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {new Date(m.occurred_at).toLocaleString()}
+                    {m.notes ? ` · ${m.notes}` : ""}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

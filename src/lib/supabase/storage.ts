@@ -61,14 +61,8 @@ export async function uploadAnimalPhoto({
   return { storagePath, documentId: doc.id as string };
 }
 
-export async function getSignedPhotoUrl(
-  supabase: SupabaseClient,
-  storagePath: string,
-  expiresIn = 60 * 60
-) {
-  const { data, error } = await supabase.storage
-    .from(ANIMAL_PHOTOS_BUCKET)
-    .createSignedUrl(storagePath, expiresIn);
-  if (error || !data) return null;
-  return data.signedUrl;
+export function getSignedPhotoUrl(supabase: SupabaseClient, storagePath: string) {
+  // El bucket animal-photos es público — getPublicUrl no requiere auth
+  const { data } = supabase.storage.from(ANIMAL_PHOTOS_BUCKET).getPublicUrl(storagePath);
+  return Promise.resolve(data?.publicUrl ?? null);
 }

@@ -91,10 +91,10 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
 
   let photoUrl: string | null = null;
   if (animal.photo_url) {
-    const { data: signed } = await supabase.storage
+    const { data: pub } = supabase.storage
       .from(ANIMAL_PHOTOS_BUCKET)
-      .createSignedUrl(animal.photo_url, 60 * 30);
-    photoUrl = signed?.signedUrl ?? null;
+      .getPublicUrl(animal.photo_url);
+    photoUrl = pub?.publicUrl ?? null;
   }
 
   const weighings = weighingsRes.data ?? [];

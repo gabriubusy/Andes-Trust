@@ -115,19 +115,13 @@ export default function AnimalesListPage() {
       if (error) throw error;
       const rows = (data ?? []) as unknown as AnimalRow[];
 
-      // Bulk-sign all photo URLs in one request
-      const paths = rows.map((a) => a.photo_url).filter(Boolean) as string[];
-      if (paths.length > 0) {
-        const { data: signed } = await supabase.storage
-          .from(ANIMAL_PHOTOS_BUCKET)
-          .createSignedUrls(paths, 60 * 60);
-        const urlMap = new Map(signed?.map((s) => [s.path, s.signedUrl]) ?? []);
-        return rows.map((a) => ({
-          ...a,
-          photo_url: a.photo_url ? (urlMap.get(a.photo_url) ?? null) : null,
-        }));
-      }
-      return rows;
+      // Bucket es público — convertir storagePath a URL pública directamente
+      return rows.map((a) => ({
+        ...a,
+        photo_url: a.photo_url
+          ? supabase.storage.from(ANIMAL_PHOTOS_BUCKET).getPublicUrl(a.photo_url).data.publicUrl
+          : null,
+      }));
     },
   });
 
