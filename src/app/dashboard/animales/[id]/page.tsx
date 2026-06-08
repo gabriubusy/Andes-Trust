@@ -333,24 +333,94 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <div className="space-y-4">
-          <div className="bg-card border-border overflow-hidden rounded-2xl border">
-            {photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoUrl} alt={animal.tag} className="h-64 w-full object-cover" />
-            ) : (
-              <div className="bg-muted/40 flex h-64 items-center justify-center">
-                <Beef className="text-foreground/30 h-12 w-12" />
+          <div className="bg-card border-border overflow-hidden rounded-2xl border shadow-sm">
+            {/* Foto con status badge encima */}
+            <div className="relative">
+              {photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={photoUrl} alt={animal.tag} className="h-64 w-full object-cover" />
+              ) : (
+                <div className="from-muted/60 to-muted/30 flex h-64 items-center justify-center bg-gradient-to-br">
+                  <Beef className="text-foreground/15 h-16 w-16" />
+                </div>
+              )}
+              {/* Status badge */}
+              <span
+                className={`absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide backdrop-blur-sm ${
+                  animal.status === "active"
+                    ? "bg-emerald-500/80 text-white"
+                    : animal.status === "sold"
+                      ? "bg-blue-500/80 text-white"
+                      : "bg-red-500/80 text-white"
+                }`}
+              >
+                {animal.status === "active"
+                  ? "Activo"
+                  : animal.status === "sold"
+                    ? "Vendido"
+                    : animal.status === "dead"
+                      ? "Fallecido"
+                      : animal.status}
+              </span>
+            </div>
+
+            {/* Info del animal */}
+            <div className="p-4 space-y-3">
+              <div>
+                <div className="text-foreground font-mono text-base font-bold">{animal.tag}</div>
+                {animal.name && <div className="text-foreground/60 text-sm">{animal.name}</div>}
               </div>
-            )}
-            <div className="space-y-2 p-4">
-              <div className="text-foreground font-mono text-sm font-semibold">{animal.tag}</div>
-              <div className="text-foreground/60 text-xs capitalize">
-                {animal.sex === "female" ? "Hembra" : "Macho"}
-                {animal.breeds?.name ? ` · ${animal.breeds.name}` : ""}
+
+              {/* Chips raza / sexo */}
+              <div className="flex flex-wrap gap-1.5">
+                <span className="bg-muted text-foreground/70 rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                  {animal.sex === "female" ? "♀ Hembra" : "♂ Macho"}
+                </span>
+                {animal.breeds?.name && (
+                  <span className="bg-muted text-foreground/70 rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                    {animal.breeds.name}
+                  </span>
+                )}
+                {animal.purpose && (
+                  <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize">
+                    {animal.purpose === "dairy"
+                      ? "Lechero"
+                      : animal.purpose === "beef"
+                        ? "Cárnico"
+                        : animal.purpose === "dual"
+                          ? "Doble prop."
+                          : "Reproducción"}
+                  </span>
+                )}
               </div>
+
+              {/* Peso */}
               {animal.current_weight_kg && (
-                <div className="text-foreground text-sm">
-                  Peso actual: <span className="font-semibold">{animal.current_weight_kg} kg</span>
+                <div className="border-border/50 flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2">
+                  <TrendingUp className="text-primary h-3.5 w-3.5 shrink-0" />
+                  <div>
+                    <div className="text-foreground text-sm font-bold">
+                      {animal.current_weight_kg} kg
+                    </div>
+                    <div className="text-foreground/40 text-[10px]">Peso actual</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Fecha de nacimiento */}
+              {animal.birth_date && (
+                <div className="border-border/50 flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2">
+                  <Calendar className="text-foreground/40 h-3.5 w-3.5 shrink-0" />
+                  <div>
+                    <div className="text-foreground text-sm font-medium">
+                      {new Date(animal.birth_date).toLocaleDateString("es-VE", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </div>
+                    <div className="text-foreground/40 text-[10px]">Fecha de nacimiento</div>
+                  </div>
                 </div>
               )}
             </div>
@@ -377,9 +447,12 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
           </div>
 
           {tab === "info" && (
-            <div className="bg-card border-border rounded-2xl border p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-foreground text-base font-bold">Datos del animal</h3>
+            <div className="bg-card border-border rounded-2xl border overflow-hidden">
+              <div className="border-border flex items-center justify-between border-b px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <Beef className="text-primary h-4 w-4" />
+                  <h3 className="text-foreground text-base font-bold">Datos del animal</h3>
+                </div>
                 {!editing ? (
                   <button
                     type="button"
@@ -433,7 +506,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               </div>
 
               {!editing ? (
-                <dl className="grid gap-x-6 gap-y-3 md:grid-cols-2">
+                <dl className="grid gap-3 p-5 md:grid-cols-2">
                   <Field label="Arete" value={animal.tag} />
                   <Field label="Nombre" value={animal.name ?? "—"} />
                   <Field label="Sexo" value={animal.sex === "female" ? "Hembra" : "Macho"} />
@@ -442,7 +515,13 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                   <Field
                     label="Fecha de nacimiento"
                     value={
-                      animal.birth_date ? new Date(animal.birth_date).toLocaleDateString() : "—"
+                      animal.birth_date
+                        ? new Date(animal.birth_date).toLocaleDateString("es-VE", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })
+                        : "—"
                     }
                   />
                   <Field
@@ -453,11 +532,22 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     label="Peso actual"
                     value={animal.current_weight_kg ? `${animal.current_weight_kg} kg` : "—"}
                   />
-                  <Field label="Color" value={animal.color ?? "—"} />
-                  <Field label="Estado" value={animal.status} />
+                  <Field label="Color / capa" value={animal.color ?? "—"} />
+                  <Field
+                    label="Estado"
+                    value={
+                      animal.status === "active"
+                        ? "Activo"
+                        : animal.status === "sold"
+                          ? "Vendido"
+                          : animal.status === "dead"
+                            ? "Fallecido"
+                            : animal.status
+                    }
+                  />
                 </dl>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 p-5 md:grid-cols-2">
                   {[
                     { label: "Nombre", key: "name" as const, type: "text" },
                     { label: "Color", key: "color" as const, type: "text" },
@@ -571,6 +661,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               <WeightChart rows={weighingsQuery.data ?? []} isLoading={weighingsQuery.isLoading} />
               <RecordList
                 title="Histórico de pesajes"
+                titleIcon={TrendingUp}
                 isLoading={weighingsQuery.isLoading}
                 emptyIcon={TrendingUp}
                 emptyHint="Aún no hay pesajes registrados."
@@ -652,6 +743,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
               <RecordList
                 title="Historial de vacunas"
+                titleIcon={Syringe}
                 isLoading={vaccinationsQuery.isLoading}
                 emptyIcon={Syringe}
                 emptyHint="Aún no hay vacunas registradas."
@@ -737,6 +829,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               )}
               <RecordList
                 title="Historial de tratamientos"
+                titleIcon={FlaskConical}
                 isLoading={treatmentsQuery.isLoading}
                 emptyIcon={FlaskConical}
                 emptyHint="Sin tratamientos registrados."
@@ -818,6 +911,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               )}
               <RecordList
                 title="Histórico de producción"
+                titleIcon={Milk}
                 isLoading={milkQuery.isLoading}
                 emptyIcon={Milk}
                 emptyHint="Aún no hay registros de leche para este animal."
@@ -907,14 +1001,20 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
           )}
 
           {tab === "qr" && tokenQuery.data && (
-            <AnimalQrCard
-              slug={tokenQuery.data.slug}
-              animalTag={animal.tag}
-              animalName={animal.name}
-            />
+            <div className="flex flex-col items-center gap-6 py-4">
+              <AnimalQrCard
+                slug={tokenQuery.data.slug}
+                animalTag={animal.tag}
+                animalName={animal.name}
+              />
+              <p className="text-foreground/40 max-w-xs text-center text-xs">
+                Imprime o comparte este código para que cualquier persona pueda verificar el
+                historial sanitario y de trazabilidad de este animal.
+              </p>
+            </div>
           )}
           {tab === "qr" && !tokenQuery.data && !tokenQuery.isLoading && (
-            <div className="bg-card border-border rounded-2xl border p-6 text-sm">
+            <div className="bg-card border-border rounded-2xl border p-6 text-center text-sm text-foreground/60">
               No se encontró un token público para este animal.
             </div>
           )}
@@ -926,9 +1026,11 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <dt className="text-foreground/60 text-xs">{label}</dt>
-      <dd className="text-foreground text-sm font-medium capitalize">{value}</dd>
+    <div className="bg-muted/30 border-border/40 rounded-xl border px-3 py-2.5">
+      <dt className="text-foreground/45 text-[10px] font-semibold uppercase tracking-wide">
+        {label}
+      </dt>
+      <dd className="text-foreground mt-0.5 text-sm font-semibold capitalize">{value}</dd>
     </div>
   );
 }
@@ -1266,6 +1368,7 @@ function RecordList({
   emptyIcon: EmptyIcon = Calendar,
   iconBg = "bg-primary/10",
   iconColor = "text-primary",
+  titleIcon: TitleIcon,
 }: {
   title: string;
   rows: ListRow[];
@@ -1274,11 +1377,15 @@ function RecordList({
   emptyIcon?: typeof Beef;
   iconBg?: string;
   iconColor?: string;
+  titleIcon?: typeof Beef;
 }) {
   return (
     <div className="bg-card border-border rounded-2xl border overflow-hidden">
       <div className="border-border flex items-center justify-between border-b px-5 py-4">
-        <h3 className="text-foreground text-sm font-semibold">{title}</h3>
+        <div className="flex items-center gap-2">
+          {TitleIcon && <TitleIcon className={`h-4 w-4 ${iconColor}`} />}
+          <h3 className="text-foreground text-sm font-semibold">{title}</h3>
+        </div>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${isLoading ? "bg-muted text-foreground/30" : rows.length > 0 ? "bg-primary/10 text-primary" : "bg-muted text-foreground/40"}`}
         >
