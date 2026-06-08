@@ -123,7 +123,9 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       if (!supabase) return [];
       const { data, error } = await supabase
         .from("vaccinations")
-        .select("id, applied_at, dose_ml, batch_number, next_due_at, notes, vaccines_catalog(name)")
+        .select(
+          "id, applied_at, dose_ml, batch_number, next_due_at, notes, vaccines_catalog(name), blockchain_records(tx_hash)"
+        )
         .eq("animal_id", id)
         .order("applied_at", { ascending: false })
         .limit(50);
@@ -193,7 +195,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       const { data, error } = await supabase
         .from("treatments")
         .select(
-          "id, started_at, ended_at, dose, notes, withdrawal_until_meat, withdrawal_until_milk, treatments_catalog(name, kind)"
+          "id, started_at, ended_at, dose, notes, withdrawal_until_meat, withdrawal_until_milk, treatments_catalog(name, kind), blockchain_records(tx_hash)"
         )
         .eq("animal_id", id)
         .order("started_at", { ascending: false })
@@ -866,7 +868,14 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     icon: Syringe,
                     photo: vacDocsQuery.data?.[v.id as string] ?? null,
                     action: (
-                      <SignAnchorButton entityType="vaccinations" entityId={v.id as string} />
+                      <SignAnchorButton
+                        entityType="vaccinations"
+                        entityId={v.id as string}
+                        txHash={
+                          (v.blockchain_records as { tx_hash: string }[] | null)?.[0]?.tx_hash ??
+                          null
+                        }
+                      />
                     ),
                   };
                 })}
@@ -945,7 +954,16 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       : "bg-muted text-foreground/50",
                     icon: FlaskConical,
                     photo: treatDocsQuery.data?.[t.id as string] ?? null,
-                    action: <SignAnchorButton entityType="treatments" entityId={t.id as string} />,
+                    action: (
+                      <SignAnchorButton
+                        entityType="treatments"
+                        entityId={t.id as string}
+                        txHash={
+                          (t.blockchain_records as { tx_hash: string }[] | null)?.[0]?.tx_hash ??
+                          null
+                        }
+                      />
+                    ),
                   };
                 })}
               />

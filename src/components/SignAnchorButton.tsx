@@ -9,12 +9,19 @@ type Props = {
   entityType: "animals" | "vaccinations" | "treatments" | "weighings" | "certifications" | "sales";
   entityId: string;
   anchor?: boolean;
+  txHash?: string | null;
   onDone?: (result: { payload_hash: string; anchor_tx: string | null }) => void;
 };
 
 const EXPLORER = process.env.NEXT_PUBLIC_EXPLORER_URL ?? "https://amoy.polygonscan.com";
 
-export default function SignAnchorButton({ entityType, entityId, anchor = true, onDone }: Props) {
+export default function SignAnchorButton({
+  entityType,
+  entityId,
+  anchor = true,
+  txHash,
+  onDone,
+}: Props) {
   const { getAccessToken } = usePrivy();
 
   const mut = useMutation({
@@ -36,10 +43,12 @@ export default function SignAnchorButton({ entityType, entityId, anchor = true, 
     onError: (err) => toast.error((err as Error).message),
   });
 
-  if (mut.isSuccess && mut.data?.anchor_tx) {
+  const resolvedTxHash = mut.isSuccess ? mut.data?.anchor_tx : txHash;
+
+  if (resolvedTxHash) {
     return (
       <a
-        href={`${EXPLORER}/tx/${mut.data.anchor_tx}`}
+        href={`${EXPLORER}/tx/${resolvedTxHash}`}
         target="_blank"
         rel="noreferrer"
         className="border-emerald-500/40 text-emerald-600 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs"
