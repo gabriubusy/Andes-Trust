@@ -11,14 +11,12 @@ import {
   X,
   Droplets,
   FlaskConical,
-  CalendarDays,
   Pencil,
   Trash2,
   ShieldCheck,
   Award,
   ExternalLink,
   AlertTriangle,
-  Maximize2,
 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import {
@@ -545,10 +543,12 @@ const GRADE_STYLE = {
 
 function CertifyModal({
   farmId,
+  records,
   onClose,
   onSuccess,
 }: {
   farmId: string;
+  records: MilkRow[];
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -654,6 +654,58 @@ function CertifyModal({
                 placeholder="Notas sobre el período…"
               />
             </div>
+            {/* Mini chart del período */}
+            {(() => {
+              const periodRecords = records.filter(
+                (r) => r.recorded_on >= periodStart && r.recorded_on <= periodEnd
+              );
+              const byDay: Record<string, number> = {};
+              for (const r of periodRecords) {
+                byDay[r.recorded_on] = (byDay[r.recorded_on] ?? 0) + Number(r.liters);
+              }
+              const data = Object.entries(byDay)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([date, litros]) => ({ label: fmt(date), litros }));
+              if (data.length < 2) return null;
+              return (
+                <div className="bg-muted/30 rounded-xl p-3">
+                  <p className="text-foreground/40 text-[10px] mb-2 font-medium uppercase tracking-wider">
+                    Producción del período · {periodRecords.length} registros
+                  </p>
+                  <ResponsiveContainer width="100%" height={100}>
+                    <AreaChart data={data} margin={{ top: 2, right: 2, left: -28, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="certAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 9, fill: "#64748b" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 9, fill: "#64748b" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip content={<MilkTooltip />} />
+                      <Area
+                        type="monotone"
+                        dataKey="litros"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        fill="url(#certAreaGrad)"
+                        dot={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              );
+            })()}
+
             <div className="bg-muted/30 border-border rounded-xl border p-3 flex items-start gap-2">
               <AlertTriangle className="text-amber-500 h-3.5 w-3.5 mt-0.5 shrink-0" />
               <p className="text-foreground/50 text-xs">
@@ -745,7 +797,6 @@ export default function ProduccionPage() {
   const [days, setDays] = useState(30);
   const [search, setSearch] = useState("");
   const [showCertify, setShowCertify] = useState(false);
-  const [showChart, setShowChart] = useState(false);
 
   const certsQuery = useQuery<MilkQualityCert[]>({
     queryKey: ["milk-quality-certs", farmId],
@@ -890,63 +941,6 @@ export default function ProduccionPage() {
           </div>
         ))}
       </div>
-
-      {/* Area chart */}
-      {chartData.length > 1 && (
-        <div className="bg-card border-border rounded-2xl border p-6">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h2 className="text-foreground text-base font-bold">Tendencia de producción</h2>
-              <p className="text-foreground/50 text-xs mt-0.5">
-                Últimos 14 días registrados · litros/día
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <CalendarDays className="text-foreground/20 h-4 w-4" />
-              <button
-                type="button"
-                onClick={() => setShowChart(true)}
-                className="text-foreground/40 hover:text-primary hover:bg-primary/10 rounded-lg p-1.5 transition-colors"
-                title="Ver gráfica ampliada"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="milkAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.05)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 10, fill: "#64748b" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-              <Tooltip content={<MilkTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="litros"
-                stroke="#3b82f6"
-                strokeWidth={2.5}
-                fill="url(#milkAreaGrad)"
-                dot={{ fill: "#3b82f6", r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5, strokeWidth: 0 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      )}
 
       {/* Table */}
       <div className="bg-card border-border overflow-hidden rounded-2xl border">
@@ -1183,74 +1177,6 @@ export default function ProduccionPage() {
         </div>
       )}
 
-      {showChart && chartData.length > 1 && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={() => setShowChart(false)}
-        >
-          <div
-            className="bg-card border-border w-full max-w-3xl rounded-2xl border p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-foreground text-base font-bold">Tendencia de producción</h2>
-                <p className="text-foreground/50 text-xs mt-0.5">
-                  Últimos 14 días registrados · litros/día
-                </p>
-              </div>
-              <button
-                onClick={() => setShowChart(false)}
-                className="text-foreground/40 hover:text-foreground rounded-lg p-1"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <ResponsiveContainer width="100%" height={320}>
-              <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="milkAreaGradModal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.05)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 11, fill: "#64748b" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<MilkTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="litros"
-                  stroke="#3b82f6"
-                  strokeWidth={2.5}
-                  fill="url(#milkAreaGradModal)"
-                  dot={{ fill: "#3b82f6", r: 3, strokeWidth: 0 }}
-                  activeDot={{ r: 5, strokeWidth: 0 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-            <div className="mt-4 flex justify-end gap-3 text-xs text-foreground/40">
-              <span>
-                Total: <strong className="text-foreground/70">{totalLiters.toFixed(1)} L</strong>
-              </span>
-              <span>
-                Promedio/día:{" "}
-                <strong className="text-foreground/70">{avgPerDay.toFixed(1)} L</strong>
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showModal && farmId && profileId && (
         <AddRecordModal farmId={farmId} profileId={profileId} onClose={() => setShowModal(false)} />
       )}
@@ -1260,6 +1186,7 @@ export default function ProduccionPage() {
       {showCertify && farmId && (
         <CertifyModal
           farmId={farmId}
+          records={records}
           onClose={() => setShowCertify(false)}
           onSuccess={() =>
             queryClient.invalidateQueries({ queryKey: ["milk-quality-certs", farmId] })

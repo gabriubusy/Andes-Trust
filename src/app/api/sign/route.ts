@@ -74,7 +74,8 @@ function getAdmin() {
 }
 
 function uuidToBytes32(uuid: string): `0x${string}` {
-  return ("0x" + uuid.replace(/-/g, "")) as `0x${string}`;
+  const hex = uuid.replace(/-/g, "");
+  return ("0x" + hex.padEnd(64, "0")) as `0x${string}`;
 }
 
 export async function GET(req: Request) {
