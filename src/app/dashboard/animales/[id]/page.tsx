@@ -263,10 +263,40 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
   if (animalQuery.isLoading) {
     return (
-      <DashboardShell title="Cargando…">
-        <div className="flex items-center gap-2">
-          <Loader2 className="text-primary h-5 w-5 animate-spin" />
-          <span className="text-foreground/70 text-sm">Cargando animal…</span>
+      <DashboardShell title="">
+        <div className="grid gap-6 lg:grid-cols-[280px_1fr] animate-pulse">
+          {/* Sidebar skeleton */}
+          <div className="space-y-4">
+            <div className="bg-card border-border rounded-2xl border overflow-hidden">
+              <div className="bg-muted/40 h-64 w-full" />
+              <div className="space-y-3 p-4">
+                <div className="bg-muted/60 h-4 w-20 rounded-full" />
+                <div className="bg-muted/40 h-3 w-32 rounded-full" />
+                <div className="bg-muted/40 h-3 w-24 rounded-full" />
+              </div>
+            </div>
+          </div>
+          {/* Content skeleton */}
+          <div className="space-y-5">
+            {/* Tab bar skeleton */}
+            <div className="bg-muted/30 border-border flex gap-1 rounded-2xl border p-1">
+              {[80, 72, 72, 100, 60, 96, 72].map((w, i) => (
+                <div key={i} className="bg-muted/50 h-9 rounded-xl" style={{ width: w }} />
+              ))}
+            </div>
+            {/* Card skeleton */}
+            <div className="bg-card border-border rounded-2xl border p-6 space-y-4">
+              <div className="bg-muted/60 h-4 w-32 rounded-full" />
+              <div className="grid gap-4 md:grid-cols-2">
+                {[120, 96, 140, 80, 110, 100, 130, 90].map((w, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="bg-muted/40 h-2.5 w-16 rounded-full" />
+                    <div className="bg-muted/60 h-3.5 rounded-full" style={{ width: w }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </DashboardShell>
     );
@@ -328,19 +358,20 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
         </div>
 
         <div className="space-y-6">
-          <div className="border-border flex flex-wrap gap-1 border-b">
+          <div className="bg-muted/30 border-border flex flex-wrap gap-1 rounded-2xl border p-1">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setTab(t.id)}
-                className={`-mb-px inline-flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                   tab === t.id
-                    ? "border-primary text-primary"
-                    : "text-foreground/60 hover:text-foreground border-transparent"
+                    ? "bg-card text-primary shadow-sm border border-border"
+                    : "text-foreground/50 hover:text-foreground hover:bg-muted/60"
                 }`}
               >
-                <t.icon className="h-4 w-4" /> {t.label}
+                <t.icon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t.label}</span>
               </button>
             ))}
           </div>
@@ -539,15 +570,37 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               )}
               <WeightChart rows={weighingsQuery.data ?? []} isLoading={weighingsQuery.isLoading} />
               <RecordList
-                title="Histórico"
+                title="Histórico de pesajes"
                 isLoading={weighingsQuery.isLoading}
-                rows={(weighingsQuery.data ?? []).map((w) => ({
-                  id: w.id as string,
-                  primary: `${w.weight_kg} kg`,
-                  secondary: new Date(w.measured_at as string).toLocaleString(),
-                  tertiary: w.notes ?? null,
-                  icon: TrendingUp,
-                }))}
+                emptyIcon={TrendingUp}
+                emptyHint="Aún no hay pesajes registrados."
+                iconBg="bg-violet-500/10"
+                iconColor="text-violet-500"
+                rows={(weighingsQuery.data ?? []).map((w, i, arr) => {
+                  const prev = arr[i + 1];
+                  const delta = prev ? w.weight_kg - prev.weight_kg : null;
+                  return {
+                    id: w.id as string,
+                    primary: `${w.weight_kg} kg`,
+                    secondary: new Date(w.measured_at as string).toLocaleString("es-VE", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                    tertiary: w.notes ?? null,
+                    badge:
+                      delta !== null ? `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} kg` : undefined,
+                    badgeColor:
+                      delta === null
+                        ? undefined
+                        : delta >= 0
+                          ? "bg-emerald-500/10 text-emerald-600"
+                          : "bg-red-500/10 text-red-500",
+                    icon: TrendingUp,
+                  };
+                })}
               />
             </div>
           )}
@@ -598,18 +651,31 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               )}
 
               <RecordList
-                title="Historial"
+                title="Historial de vacunas"
                 isLoading={vaccinationsQuery.isLoading}
+                emptyIcon={Syringe}
+                emptyHint="Aún no hay vacunas registradas."
+                iconBg="bg-emerald-500/10"
+                iconColor="text-emerald-600"
                 rows={(vaccinationsQuery.data ?? []).map((v) => {
                   const cat = v.vaccines_catalog as { name?: string } | { name: string }[] | null;
                   const name = Array.isArray(cat) ? cat[0]?.name : cat?.name;
+                  const isDue = v.next_due_at && new Date(v.next_due_at as string) < new Date();
                   return {
                     id: v.id as string,
                     primary: name ?? "Vacuna",
-                    secondary: new Date(v.applied_at as string).toLocaleString(),
+                    secondary: new Date(v.applied_at as string).toLocaleString("es-VE", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
                     tertiary: v.next_due_at
-                      ? `Próxima: ${new Date(v.next_due_at as string).toLocaleDateString()}`
+                      ? `Próxima dosis: ${new Date(v.next_due_at as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}`
                       : null,
+                    badge: v.dose_ml ? `${v.dose_ml} ml` : undefined,
+                    badgeColor: "bg-emerald-500/10 text-emerald-600",
                     icon: Syringe,
                     action: (
                       <SignAnchorButton
@@ -670,19 +736,28 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 </div>
               )}
               <RecordList
-                title="Historial"
+                title="Historial de tratamientos"
                 isLoading={treatmentsQuery.isLoading}
+                emptyIcon={FlaskConical}
+                emptyHint="Sin tratamientos registrados."
+                iconBg="bg-amber-500/10"
+                iconColor="text-amber-600"
                 rows={(treatmentsQuery.data ?? []).map((t) => {
                   const cat = t.treatments_catalog as { name?: string; kind?: string } | null;
                   const name = Array.isArray(cat) ? cat[0]?.name : cat?.name;
                   const kind = Array.isArray(cat) ? cat[0]?.kind : cat?.kind;
+                  const active = !t.ended_at;
                   return {
                     id: t.id as string,
                     primary: name ?? "Tratamiento libre",
-                    secondary: `Inicio: ${new Date(t.started_at as string).toLocaleDateString()}${t.ended_at ? ` · Fin: ${new Date(t.ended_at as string).toLocaleDateString()}` : ""}`,
+                    secondary: `Inicio: ${new Date(t.started_at as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}${t.ended_at ? ` · Fin: ${new Date(t.ended_at as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}` : ""}`,
                     tertiary: t.withdrawal_until_meat
-                      ? `Retiro carne hasta: ${new Date(t.withdrawal_until_meat as string).toLocaleDateString()}`
+                      ? `⚠ Retiro carne: ${new Date(t.withdrawal_until_meat as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}`
                       : (kind ?? t.dose ?? null),
+                    badge: active ? "Activo" : "Finalizado",
+                    badgeColor: active
+                      ? "bg-amber-500/15 text-amber-600"
+                      : "bg-muted text-foreground/50",
                     icon: FlaskConical,
                     action: (
                       <SignAnchorButton
@@ -693,7 +768,6 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     ),
                   };
                 })}
-                emptyHint="Sin tratamientos registrados."
               />
             </div>
           )}
@@ -743,18 +817,40 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 </div>
               )}
               <RecordList
-                title="Histórico"
+                title="Histórico de producción"
                 isLoading={milkQuery.isLoading}
-                rows={(milkQuery.data ?? []).map((m) => ({
-                  id: m.id as string,
-                  primary: `${m.liters} L · ${{ am: "AM", pm: "PM", midday: "Mediodía" }[m.shift as string] ?? (m.shift as string)}`,
-                  secondary: new Date(m.recorded_on as string).toLocaleDateString(),
-                  tertiary: m.fat_pct
-                    ? `Grasa ${m.fat_pct}% · Prot. ${m.protein_pct ?? "—"}%`
-                    : null,
-                  icon: Milk,
-                }))}
+                emptyIcon={Milk}
                 emptyHint="Aún no hay registros de leche para este animal."
+                iconBg="bg-blue-500/10"
+                iconColor="text-blue-500"
+                rows={(milkQuery.data ?? []).map((m) => {
+                  const shiftLabel: Record<string, string> = {
+                    am: "Mañana",
+                    pm: "Tarde",
+                    midday: "Mediodía",
+                  };
+                  return {
+                    id: m.id as string,
+                    primary: `${m.liters} L`,
+                    secondary: new Date(m.recorded_on as string).toLocaleDateString("es-VE", {
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    }),
+                    tertiary: m.fat_pct
+                      ? `Grasa ${m.fat_pct}% · Proteína ${m.protein_pct ?? "—"}%`
+                      : null,
+                    badge: shiftLabel[m.shift as string] ?? (m.shift as string),
+                    badgeColor:
+                      m.shift === "am"
+                        ? "bg-yellow-400/15 text-yellow-600"
+                        : m.shift === "pm"
+                          ? "bg-indigo-500/10 text-indigo-500"
+                          : "bg-blue-500/10 text-blue-500",
+                    icon: Milk,
+                  };
+                })}
               />
             </div>
           )}
@@ -842,6 +938,8 @@ type ListRow = {
   primary: string;
   secondary: string;
   tertiary: string | null;
+  badge?: string;
+  badgeColor?: string;
   icon: typeof Beef;
   action?: React.ReactNode;
 };
@@ -956,28 +1054,66 @@ function MovementForm({
 
 function MovementsList({ movements, isLoading }: { movements: MovementRow[]; isLoading: boolean }) {
   return (
-    <div className="bg-card border-border rounded-2xl border p-6">
-      <h3 className="text-foreground mb-4 text-base font-bold">Historial de movimientos</h3>
-      {isLoading ? (
-        <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
-      ) : movements.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Sin movimientos registrados.</p>
-      ) : (
+    <div className="bg-card border-border rounded-2xl border overflow-hidden">
+      <div className="border-border flex items-center justify-between border-b px-5 py-4">
+        <h3 className="text-foreground text-sm font-semibold">Historial de traslados</h3>
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${movements.length > 0 ? "bg-primary/10 text-primary" : "bg-muted text-foreground/40"}`}
+        >
+          {isLoading ? "—" : movements.length}
+        </span>
+      </div>
+      {isLoading && (
+        <div className="divide-border divide-y">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
+              <div className="bg-muted/60 h-10 w-10 rounded-xl shrink-0" />
+              <div className="flex-1 space-y-2.5">
+                <div className="bg-muted/60 h-3 w-1/3 rounded-full" />
+                <div className="bg-muted/40 h-2.5 w-1/2 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!isLoading && movements.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12">
+          <div className="bg-muted/40 flex h-14 w-14 items-center justify-center rounded-2xl">
+            <MapPin className="text-foreground/20 h-7 w-7" />
+          </div>
+          <p className="text-foreground/40 text-sm">Sin traslados registrados.</p>
+        </div>
+      )}
+      {movements.length > 0 && (
         <ul className="divide-border divide-y">
           {movements.map((m) => {
             const p = m.payload as MovementPayload | null;
             return (
-              <li key={m.id} className="flex items-start gap-3 py-3">
-                <MapPin className="text-primary mt-0.5 h-4 w-4 shrink-0" />
-                <div>
-                  <p className="text-foreground text-sm font-medium">
-                    {p?.location_from ? `${p.location_from} → ` : ""}
-                    {p?.location_to ?? "—"}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {new Date(m.occurred_at).toLocaleString()}
+              <li
+                key={m.id}
+                className="hover:bg-muted/20 flex items-center gap-4 px-5 py-3.5 transition-colors"
+              >
+                <div className="bg-rose-500/10 text-rose-500 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                  <MapPin className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-foreground text-sm font-medium flex items-center gap-1.5 flex-wrap">
+                    {p?.location_from && (
+                      <span className="text-foreground/50">{p.location_from}</span>
+                    )}
+                    {p?.location_from && <span className="text-foreground/30 text-xs">→</span>}
+                    <span>{p?.location_to ?? "—"}</span>
+                  </div>
+                  <div className="text-foreground/45 mt-0.5 text-xs">
+                    {new Date(m.occurred_at).toLocaleString("es-VE", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                     {m.notes ? ` · ${m.notes}` : ""}
-                  </p>
+                  </div>
                 </div>
               </li>
             );
@@ -1127,55 +1263,82 @@ function RecordList({
   rows,
   isLoading,
   emptyHint,
+  emptyIcon: EmptyIcon = Calendar,
+  iconBg = "bg-primary/10",
+  iconColor = "text-primary",
 }: {
   title: string;
   rows: ListRow[];
   isLoading: boolean;
   emptyHint?: string;
+  emptyIcon?: typeof Beef;
+  iconBg?: string;
+  iconColor?: string;
 }) {
   return (
     <div className="bg-card border-border rounded-2xl border overflow-hidden">
       <div className="border-border flex items-center justify-between border-b px-5 py-4">
-        <h3 className="text-foreground text-base font-bold">{title}</h3>
-        <span className="text-foreground/40 bg-muted rounded-full px-2 py-0.5 text-xs">
-          {isLoading ? "…" : rows.length}
+        <h3 className="text-foreground text-sm font-semibold">{title}</h3>
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${isLoading ? "bg-muted text-foreground/30" : rows.length > 0 ? "bg-primary/10 text-primary" : "bg-muted text-foreground/40"}`}
+        >
+          {isLoading ? "—" : rows.length}
         </span>
       </div>
+
       {isLoading && (
         <div className="divide-border divide-y">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-4">
-              <div className="bg-muted/40 h-9 w-9 animate-pulse rounded-lg shrink-0" />
-              <div className="flex-1 space-y-2">
-                <div className="bg-muted/40 h-3 w-24 animate-pulse rounded" />
-                <div className="bg-muted/20 h-2.5 w-40 animate-pulse rounded" />
+            <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
+              <div className="bg-muted/60 h-10 w-10 rounded-xl shrink-0" />
+              <div className="flex-1 space-y-2.5">
+                <div className="bg-muted/60 h-3 w-1/3 rounded-full" />
+                <div className="bg-muted/40 h-2.5 w-1/2 rounded-full" />
               </div>
+              <div className="bg-muted/40 h-6 w-14 rounded-lg shrink-0" />
             </div>
           ))}
         </div>
       )}
+
       {!isLoading && rows.length === 0 && (
-        <div className="px-5 py-10 text-center">
-          <Calendar className="text-foreground/20 mx-auto mb-2 h-8 w-8" />
-          <p className="text-foreground/50 text-sm">{emptyHint ?? "Sin registros aún."}</p>
+        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12">
+          <div className="bg-muted/40 flex h-14 w-14 items-center justify-center rounded-2xl">
+            <EmptyIcon className="text-foreground/20 h-7 w-7" />
+          </div>
+          <p className="text-foreground/40 text-sm">{emptyHint ?? "Sin registros aún."}</p>
         </div>
       )}
+
       {rows.length > 0 && (
         <ul className="divide-border divide-y">
           {rows.map((r) => (
             <li
               key={r.id}
-              className="hover:bg-muted/30 flex items-start gap-4 px-5 py-3.5 transition-colors"
+              className="hover:bg-muted/20 flex items-center gap-4 px-5 py-3.5 transition-colors"
             >
-              <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+              <div
+                className={`${iconBg} ${iconColor} flex h-10 w-10 shrink-0 items-center justify-center rounded-xl`}
+              >
                 <r.icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-foreground text-sm font-semibold">{r.primary}</div>
-                <div className="text-foreground/50 mt-0.5 text-xs">{r.secondary}</div>
-                {r.tertiary && <div className="text-primary/70 mt-0.5 text-xs">{r.tertiary}</div>}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-foreground text-sm font-medium">{r.primary}</span>
+                  {r.badge && (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.badgeColor ?? "bg-muted text-foreground/60"}`}
+                    >
+                      {r.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="text-foreground/45 mt-0.5 text-xs">{r.secondary}</div>
+                {r.tertiary && (
+                  <div className="text-foreground/60 mt-0.5 text-xs font-medium">{r.tertiary}</div>
+                )}
               </div>
-              {r.action && <div className="shrink-0 pt-0.5">{r.action}</div>}
+              {r.action && <div className="shrink-0">{r.action}</div>}
             </li>
           ))}
         </ul>

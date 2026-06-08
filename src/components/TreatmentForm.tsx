@@ -33,12 +33,6 @@ const schema = z
         path: ["started_at"],
         message: "La fecha de inicio no puede ser futura.",
       });
-    if (ended && ended > now)
-      ctx.addIssue({
-        code: "custom",
-        path: ["ended_at"],
-        message: "La fecha de fin no puede ser futura.",
-      });
     if (started && ended && ended <= started)
       ctx.addIssue({
         code: "custom",
@@ -260,7 +254,6 @@ export default function TreatmentForm({
           <input
             type="datetime-local"
             className={inputClass}
-            max={todayStr}
             min={birthDateStr}
             {...register("ended_at")}
           />
