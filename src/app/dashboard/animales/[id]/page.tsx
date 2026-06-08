@@ -310,7 +310,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
     { id: "qr", label: "QR público", icon: QrCode },
   ];
 
-  if (animalQuery.isLoading) {
+  if (!supabase || animalQuery.isPending || animalQuery.isLoading) {
     return (
       <DashboardShell title="">
         <div className="grid gap-6 lg:grid-cols-[280px_1fr] animate-pulse">

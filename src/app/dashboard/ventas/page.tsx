@@ -47,7 +47,7 @@ const PAYMENT_LABEL: Record<string, string> = {
   transfer: "Transferencia",
   check: "Cheque",
   crypto: "Crypto",
-  escrow: "Escrow",
+  escrow: "Contrato inteligente",
 };
 
 type Filter = "all" | "confirmed" | "paid" | "draft" | "cancelled";
@@ -101,15 +101,15 @@ export default function VentasPage() {
 
   return (
     <DashboardShell
-      title="Ventas"
-      subtitle="Transacciones comerciales"
+      title="Ventas y compras"
+      subtitle="Cadena de suministro · Pagos automatizados"
       action={
         <Link
           href="/dashboard/ventas/nuevo"
           className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
         >
           <Plus className="h-4 w-4" />
-          Nueva venta
+          Registrar operación
         </Link>
       }
     >
@@ -117,7 +117,7 @@ export default function VentasPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           icon={Receipt}
-          label="Total ventas"
+          label="Total operaciones"
           value={all.length.toString()}
           sub={`${confirmed.length} confirmadas`}
           color="text-blue-500"
@@ -127,7 +127,7 @@ export default function VentasPage() {
           icon={TrendingUp}
           label="Ingresos cobrados"
           value={`$${totalRevenue.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
-          sub={`${paid.length} ventas cobradas`}
+          sub={`${paid.length} operaciones cobradas`}
           color="text-emerald-500"
           bg="bg-emerald-500/10"
         />
@@ -135,7 +135,7 @@ export default function VentasPage() {
           icon={PackageX}
           label="Pendiente de cobro"
           value={`$${pendingAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}`}
-          sub={`${confirmed.length} ventas por cobrar`}
+          sub={`${confirmed.length} operaciones por cobrar`}
           color="text-amber-500"
           bg="bg-amber-500/10"
         />

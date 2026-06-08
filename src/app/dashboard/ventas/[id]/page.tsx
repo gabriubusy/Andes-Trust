@@ -85,7 +85,7 @@ const PAYMENT_LABEL: Record<string, string> = {
   transfer: "Transferencia",
   check: "Cheque",
   crypto: "Criptomoneda",
-  escrow: "Escrow blockchain",
+  escrow: "Contrato inteligente",
 };
 
 const ESCROW_CLS: Record<string, string> = {
@@ -95,6 +95,15 @@ const ESCROW_CLS: Record<string, string> = {
   released: "bg-emerald-500/15 text-emerald-600",
   refunded: "bg-orange-500/15 text-orange-600",
   failed: "bg-red-500/15 text-red-500",
+};
+
+const ESCROW_LABEL: Record<string, string> = {
+  none: "Sin contrato",
+  created: "Contrato creado",
+  funded: "Fondos depositados",
+  released: "Pago liberado automáticamente",
+  refunded: "Reembolsado",
+  failed: "Error",
 };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -456,32 +465,46 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           {/* Escrow */}
           <div className="bg-card border-border rounded-2xl border p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-foreground flex items-center gap-2 text-base font-bold">
-                <Receipt className="text-primary h-4 w-4" /> Escrow on-chain
-              </h3>
+              <div>
+                <h3 className="text-foreground flex items-center gap-2 text-base font-bold">
+                  <Receipt className="text-primary h-4 w-4" /> Pago automatizado
+                </h3>
+                <p className="text-foreground/40 text-xs mt-0.5">Contrato inteligente · Polygon</p>
+              </div>
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${ESCROW_CLS[escrow] ?? "bg-muted"}`}
               >
-                {escrow}
+                {ESCROW_LABEL[escrow] ?? escrow}
               </span>
             </div>
 
             {escrow === "none" && (
               <div className="space-y-3">
-                <p className="text-muted-foreground text-xs">
-                  Opcionalmente, bloquea el pago en un contrato inteligente hasta que ambas partes
-                  confirmen la entrega.
-                </p>
+                <div className="bg-muted/30 border-border rounded-xl border p-3 space-y-1.5 text-xs">
+                  <p className="text-foreground/70 font-medium">¿Cómo funciona?</p>
+                  <ol className="text-foreground/50 space-y-1 list-decimal list-inside leading-relaxed">
+                    <li>
+                      El <strong className="text-foreground/70">comprador</strong> deposita el monto
+                      en el contrato
+                    </li>
+                    <li>El contrato verifica el historial sanitario del animal on-chain</li>
+                    <li>
+                      El pago se{" "}
+                      <strong className="text-foreground/70">libera automáticamente</strong> al
+                      vendedor cuando las condiciones se cumplen
+                    </li>
+                  </ol>
+                </div>
                 <input
                   value={buyer}
                   onChange={(e) => setBuyer(e.target.value)}
-                  placeholder="0x… comprador"
+                  placeholder="0x… wallet del comprador"
                   className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-xs"
                 />
                 <input
                   value={seller}
                   onChange={(e) => setSeller(e.target.value)}
-                  placeholder="0x… vendedor"
+                  placeholder="0x… wallet del vendedor (finca)"
                   className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-xs"
                 />
                 <div className="flex gap-2">
@@ -516,7 +539,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
                   {escrowAction.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    "Crear escrow"
+                    "Crear contrato de pago"
                   )}
                 </button>
               </div>
@@ -565,11 +588,14 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             )}
 
             {escrow === "created" && (
-              <div className="border-border mt-3 rounded-xl border border-dashed p-3 text-xs">
-                <AlertCircle className="mr-1 inline h-3.5 w-3.5 text-amber-500" />
-                El comprador debe ejecutar{" "}
-                <code className="bg-muted rounded px-1">fundEscrow()</code> desde su wallet antes de
-                liberar.
+              <div className="border-amber-500/30 bg-amber-500/5 mt-3 rounded-xl border border-dashed p-3 text-xs space-y-1">
+                <p className="text-amber-600 font-medium flex items-center gap-1">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Esperando depósito del comprador
+                </p>
+                <p className="text-foreground/50">
+                  El comprador debe depositar los fondos en el contrato desde su wallet para activar
+                  la custodia automática.
+                </p>
               </div>
             )}
 
@@ -586,7 +612,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
                   ) : (
                     <CheckCircle className="h-4 w-4" />
                   )}
-                  Liberar pago
+                  Verificar condiciones y liberar pago
                 </button>
                 <button
                   type="button"
@@ -594,7 +620,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
                   onClick={() => escrowAction.mutate({ action: "refund" })}
                   className="border-destructive/30 text-destructive hover:bg-destructive/5 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
                 >
-                  Reembolsar (tras deadline)
+                  Reembolsar al comprador (tras vencimiento)
                 </button>
               </div>
             )}

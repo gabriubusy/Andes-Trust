@@ -60,7 +60,7 @@ export default function SignAnchorButton({ entityType, entityId, anchor = true, 
     <button
       type="button"
       onClick={() => mut.mutate()}
-      disabled={mut.isPending}
+      disabled={mut.isPending || mut.isSuccess}
       title={
         mut.isError
           ? (mut.error as Error).message
@@ -70,7 +70,7 @@ export default function SignAnchorButton({ entityType, entityId, anchor = true, 
       }
       className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors ${
         mut.isSuccess
-          ? "border-emerald-500/40 text-emerald-600"
+          ? "border-emerald-500/40 text-emerald-600 cursor-default"
           : mut.isError
             ? "border-red-500/40 text-red-600"
             : "border-border hover:border-primary/40 hover:text-primary"

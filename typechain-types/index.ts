@@ -16,6 +16,8 @@ export type { IERC165 } from "./@openzeppelin/contracts/utils/introspection/IERC
 export { IERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/IERC165__factory";
 export type { ReentrancyGuard } from "./@openzeppelin/contracts/utils/ReentrancyGuard";
 export { ReentrancyGuard__factory } from "./factories/@openzeppelin/contracts/utils/ReentrancyGuard__factory";
+export type { MilkQualityCertifier } from "./contracts/MilkQualityCertifier";
+export { MilkQualityCertifier__factory } from "./factories/contracts/MilkQualityCertifier__factory";
 export type { MockUSDC } from "./contracts/MockUSDC";
 export { MockUSDC__factory } from "./factories/contracts/MockUSDC__factory";
 export type { ITraceabilityAnchor } from "./contracts/PaymentEscrow.sol/ITraceabilityAnchor";

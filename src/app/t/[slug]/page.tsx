@@ -110,8 +110,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
       .from("documents")
       .select("entity_id, storage_path")
       .eq("entity_type", "vaccination")
-      .in("entity_id", vacIds)
-      .eq("bucket", "animal-photos");
+      .in("entity_id", vacIds);
     if (vacDocs) {
       for (const doc of vacDocs) {
         if (doc.entity_id && doc.storage_path) {

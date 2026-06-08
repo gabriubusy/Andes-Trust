@@ -14,7 +14,13 @@ import {
   CalendarDays,
   Pencil,
   Trash2,
+  ShieldCheck,
+  Award,
+  ExternalLink,
+  AlertTriangle,
+  Maximize2,
 } from "lucide-react";
+import { usePrivy } from "@privy-io/react-auth";
 import {
   AreaChart,
   Area,
@@ -501,14 +507,264 @@ function EditRecordModal({
   );
 }
 
+type MilkQualityCert = {
+  id: string;
+  period_start: string;
+  period_end: string;
+  fat_pct: number | null;
+  protein_pct: number | null;
+  scc_thousands: number | null;
+  total_liters: number;
+  grade: "A" | "B" | "C";
+  payload_hash: string;
+  tx_hash: string | null;
+  chain_id: number | null;
+  created_at: string;
+};
+
+const GRADE_STYLE = {
+  A: {
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-500",
+    border: "border-emerald-500/20",
+    label: "Calidad A · Óptima",
+  },
+  B: {
+    bg: "bg-amber-500/10",
+    text: "text-amber-500",
+    border: "border-amber-500/20",
+    label: "Calidad B · Aceptable",
+  },
+  C: {
+    bg: "bg-red-500/10",
+    text: "text-red-500",
+    border: "border-red-500/20",
+    label: "Calidad C · Observación",
+  },
+};
+
+function CertifyModal({
+  farmId,
+  onClose,
+  onSuccess,
+}: {
+  farmId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { getAccessToken } = usePrivy();
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = today.slice(0, 8) + "01";
+  const [periodStart, setPeriodStart] = useState(monthStart);
+  const [periodEnd, setPeriodEnd] = useState(today);
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{
+    grade: "A" | "B" | "C";
+    txHash: string | null;
+    avgFat: number | null;
+    avgProtein: number | null;
+    avgSccThousands: number | null;
+    totalLiters: number;
+    recordCount: number;
+  } | null>(null);
+
+  const handleCertify = async () => {
+    setLoading(true);
+    try {
+      const token = await getAccessToken();
+      const res = await fetch("/api/milk-quality/certify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          farm_id: farmId,
+          period_start: periodStart,
+          period_end: periodEnd,
+          notes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al certificar");
+      setResult(data);
+      onSuccess();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const g = result ? GRADE_STYLE[result.grade] : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="bg-card border-border w-full max-w-md rounded-2xl border p-6 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+              <Award className="text-primary h-4 w-4" />
+            </div>
+            <h2 className="text-foreground text-base font-bold">Certificar calidad láctea</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-foreground/40 hover:text-foreground rounded-lg p-1"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {!result ? (
+          <div className="space-y-4">
+            <p className="text-foreground/50 text-xs leading-relaxed">
+              Se evaluarán los registros del período según estándares{" "}
+              <strong className="text-foreground/70">COVENIN 903</strong> y el resultado se anclará
+              en blockchain de forma inmutable.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Inicio del período</label>
+                <input
+                  type="date"
+                  className={inputClass}
+                  max={today}
+                  value={periodStart}
+                  onChange={(e) => setPeriodStart(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Fin del período</label>
+                <input
+                  type="date"
+                  className={inputClass}
+                  max={today}
+                  min={periodStart}
+                  value={periodEnd}
+                  onChange={(e) => setPeriodEnd(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Observaciones (opcional)</label>
+              <textarea
+                className={inputClass}
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Notas sobre el período…"
+              />
+            </div>
+            <div className="bg-muted/30 border-border rounded-xl border p-3 flex items-start gap-2">
+              <AlertTriangle className="text-amber-500 h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p className="text-foreground/50 text-xs">
+                Esta acción es <strong className="text-foreground/70">irreversible</strong> — el
+                grado queda registrado on-chain. Verifica que los datos del período sean completos.
+              </p>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={onClose}
+                className="border-border text-foreground/70 flex-1 rounded-xl border px-4 py-2.5 text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCertify}
+                disabled={loading || !periodStart || !periodEnd}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-4 w-4" />
+                )}
+                {loading ? "Certificando…" : "Certificar"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className={`${g!.bg} ${g!.border} rounded-2xl border p-5 text-center space-y-2`}>
+              <div className={`text-4xl font-black ${g!.text}`}>{result.grade}</div>
+              <div className={`text-sm font-semibold ${g!.text}`}>
+                {GRADE_STYLE[result.grade].label}
+              </div>
+              <div className="text-foreground/40 text-xs">Evaluado según COVENIN 903</div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {[
+                ["Litros totales", `${result.totalLiters.toFixed(1)} L`],
+                ["Registros", result.recordCount.toString()],
+                ["% Grasa prom.", result.avgFat != null ? `${result.avgFat.toFixed(2)}%` : "—"],
+                [
+                  "% Proteína prom.",
+                  result.avgProtein != null ? `${result.avgProtein.toFixed(2)}%` : "—",
+                ],
+                [
+                  "SCC prom.",
+                  result.avgSccThousands != null ? `${result.avgSccThousands}k cél/mL` : "—",
+                ],
+                ["Estado blockchain", result.txHash ? "✓ Anclado" : "Pendiente"],
+              ].map(([label, value]) => (
+                <div key={label} className="bg-muted/30 rounded-xl p-2.5">
+                  <div className="text-foreground/40 mb-0.5">{label}</div>
+                  <div className="text-foreground font-semibold">{value}</div>
+                </div>
+              ))}
+            </div>
+            {result.txHash && (
+              <a
+                href={`https://amoy.polygonscan.com/tx/${result.txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline inline-flex items-center gap-1 text-xs"
+              >
+                <ExternalLink className="h-3 w-3" /> Ver en Polygonscan
+              </a>
+            )}
+            <button
+              onClick={onClose}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full rounded-xl px-4 py-2.5 text-sm font-semibold"
+            >
+              Listo
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ProduccionPage() {
   const { supabase, profileId } = useSupabase();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
+  const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editRecord, setEditRecord] = useState<MilkRow | null>(null);
   const [days, setDays] = useState(30);
   const [search, setSearch] = useState("");
+  const [showCertify, setShowCertify] = useState(false);
+  const [showChart, setShowChart] = useState(false);
+
+  const certsQuery = useQuery<MilkQualityCert[]>({
+    queryKey: ["milk-quality-certs", farmId],
+    enabled: !!supabase && !!farmId,
+    queryFn: async () => {
+      if (!supabase || !farmId) return [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("milk_quality_certs")
+        .select(
+          "id, period_start, period_end, fat_pct, protein_pct, scc_thousands, total_liters, grade, payload_hash, tx_hash, chain_id, created_at"
+        )
+        .eq("farm_id", farmId)
+        .order("period_start", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as MilkQualityCert[];
+    },
+  });
 
   const recordsQuery = useQuery<MilkRow[]>({
     queryKey: ["milk-production", farmId, days],
@@ -576,13 +832,22 @@ export default function ProduccionPage() {
       subtitle="Producción"
       action={
         profileId && farmId ? (
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium"
-          >
-            <Plus className="h-4 w-4" /> Registrar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCertify(true)}
+              className="border-border text-foreground/70 hover:bg-muted inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium"
+            >
+              <Award className="h-4 w-4" /> Certificar período
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium"
+            >
+              <Plus className="h-4 w-4" /> Registrar
+            </button>
+          </div>
         ) : null
       }
     >
@@ -636,7 +901,17 @@ export default function ProduccionPage() {
                 Últimos 14 días registrados · litros/día
               </p>
             </div>
-            <CalendarDays className="text-foreground/20 h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <CalendarDays className="text-foreground/20 h-4 w-4" />
+              <button
+                type="button"
+                onClick={() => setShowChart(true)}
+                className="text-foreground/40 hover:text-primary hover:bg-primary/10 rounded-lg p-1.5 transition-colors"
+                title="Ver gráfica ampliada"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -830,11 +1105,166 @@ export default function ProduccionPage() {
         )}
       </div>
 
+      {/* Certificaciones emitidas */}
+      {(certsQuery.data ?? []).length > 0 && (
+        <div className="bg-card border-border overflow-hidden rounded-2xl border">
+          <div className="border-border flex items-center justify-between border-b px-5 py-4">
+            <div className="flex items-center gap-2">
+              <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                <ShieldCheck className="text-primary h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-foreground text-sm font-bold">
+                  Certificaciones de calidad láctea
+                </h2>
+                <p className="text-foreground/40 text-xs">Ancladas en blockchain · COVENIN 903</p>
+              </div>
+            </div>
+            <span className="bg-muted text-foreground/50 rounded-full px-2 py-0.5 text-xs font-semibold">
+              {certsQuery.data!.length}
+            </span>
+          </div>
+          <div className="divide-border divide-y">
+            {certsQuery.data!.map((cert) => {
+              const g = GRADE_STYLE[cert.grade];
+              const fmtPeriod = (d: string) =>
+                new Date(d + "T12:00:00").toLocaleDateString("es-CO", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                });
+              return (
+                <div key={cert.id} className="flex items-center gap-4 px-5 py-4">
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-lg ${g.bg} ${g.text}`}
+                  >
+                    {cert.grade}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs font-semibold ${g.text}`}>{g.label}</span>
+                      {cert.tx_hash ? (
+                        <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-bold rounded-full px-1.5 py-0.5 flex items-center gap-1">
+                          <ShieldCheck className="h-2.5 w-2.5" /> On-chain
+                        </span>
+                      ) : (
+                        <span className="bg-muted text-foreground/40 text-[10px] rounded-full px-1.5 py-0.5">
+                          Pendiente
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-foreground/40 text-xs mt-0.5">
+                      {fmtPeriod(cert.period_start)} — {fmtPeriod(cert.period_end)}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1 text-[10px] text-foreground/35">
+                      {cert.total_liters != null && (
+                        <span>{Number(cert.total_liters).toFixed(1)} L</span>
+                      )}
+                      {cert.fat_pct != null && <span>Grasa {cert.fat_pct}%</span>}
+                      {cert.protein_pct != null && <span>Proteína {cert.protein_pct}%</span>}
+                      {cert.scc_thousands != null && <span>SCC {cert.scc_thousands}k</span>}
+                    </div>
+                  </div>
+                  {cert.tx_hash && (
+                    <a
+                      href={`https://amoy.polygonscan.com/tx/${cert.tx_hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground/30 hover:text-primary shrink-0 transition-colors"
+                      title="Ver en Polygonscan"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {showChart && chartData.length > 1 && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowChart(false)}
+        >
+          <div
+            className="bg-card border-border w-full max-w-3xl rounded-2xl border p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-foreground text-base font-bold">Tendencia de producción</h2>
+                <p className="text-foreground/50 text-xs mt-0.5">
+                  Últimos 14 días registrados · litros/día
+                </p>
+              </div>
+              <button
+                onClick={() => setShowChart(false)}
+                className="text-foreground/40 hover:text-foreground rounded-lg p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ResponsiveContainer width="100%" height={320}>
+              <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="milkAreaGradModal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.05)"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                <Tooltip content={<MilkTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="litros"
+                  stroke="#3b82f6"
+                  strokeWidth={2.5}
+                  fill="url(#milkAreaGradModal)"
+                  dot={{ fill: "#3b82f6", r: 3, strokeWidth: 0 }}
+                  activeDot={{ r: 5, strokeWidth: 0 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div className="mt-4 flex justify-end gap-3 text-xs text-foreground/40">
+              <span>
+                Total: <strong className="text-foreground/70">{totalLiters.toFixed(1)} L</strong>
+              </span>
+              <span>
+                Promedio/día:{" "}
+                <strong className="text-foreground/70">{avgPerDay.toFixed(1)} L</strong>
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showModal && farmId && profileId && (
         <AddRecordModal farmId={farmId} profileId={profileId} onClose={() => setShowModal(false)} />
       )}
       {editRecord && farmId && (
         <EditRecordModal record={editRecord} farmId={farmId} onClose={() => setEditRecord(null)} />
+      )}
+      {showCertify && farmId && (
+        <CertifyModal
+          farmId={farmId}
+          onClose={() => setShowCertify(false)}
+          onSuccess={() =>
+            queryClient.invalidateQueries({ queryKey: ["milk-quality-certs", farmId] })
+          }
+        />
       )}
     </DashboardShell>
   );
