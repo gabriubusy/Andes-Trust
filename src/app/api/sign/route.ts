@@ -157,6 +157,22 @@ export async function POST(req: Request) {
       );
     }
 
+    // Return existing anchor if already on-chain
+    const { data: existingRecord } = await sb
+      .from("blockchain_records")
+      .select("tx_hash")
+      .eq("entity_type", body.entity_type)
+      .eq("entity_id", body.entity_id)
+      .maybeSingle();
+    if (existingRecord?.tx_hash) {
+      return NextResponse.json({
+        signed: true,
+        anchored: true,
+        anchor_tx: existingRecord.tx_hash,
+        payload_hash: payloadHash,
+      });
+    }
+
     const entityIdBytes32 = uuidToBytes32(body.entity_id);
     const entityTypeIdx = ENTITY_TYPE_INDEX[body.entity_type] ?? 0;
 
