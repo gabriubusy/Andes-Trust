@@ -29,13 +29,31 @@ export default function EtiquetasPage() {
     enabled: !!supabase && !!farmId,
     queryFn: async () => {
       if (!supabase || !farmId) return [];
-      const { data, error } = await supabase
+      const { data: animalsData, error: animalsErr } = await supabase
         .from("animals")
-        .select("id, tag, name, traceability_tokens(slug, is_active)")
+        .select("id, tag, name")
         .eq("farm_id", farmId)
         .order("tag");
-      if (error) throw error;
-      return (data ?? []) as unknown as AnimalRow[];
+      if (animalsErr) throw animalsErr;
+      if (!animalsData?.length) return [];
+
+      const ids = animalsData.map((a) => a.id);
+      const { data: tokens } = await supabase
+        .from("traceability_tokens")
+        .select("entity_id, slug, is_active")
+        .eq("entity_type", "animal")
+        .in("entity_id", ids);
+
+      const tokensByAnimal: Record<string, { slug: string; is_active: boolean }[]> = {};
+      for (const t of tokens ?? []) {
+        if (!tokensByAnimal[t.entity_id]) tokensByAnimal[t.entity_id] = [];
+        tokensByAnimal[t.entity_id].push({ slug: t.slug, is_active: t.is_active });
+      }
+
+      return animalsData.map((a) => ({
+        ...a,
+        traceability_tokens: tokensByAnimal[a.id] ?? [],
+      })) as AnimalRow[];
     },
   });
 
