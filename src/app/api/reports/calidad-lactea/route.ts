@@ -1,7 +1,7 @@
-// POST /api/reports/calidad-lactea
+﻿// POST /api/reports/calidad-lactea
 // body: { farm_id, date_from?, date_to?, animal_ids? }
-// Genera PDF de Reporte de Calidad Láctea con estadísticas de producción,
-// grasa%, proteína%, SCC y gráfica de barras ASCII por período.
+// Genera PDF de Reporte de Calidad LÃ¡ctea con estadÃ­sticas de producciÃ³n,
+// grasa%, proteÃ­na%, SCC y grÃ¡fica de barras ASCII por perÃ­odo.
 
 import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -52,7 +52,7 @@ function round2(n: number): string {
   return n.toFixed(2);
 }
 
-// Clasifica calidad según estándares venezolanos (COVENIN 903)
+// Clasifica calidad segÃºn estÃ¡ndares venezolanos (COVENIN 903)
 function classifyMilk(
   fat: number | null,
   protein: number | null,
@@ -62,10 +62,11 @@ function classifyMilk(
   const fatOk = fat !== null ? fat >= 3.2 : true;
   const proteinOk = protein !== null ? protein >= 2.8 : true;
   const sccOk = scc !== null ? scc <= 400000 : true;
-  if (fatOk && proteinOk && sccOk) return { label: "Calidad A (Óptima)", color: [0.13, 0.65, 0.4] };
+  if (fatOk && proteinOk && sccOk)
+    return { label: "Calidad A (Ã“ptima)", color: [0.13, 0.65, 0.4] };
   if ((!fatOk || !proteinOk) && sccOk)
     return { label: "Calidad B (Aceptable)", color: [0.85, 0.55, 0.1] };
-  return { label: "Calidad C (Observación)", color: [0.85, 0.2, 0.2] };
+  return { label: "Calidad C (ObservaciÃ³n)", color: [0.85, 0.2, 0.2] };
 }
 
 export async function POST(req: Request) {
@@ -120,7 +121,7 @@ export async function POST(req: Request) {
 
   if (!rows.length) return NextResponse.json({ error: "no_records" }, { status: 404 });
 
-  // ─── Estadísticas globales ───────────────────────────────────────────
+  // â”€â”€â”€ EstadÃ­sticas globales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const totalLiters = rows.reduce((s, r) => s + Number(r.liters), 0);
   const fats = rows.filter((r) => r.fat_pct !== null).map((r) => Number(r.fat_pct));
   const proteins = rows.filter((r) => r.protein_pct !== null).map((r) => Number(r.protein_pct));
@@ -176,7 +177,7 @@ export async function POST(req: Request) {
     if (r.protein_pct !== null) byAnimal[key].protein.push(Number(r.protein_pct));
   }
 
-  // ─── PDF ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -209,16 +210,16 @@ export async function POST(req: Request) {
     }
   };
 
-  // ── Banda superior ────────────────────────────────────────────────────
+  // â”€â”€ Banda superior â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   page.drawRectangle({ x: 0, y: H - 88, width: W, height: 88, color: C.primary });
-  page.drawText("REPORTE DE CALIDAD LÁCTEA", {
+  page.drawText("REPORTE DE CALIDAD LÃCTEA", {
     x: margin,
     y: H - 34,
     size: 18,
     font: fontBold,
     color: C.white,
   });
-  page.drawText("Análisis de producción, composición y clasificación de leche", {
+  page.drawText("AnÃ¡lisis de producciÃ³n, composiciÃ³n y clasificaciÃ³n de leche", {
     x: margin,
     y: H - 52,
     size: 9,
@@ -227,10 +228,10 @@ export async function POST(req: Request) {
   });
 
   const farmName = farm.name ?? "Finca El Progreso";
-  const periodStr = `${body.date_from ?? "Inicio"} → ${body.date_to ?? "Hoy"}`;
+  const periodStr = `${body.date_from ?? "Inicio"} â†’ ${body.date_to ?? "Hoy"}`;
   page.drawText(farmName, { x: margin, y: H - 68, size: 9, font: fontBold, color: C.white });
-  page.drawText(`Período: ${periodStr}`, {
-    x: W - margin - font.widthOfTextAtSize(`Período: ${periodStr}`, 9),
+  page.drawText(`PerÃ­odo: ${periodStr}`, {
+    x: W - margin - font.widthOfTextAtSize(`PerÃ­odo: ${periodStr}`, 9),
     y: H - 68,
     size: 9,
     font,
@@ -239,10 +240,10 @@ export async function POST(req: Request) {
 
   y = H - 104;
 
-  // ── Info finca + generación ───────────────────────────────────────────
+  // â”€â”€ Info finca + generaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const farmAddr = [farm.address, farm.region, farm.country].filter(Boolean).join(", ");
   if (farm.legal_id) {
-    page.drawText(`RIF: ${farm.legal_id}${farmAddr ? ` · ${farmAddr}` : ""}`, {
+    page.drawText(`RIF: ${farm.legal_id}${farmAddr ? ` Â· ${farmAddr}` : ""}`, {
       x: margin,
       y,
       size: 8,
@@ -252,7 +253,7 @@ export async function POST(req: Request) {
     y -= 13;
   }
   const generatedBy = profile?.full_name ?? profile?.email ?? privyDid;
-  page.drawText(`Generado: ${new Date().toLocaleString("es-VE")} · Por: ${generatedBy}`, {
+  page.drawText(`Generado: ${new Date().toLocaleString("es-VE")} Â· Por: ${generatedBy}`, {
     x: margin,
     y,
     size: 8,
@@ -261,7 +262,7 @@ export async function POST(req: Request) {
   });
   y -= 20;
 
-  // ── KPI cards ─────────────────────────────────────────────────────────
+  // â”€â”€ KPI cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ensureSpace(80);
   const cardW = (W - margin * 2 - 12) / 4;
   const cards = [
@@ -276,7 +277,7 @@ export async function POST(req: Request) {
       sub: `${fats.length} muestras`,
     },
     {
-      label: "Promedio proteína",
+      label: "Promedio proteÃ­na",
       value: proteins.length ? `${round2(avgProtein)}%` : "Sin datos",
       sub: `${proteins.length} muestras`,
     },
@@ -294,7 +295,6 @@ export async function POST(req: Request) {
       width: cardW,
       height: 62,
       color: C.blue10,
-      borderRadius: 6,
     });
     page.drawText(cards[i].label, { x: cx + 8, y: y - 12, size: 7, font, color: C.mid });
     page.drawText(cards[i].value, {
@@ -308,7 +308,7 @@ export async function POST(req: Request) {
   }
   y -= 72;
 
-  // ── Badge calidad ─────────────────────────────────────────────────────
+  // â”€â”€ Badge calidad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ensureSpace(36);
   const qColor = rgb(...quality.color);
   page.drawRectangle({
@@ -317,12 +317,11 @@ export async function POST(req: Request) {
     width: W - margin * 2,
     height: 32,
     color: qColor,
-    borderRadius: 6,
   });
-  const qText = `Clasificación general: ${quality.label}`;
+  const qText = `ClasificaciÃ³n general: ${quality.label}`;
   page.drawText(qText, { x: margin + 12, y: y - 14, size: 11, font: fontBold, color: C.white });
   page.drawText(
-    "Basado en COVENIN 903 · Parámetros: grasa ≥ 3.2%, proteína ≥ 2.8%, SCC ≤ 400,000 cel/mL",
+    "Basado en COVENIN 903 Â· ParÃ¡metros: grasa â‰¥ 3.2%, proteÃ­na â‰¥ 2.8%, SCC â‰¤ 400,000 cel/mL",
     {
       x: margin + 12,
       y: y - 24,
@@ -333,7 +332,7 @@ export async function POST(req: Request) {
   );
   y -= 44;
 
-  // ── Tabla por semana ─────────────────────────────────────────────────
+  // â”€â”€ Tabla por semana â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ensureSpace(50);
   page.drawText("TENDENCIA SEMANAL", { x: margin, y, size: 8, font: fontBold, color: C.primary });
   y -= 16;
@@ -347,7 +346,7 @@ export async function POST(req: Request) {
     margin + colsW[0] + colsW[1] + colsW[2],
     margin + colsW[0] + colsW[1] + colsW[2] + colsW[3],
   ];
-  const headers = ["Semana (inicio)", "Litros", "Grasa %", "Proteína %", "Clasificación"];
+  const headers = ["Semana (inicio)", "Litros", "Grasa %", "ProteÃ­na %", "ClasificaciÃ³n"];
 
   page.drawRectangle({ x: margin, y: y - 14, width: W - margin * 2, height: 20, color: C.primary });
   for (let i = 0; i < headers.length; i++) {
@@ -381,8 +380,8 @@ export async function POST(req: Request) {
     const cells = [
       weekLabel,
       round2(data.liters),
-      weekFat !== null ? round2(weekFat) : "—",
-      weekProt !== null ? round2(weekProt) : "—",
+      weekFat !== null ? round2(weekFat) : "â€”",
+      weekProt !== null ? round2(weekProt) : "â€”",
       wq.label,
     ];
     for (let i = 0; i < cells.length; i++) {
@@ -406,10 +405,10 @@ export async function POST(req: Request) {
   }
   y -= 10;
 
-  // ── Tabla por animal ─────────────────────────────────────────────────
+  // â”€â”€ Tabla por animal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (Object.keys(byAnimal).length > 1) {
     ensureSpace(60);
-    page.drawText("PRODUCCIÓN POR ANIMAL", {
+    page.drawText("PRODUCCIÃ“N POR ANIMAL", {
       x: margin,
       y,
       size: 8,
@@ -424,7 +423,7 @@ export async function POST(req: Request) {
       "Registros",
       "Total (L)",
       "Prom. grasa %",
-      "Prom. proteína %",
+      "Prom. proteÃ­na %",
     ];
     const aColsW = [70, 130, 60, 70, 90, 90];
     const aColsX = [margin];
@@ -461,11 +460,11 @@ export async function POST(req: Request) {
         });
       const aCells = [
         a.tag,
-        a.name ?? "—",
+        a.name ?? "â€”",
         String(a.count),
         round2(a.liters),
-        a.fat.length ? round2(avg(a.fat)) : "—",
-        a.protein.length ? round2(avg(a.protein)) : "—",
+        a.fat.length ? round2(avg(a.fat)) : "â€”",
+        a.protein.length ? round2(avg(a.protein)) : "â€”",
       ];
       for (let i = 0; i < aCells.length; i++) {
         page.drawText(aCells[i], { x: aColsX[i] + 4, y: y - 9, size: 8, font, color: C.dark });
@@ -482,7 +481,7 @@ export async function POST(req: Request) {
     y -= 10;
   }
 
-  // ── Gráfica de barras de producción ─────────────────────────────────
+  // â”€â”€ GrÃ¡fica de barras de producciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (weeks.length > 1) {
     ensureSpace(120);
     page.drawText("VOLUMEN SEMANAL (L)", {
@@ -523,9 +522,9 @@ export async function POST(req: Request) {
     y -= chartH + 24;
   }
 
-  // ── Parámetros de referencia ──────────────────────────────────────────
+  // â”€â”€ ParÃ¡metros de referencia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ensureSpace(80);
-  page.drawText("PARÁMETROS DE REFERENCIA (COVENIN 903)", {
+  page.drawText("PARÃMETROS DE REFERENCIA (COVENIN 903)", {
     x: margin,
     y,
     size: 8,
@@ -535,11 +534,11 @@ export async function POST(req: Request) {
   y -= 16;
 
   const params = [
-    ["Parámetro", "Calidad A", "Calidad B", "Observación"],
-    ["Grasa (%)", "≥ 3.2", "3.0 – 3.2", "< 3.0"],
-    ["Proteína (%)", "≥ 2.8", "2.6 – 2.8", "< 2.6"],
-    ["SCC (cel/mL)", "≤ 200,000", "200,001 – 400,000", "> 400,000"],
-    ["Temperatura (°C)", "< 4", "4 – 6", "> 6"],
+    ["ParÃ¡metro", "Calidad A", "Calidad B", "ObservaciÃ³n"],
+    ["Grasa (%)", "â‰¥ 3.2", "3.0 â€“ 3.2", "< 3.0"],
+    ["ProteÃ­na (%)", "â‰¥ 2.8", "2.6 â€“ 2.8", "< 2.6"],
+    ["SCC (cel/mL)", "â‰¤ 200,000", "200,001 â€“ 400,000", "> 400,000"],
+    ["Temperatura (Â°C)", "< 4", "4 â€“ 6", "> 6"],
   ];
   const pColW = [
     (W - margin * 2) * 0.34,
@@ -588,7 +587,7 @@ export async function POST(req: Request) {
   }
   y -= 10;
 
-  // ── QR + pie ──────────────────────────────────────────────────────────
+  // â”€â”€ QR + pie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   ensureSpace(100);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fincaelprogreso.com";
   const qrUrl = `${appUrl}/dashboard/reportes`;
@@ -612,7 +611,7 @@ export async function POST(req: Request) {
     font,
     color: C.light,
   });
-  lastPage.drawText(`Generado el ${new Date().toLocaleString("es-VE")} · ${generatedBy}`, {
+  lastPage.drawText(`Generado el ${new Date().toLocaleString("es-VE")} Â· ${generatedBy}`, {
     x: margin,
     y: lastY + 54,
     size: 7,

@@ -134,7 +134,7 @@ export default function ReproduccionPage() {
     queryKey: ["inseminations", farmId],
     enabled: !!supabase && !!farmId,
     queryFn: async () => {
-      const { data, error } = await supabase!
+      const { data, error } = await (supabase as any)
         .from("inseminations")
         .select(
           "id, animal_id, sire_id, sire_external, method, performed_at, notes, animals(tag, name), sire:animals!inseminations_sire_id_fkey(tag, name), pregnancies(id, insemination_id, animal_id, confirmed_at, expected_due_at, result, notes)"
@@ -151,7 +151,7 @@ export default function ReproduccionPage() {
     queryKey: ["pregnancies", farmId],
     enabled: !!supabase && !!farmId,
     queryFn: async () => {
-      const { data, error } = await supabase!
+      const { data, error } = await (supabase as any)
         .from("pregnancies")
         .select(
           "id, insemination_id, animal_id, confirmed_at, expected_due_at, result, notes, animals(tag, name)"
@@ -518,7 +518,7 @@ function UpdateResultButton({
   const [open, setOpen] = useState(false);
   const mutation = useMutation({
     mutationFn: async (result: string) => {
-      const { error } = await supabase!
+      const { error } = await (supabase as any)
         .from("pregnancies")
         .update({ result })
         .eq("id", pregnancy.id);
@@ -584,7 +584,7 @@ function InseminationModal({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const { data: insem, error } = await supabase!
+      const { data: insem, error } = await (supabase as any)
         .from("inseminations")
         .insert({
           animal_id: animalId,
@@ -599,7 +599,7 @@ function InseminationModal({
       if (error) throw error;
 
       if (createPreg) {
-        const { error: pe } = await supabase!.from("pregnancies").insert({
+        const { error: pe } = await (supabase as any).from("pregnancies").insert({
           animal_id: animalId,
           insemination_id: insem.id,
           expected_due_at: estimateDue(performedAt),
@@ -781,7 +781,7 @@ function PregnancyModal({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase!.from("pregnancies").insert({
+      const { error } = await (supabase as any).from("pregnancies").insert({
         animal_id: animalId,
         insemination_id: insemId || null,
         confirmed_at: confirmedAt,

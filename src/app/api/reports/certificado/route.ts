@@ -1,6 +1,6 @@
-// POST /api/reports/certificado
+﻿// POST /api/reports/certificado
 // body: { certification_id: string }
-// Genera un PDF oficial del certificado con QR de verificación blockchain.
+// Genera un PDF oficial del certificado con QR de verificaciÃ³n blockchain.
 
 import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -32,9 +32,9 @@ function getAdmin() {
 const CERT_TYPE_LABELS: Record<string, string> = {
   origin: "Origen",
   health: "Sanidad Animal",
-  organic: "Producción Orgánica",
+  organic: "ProducciÃ³n OrgÃ¡nica",
   welfare: "Bienestar Animal",
-  export: "Exportación",
+  export: "ExportaciÃ³n",
   other: "General",
 };
 
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fincaelprogreso.com";
   const verifyUrl = `${appUrl}/api/verify/certifications/${cert.id}`;
 
-  // ─── Construir PDF ───────────────────────────────────────────────────
+  // â”€â”€â”€ Construir PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -110,10 +110,10 @@ export async function POST(req: Request) {
     border: rgb(0.88, 0.89, 0.91),
   };
 
-  // ── Banda superior azul ──────────────────────────────────────────────
+  // â”€â”€ Banda superior azul â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   page.drawRectangle({ x: 0, y: H - 90, width: W, height: 90, color: C.primary });
 
-  // Título en la banda
+  // TÃ­tulo en la banda
   page.drawText("CERTIFICADO OFICIAL", {
     x: margin,
     y: H - 38,
@@ -129,9 +129,9 @@ export async function POST(req: Request) {
     color: rgb(0.78, 0.88, 1),
   });
 
-  // Número de certificado (esquina derecha)
+  // NÃºmero de certificado (esquina derecha)
   const certNum = cert.id.slice(0, 8).toUpperCase();
-  page.drawText(`N° ${certNum}`, {
+  page.drawText(`NÂ° ${certNum}`, {
     x: W - margin - 90,
     y: H - 45,
     size: 10,
@@ -139,7 +139,7 @@ export async function POST(req: Request) {
     color: C.white,
   });
 
-  // ── Nombre de la finca ───────────────────────────────────────────────
+  // â”€â”€ Nombre de la finca â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const farmName = farm?.name ?? "Finca El Progreso";
   const farmLegal = farm?.legal_id ? `RIF: ${farm.legal_id}` : "";
   const farmAddr = [farm?.address, farm?.region, farm?.country].filter(Boolean).join(", ");
@@ -156,7 +156,7 @@ export async function POST(req: Request) {
     y -= 13;
   }
 
-  // ── Separador ────────────────────────────────────────────────────────
+  // â”€â”€ Separador â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   y -= 10;
   page.drawLine({
     start: { x: margin, y },
@@ -166,7 +166,7 @@ export async function POST(req: Request) {
   });
   y -= 20;
 
-  // ── Sección: Datos del certificado ───────────────────────────────────
+  // â”€â”€ SecciÃ³n: Datos del certificado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const drawField = (label: string, value: string, xOffset = 0) => {
     page.drawText(label.toUpperCase(), {
       x: margin + xOffset,
@@ -175,7 +175,7 @@ export async function POST(req: Request) {
       font,
       color: C.light,
     });
-    page.drawText(value || "—", {
+    page.drawText(value || "â€”", {
       x: margin + xOffset,
       y,
       size: 10,
@@ -187,7 +187,7 @@ export async function POST(req: Request) {
   const fmt = (d: string | null) =>
     d
       ? new Date(d).toLocaleDateString("es-VE", { day: "2-digit", month: "long", year: "numeric" })
-      : "—";
+      : "â€”";
 
   const now = Date.now();
   const expired = cert.valid_until ? new Date(cert.valid_until).getTime() < now : false;
@@ -204,7 +204,6 @@ export async function POST(req: Request) {
     width: 80,
     height: 26,
     color: statusColor,
-    borderRadius: 4,
   });
   page.drawText(statusLabel, {
     x: W - margin - 80 + (80 - fontBold.widthOfTextAtSize(statusLabel, 9)) / 2,
@@ -216,15 +215,15 @@ export async function POST(req: Request) {
 
   drawField("Tipo", typeLabel);
   y -= 32;
-  drawField("Emisor / Entidad certificadora", cert.issuer ?? "—");
+  drawField("Emisor / Entidad certificadora", cert.issuer ?? "â€”");
   y -= 32;
 
   const col2 = (W - margin * 2) / 2;
-  drawField("Fecha de emisión", fmt(cert.issued_at));
+  drawField("Fecha de emisiÃ³n", fmt(cert.issued_at));
   drawField("Fecha de vencimiento", fmt(cert.valid_until), col2);
   y -= 36;
 
-  // ── Separador ────────────────────────────────────────────────────────
+  // â”€â”€ Separador â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   page.drawLine({
     start: { x: margin, y },
     end: { x: W - margin, y },
@@ -233,7 +232,7 @@ export async function POST(req: Request) {
   });
   y -= 20;
 
-  // ── Animal (si aplica) ───────────────────────────────────────────────
+  // â”€â”€ Animal (si aplica) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (animal) {
     page.drawText("ANIMAL CERTIFICADO", {
       x: margin,
@@ -244,12 +243,12 @@ export async function POST(req: Request) {
     });
     y -= 18;
 
-    drawField("Arete / Identificación", animal.tag);
+    drawField("Arete / IdentificaciÃ³n", animal.tag);
     drawField("Nombre", animal.name ?? "Sin nombre", col2);
     y -= 32;
     drawField(
       "Sexo",
-      animal.sex === "M" ? "Macho" : animal.sex === "F" ? "Hembra" : (animal.sex ?? "—")
+      animal.sex === "M" ? "Macho" : animal.sex === "F" ? "Hembra" : (animal.sex ?? "â€”")
     );
     drawField("Fecha de nacimiento", fmt(animal.birth_date ?? null), col2);
     y -= 32;
@@ -267,7 +266,7 @@ export async function POST(req: Request) {
     y -= 20;
   }
 
-  // ── Metadatos adicionales (fat%, protein%, etc.) ─────────────────────
+  // â”€â”€ Metadatos adicionales (fat%, protein%, etc.) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const metaEntries = Object.entries(meta).filter(([k]) => k !== "notes");
   if (metaEntries.length > 0) {
     page.drawText("DATOS DE CALIDAD", { x: margin, y, size: 8, font: fontBold, color: C.primary });
@@ -275,12 +274,12 @@ export async function POST(req: Request) {
 
     const metaLabels: Record<string, string> = {
       fat_pct: "Contenido de grasa (%)",
-      protein_pct: "Contenido de proteína (%)",
-      somatic_cells: "Células somáticas (cel/mL)",
+      protein_pct: "Contenido de proteÃ­na (%)",
+      somatic_cells: "CÃ©lulas somÃ¡ticas (cel/mL)",
       bacteria_count: "Recuento bacteriano (UFC/mL)",
-      acidity: "Acidez (°Dornic)",
+      acidity: "Acidez (Â°Dornic)",
       density: "Densidad (g/mL)",
-      temperature: "Temperatura (°C)",
+      temperature: "Temperatura (Â°C)",
       volume_liters: "Volumen (L)",
       sample_date: "Fecha de muestra",
     };
@@ -307,7 +306,7 @@ export async function POST(req: Request) {
     y -= 20;
   }
 
-  // ── Notas ────────────────────────────────────────────────────────────
+  // â”€â”€ Notas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (meta.notes) {
     page.drawText("OBSERVACIONES", { x: margin, y, size: 8, font: fontBold, color: C.primary });
     y -= 16;
@@ -330,7 +329,7 @@ export async function POST(req: Request) {
     y -= 10;
   }
 
-  // ── Blockchain / Firma ───────────────────────────────────────────────
+  // â”€â”€ Blockchain / Firma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (sig) {
     page.drawLine({
       start: { x: margin, y },
@@ -373,7 +372,7 @@ export async function POST(req: Request) {
     page.drawText(`Firmado el: ${signedDate}`, { x: margin, y, size: 7.5, font, color: C.mid });
   }
 
-  // ── QR + pie de página ───────────────────────────────────────────────
+  // â”€â”€ QR + pie de pÃ¡gina â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 0, width: 100 });
   const qrPng = await pdf.embedPng(qrDataUrl);
   const qrSize = 80;
@@ -389,7 +388,7 @@ export async function POST(req: Request) {
     color: C.light,
   });
 
-  // Línea de pie
+  // LÃ­nea de pie
   page.drawLine({
     start: { x: margin, y: margin + 100 },
     end: { x: W - margin - qrSize - 10, y: margin + 100 },
@@ -406,7 +405,7 @@ export async function POST(req: Request) {
       color: C.light,
     }
   );
-  page.drawText("Su autenticidad puede verificarse escaneando el código QR o en: " + verifyUrl, {
+  page.drawText("Su autenticidad puede verificarse escaneando el cÃ³digo QR o en: " + verifyUrl, {
     x: margin,
     y: margin + 74,
     size: 7,

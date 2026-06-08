@@ -29,7 +29,8 @@ export default function SignAnchorButton({ entityType, entityId, anchor = true, 
       if (!hashRes.ok || !hashJson.payload_hash) throw new Error(hashJson.error ?? "no_hash");
       const expectedHash = hashJson.payload_hash as `0x${string}`;
 
-      const { signature } = await signMessage({ message: { raw: expectedHash } });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { signature } = await (signMessage as any)({ message: { raw: expectedHash } });
 
       const privyToken = await getAccessToken();
       const res = await fetch("/api/sign", {

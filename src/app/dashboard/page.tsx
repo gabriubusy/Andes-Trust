@@ -112,14 +112,21 @@ export default function DashboardPage() {
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
 
-  const summary = useQuery({
+  type SummaryData = {
+    activeAnimals: number;
+    litersToday: number;
+    litersYesterday: number;
+    upcomingVacs: number;
+    certifications: number;
+  };
+  const summary = useQuery<SummaryData | null>({
     queryKey: ["dashboard-summary", farmId],
     enabled: !!supabase && !!farmId,
     staleTime: 10 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
-    queryFn: async () => {
+    queryFn: async (): Promise<SummaryData | null> => {
       const cached = cacheStorage.get("dashboard-summary");
-      if (cached) return cached;
+      if (cached) return cached as SummaryData;
       if (!supabase || !farmId) return null;
 
       const today = new Date();
@@ -184,15 +191,22 @@ export default function DashboardPage() {
     },
   });
 
-  const recentAnimals = useQuery({
+  type RecentAnimal = {
+    id: string;
+    tag: string;
+    name: string | null;
+    current_weight_kg: number | null;
+    created_at: string;
+  };
+  const recentAnimals = useQuery<RecentAnimal[]>({
     queryKey: ["dashboard-recent-animals", farmId],
     enabled: !!supabase && !!farmId,
     staleTime: 10 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
-    queryFn: async () => {
+    queryFn: async (): Promise<RecentAnimal[]> => {
       if (!supabase || !farmId) return [];
       const cached = cacheStorage.get("dashboard-recent-animals");
-      if (cached) return cached;
+      if (cached) return cached as RecentAnimal[];
       const { data, error } = await supabase
         .from("animals")
         .select("id, tag, name, current_weight_kg, created_at")
@@ -206,15 +220,21 @@ export default function DashboardPage() {
     },
   });
 
-  const upcomingEvents = useQuery({
+  type UpcomingVac = {
+    id: unknown;
+    next_due_at: unknown;
+    vaccines_catalog: unknown;
+    animals: unknown;
+  };
+  const upcomingEvents = useQuery<UpcomingVac[]>({
     queryKey: ["dashboard-upcoming-vacs", farmId],
     enabled: !!supabase && !!farmId,
     staleTime: 5 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
-    queryFn: async () => {
+    queryFn: async (): Promise<UpcomingVac[]> => {
       if (!supabase || !farmId) return [];
       const cached = cacheStorage.get("dashboard-upcoming-vacs");
-      if (cached) return cached;
+      if (cached) return cached as UpcomingVac[];
       const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("vaccinations")
@@ -291,12 +311,12 @@ export default function DashboardPage() {
       if (!supabase || !farmId) return [];
       const { data } = await supabase
         .from("weighings")
-        .select("weighed_on, weight_kg")
+        .select("measured_at, weight_kg")
         .eq("farm_id", farmId)
-        .order("weighed_on", { ascending: false })
+        .order("measured_at", { ascending: false })
         .limit(8);
       return (data ?? []).reverse().map((r) => ({
-        label: new Date(r.weighed_on as string).toLocaleDateString("es-CO", {
+        label: new Date(r.measured_at as string).toLocaleDateString("es-CO", {
           day: "numeric",
           month: "short",
         }),

@@ -1,4 +1,4 @@
-// POST /api/reports/insai
+﻿// POST /api/reports/insai
 // body: { farm_id, animal_ids?, date_from?, date_to? }
 // Genera PDF estilizado del Reporte INSAI de Trazabilidad Sanitaria.
 
@@ -31,13 +31,13 @@ function getAdmin() {
 const KIND_LABEL: Record<string, string> = {
   birth: "Nacimiento",
   weighing: "Pesaje",
-  vaccination: "Vacunación",
+  vaccination: "VacunaciÃ³n",
   treatment: "Tratamiento",
-  certification: "Certificación",
-  insemination: "Inseminación",
-  pregnancy_check: "Diagnóstico gestación",
+  certification: "CertificaciÃ³n",
+  insemination: "InseminaciÃ³n",
+  pregnancy_check: "DiagnÃ³stico gestaciÃ³n",
   calving: "Parto",
-  deworming: "Desparasitación",
+  deworming: "DesparasitaciÃ³n",
   other: "Otro",
 };
 
@@ -62,7 +62,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function fmtDate(d: string | null) {
-  if (!d) return "—";
+  if (!d) return "â€”";
   return new Date(d + (d.length === 10 ? "T12:00:00" : "")).toLocaleDateString("es-VE", {
     day: "2-digit",
     month: "short",
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
   const payloadHash = hashPayload(reportPayload);
   const generatedBy = reportPayload.generated_by;
 
-  // ── PDF setup ──────────────────────────────────────────────────────────
+  // â”€â”€ PDF setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -193,7 +193,7 @@ export async function POST(req: Request) {
     if (y - needed < margin + 60) newPage();
   };
 
-  // ── Portada ──────────────────────────────────────────────────────────
+  // â”€â”€ Portada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Banda azul superior
   page.drawRectangle({ x: 0, y: H - 90, width: W, height: 90, color: C.primary });
   page.drawText("REPORTE INSAI", {
@@ -241,7 +241,7 @@ export async function POST(req: Request) {
   page.drawText(`Generado por: ${generatedBy}`, { x: margin, y, size: 8, font, color: C.light });
   y -= 13;
   if (body.date_from || body.date_to) {
-    page.drawText(`Período: ${body.date_from ?? "Inicio"} → ${body.date_to ?? "Hoy"}`, {
+    page.drawText(`PerÃ­odo: ${body.date_from ?? "Inicio"} â†’ ${body.date_to ?? "Hoy"}`, {
       x: margin,
       y,
       size: 8,
@@ -275,8 +275,8 @@ export async function POST(req: Request) {
     { label: "Eventos totales", value: String(totalEvents) },
     { label: "Activos", value: String(animals.filter((a) => a.status === "active").length) },
     {
-      label: "Período",
-      value: body.date_from ? `${body.date_from} → ${body.date_to ?? "hoy"}` : "Completo",
+      label: "PerÃ­odo",
+      value: body.date_from ? `${body.date_from} â†’ ${body.date_to ?? "hoy"}` : "Completo",
     },
   ];
   const cardW = (contentW - 12) / 4;
@@ -289,7 +289,6 @@ export async function POST(req: Request) {
       width: cardW,
       height: 52,
       color: C.blue10,
-      borderRadius: 6,
     });
     page.drawText(summaryCards[i].label, { x: cx + 8, y: y - 10, size: 7, font, color: C.mid });
     page.drawText(summaryCards[i].value, {
@@ -302,7 +301,7 @@ export async function POST(req: Request) {
   }
   y -= 64;
 
-  // ── Por animal ──────────────────────────────────────────────────────
+  // â”€â”€ Por animal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   for (const a of reportPayload.animals) {
     ensureSpace(80);
 
@@ -313,7 +312,6 @@ export async function POST(req: Request) {
       width: contentW,
       height: 42,
       color: C.bg,
-      borderRadius: 8,
     });
     page.drawRectangle({
       x: margin,
@@ -321,10 +319,9 @@ export async function POST(req: Request) {
       width: 4,
       height: 42,
       color: C.primary,
-      borderRadius: 2,
     });
 
-    page.drawText(`${a.tag}${a.name ? `  ·  ${a.name}` : ""}`, {
+    page.drawText(`${a.tag}${a.name ? `  Â·  ${a.name}` : ""}`, {
       x: margin + 12,
       y: y - 10,
       size: 11,
@@ -333,12 +330,12 @@ export async function POST(req: Request) {
     });
 
     const meta = [
-      SEX_LABEL[a.sex] ?? a.sex ?? "—",
+      SEX_LABEL[a.sex] ?? a.sex ?? "â€”",
       a.birth_date ? `Nac. ${fmtDate(a.birth_date)}` : null,
       a.current_weight_kg ? `${a.current_weight_kg} kg` : null,
     ]
       .filter(Boolean)
-      .join("  ·  ");
+      .join("  Â·  ");
     page.drawText(meta, { x: margin + 12, y: y - 24, size: 8, font, color: C.mid });
 
     // Badge estado
@@ -351,7 +348,6 @@ export async function POST(req: Request) {
       width: badgeW,
       height: 18,
       color: statusColor,
-      borderRadius: 9,
     });
     page.drawText(statusLabel, {
       x: W - margin - badgeW + 4,
@@ -365,7 +361,7 @@ export async function POST(req: Request) {
 
     if (a.events.length === 0) {
       ensureSpace(20);
-      page.drawText("Sin eventos en el período seleccionado.", {
+      page.drawText("Sin eventos en el perÃ­odo seleccionado.", {
         x: margin + 12,
         y,
         size: 8.5,
@@ -404,7 +400,7 @@ export async function POST(req: Request) {
           const label = k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
           detailParts.push(`${label}: ${v}`);
         }
-        const detailStr = detailParts.join("  ·  ") || "—";
+        const detailStr = detailParts.join("  Â·  ") || "â€”";
         const detailLines = wrapText(
           detailStr,
           contentW - 170,
@@ -439,7 +435,7 @@ export async function POST(req: Request) {
           width: pillW,
           height: 14,
           color: rgb(...kindColor),
-          borderRadius: 4,
+
           opacity: 0.15,
         });
         page.drawText(kindLabel, {
@@ -474,7 +470,7 @@ export async function POST(req: Request) {
     y -= 14;
   }
 
-  // ── Pie de página + QR ───────────────────────────────────────────────
+  // â”€â”€ Pie de pÃ¡gina + QR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fincaelprogreso.com";
   const qrDataUrl = await QRCode.toDataURL(`${appUrl}/dashboard/reportes`, {
     margin: 0,
@@ -498,7 +494,7 @@ export async function POST(req: Request) {
     font,
     color: C.light,
   });
-  lastPage.drawText(`Generado: ${new Date().toLocaleString("es-VE")}  ·  Por: ${generatedBy}`, {
+  lastPage.drawText(`Generado: ${new Date().toLocaleString("es-VE")}  Â·  Por: ${generatedBy}`, {
     x: margin,
     y: footerY + 54,
     size: 7,

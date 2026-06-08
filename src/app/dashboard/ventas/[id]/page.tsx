@@ -164,7 +164,10 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
 
   const statusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
-      const { error } = await supabase!.from("sales").update({ status: newStatus }).eq("id", id);
+      const { error } = await supabase!
+        .from("sales")
+        .update({ status: newStatus as "draft" | "confirmed" | "paid" | "cancelled" })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sale", id] }),
