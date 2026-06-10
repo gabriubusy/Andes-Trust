@@ -32,7 +32,16 @@ export function getOfflineDb(): OfflineDB {
   if (typeof window === "undefined") {
     throw new Error("Offline DB solo disponible en cliente");
   }
-  if (!_db) _db = new OfflineDB();
+  if (!_db) {
+    _db = new OfflineDB();
+    // Limpiar mutaciones con más de 7 días al inicializar
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    _db.pending
+      .where("created_at")
+      .below(cutoff)
+      .delete()
+      .catch(() => {});
+  }
   return _db;
 }
 
@@ -40,13 +49,36 @@ export async function enqueueMutation(
   table: PendingMutation["table"],
   payload: Record<string, unknown>
 ) {
-  const db = getOfflineDb();
-  return db.pending.add({
-    table,
-    payload,
-    created_at: Date.now(),
-    attempts: 0,
-  });
+  try {
+    const db = getOfflineDb();
+    return await db.pending.add({
+      table,
+      payload,
+      created_at: Date.now(),
+      attempts: 0,
+    });
+  } catch {
+    // Si IndexedDB está llena o no disponible, ignorar silenciosamente
+    // — la mutación ya fue enviada directamente a Supabase
+  }
+}
+
+export async function removeMutation(id: number) {
+  try {
+    const db = getOfflineDb();
+    await db.pending.delete(id);
+  } catch {
+    // ignorar
+  }
+}
+
+export async function clearAllMutations() {
+  try {
+    const db = getOfflineDb();
+    await db.pending.clear();
+  } catch {
+    // ignorar
+  }
 }
 
 export async function pendingCount(): Promise<number> {

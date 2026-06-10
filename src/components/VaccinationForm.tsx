@@ -97,7 +97,8 @@ export default function VaccinationForm({
   const [ageWarning, setAgeWarning] = useState<string | null>(null);
   const [dateWarning, setDateWarning] = useState<string | null>(null);
 
-  const todayStr = new Date().toISOString().slice(0, 16); // para datetime-local max
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   const birthDateStr = animalBirthDate ?? null;
 
   const {
@@ -265,7 +266,7 @@ export default function VaccinationForm({
             type="datetime-local"
             className={inputClass}
             max={todayStr}
-            min={birthDateStr ? new Date(birthDateStr).toISOString().slice(0, 16) : undefined}
+            min={birthDateStr ? birthDateStr.slice(0, 10) + "T00:00" : undefined}
             {...register("applied_at")}
           />
           {errors.applied_at && (
