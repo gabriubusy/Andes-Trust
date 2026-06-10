@@ -54,7 +54,7 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
-  const verifyUrl = origin ? `${origin}/api/verify/certifications/${id}` : "";
+  const verifyUrl = origin ? `${origin}/verify/certifications/${id}` : "";
 
   const { getAccessToken } = usePrivy();
 

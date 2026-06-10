@@ -1,9 +1,8 @@
-﻿// POST /api/reports/insai
+// POST /api/reports/insai
 // body: { farm_id, animal_ids?, date_from?, date_to? }
-// Genera PDF estilizado del Reporte INSAI de Trazabilidad Sanitaria.
 
 import { NextResponse } from "next/server";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type RGB } from "pdf-lib";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
@@ -28,63 +27,96 @@ function getAdmin() {
   return _admin;
 }
 
+// pdf-lib StandardFonts only support WinAnsi — replace accented chars with ASCII
+function norm(text: string): string {
+  return text
+    .replace(/[áàäâã]/g, "a")
+    .replace(/[ÁÀÄÂÃ]/g, "A")
+    .replace(/[éèëê]/g, "e")
+    .replace(/[ÉÈËÊ]/g, "E")
+    .replace(/[íìïî]/g, "i")
+    .replace(/[ÍÌÏÎ]/g, "I")
+    .replace(/[óòöôõ]/g, "o")
+    .replace(/[ÓÒÖÔÕ]/g, "O")
+    .replace(/[úùüû]/g, "u")
+    .replace(/[ÚÙÜÛ]/g, "U")
+    .replace(/[ñ]/g, "n")
+    .replace(/[Ñ]/g, "N")
+    .replace(/[ç]/g, "c")
+    .replace(/[Ç]/g, "C")
+    .replace(/[·•]/g, "·")
+    .replace(/[→]/g, "->")
+    .replace(/[—–]/g, "-")
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'");
+}
+
 const KIND_LABEL: Record<string, string> = {
   birth: "Nacimiento",
   weighing: "Pesaje",
-  vaccination: "VacunaciÃ³n",
+  vaccination: "Vacunacion",
   treatment: "Tratamiento",
-  certification: "CertificaciÃ³n",
-  insemination: "InseminaciÃ³n",
-  pregnancy_check: "DiagnÃ³stico gestaciÃ³n",
+  certification: "Certificacion",
+  insemination: "Inseminacion",
+  pregnancy_check: "Diagnostico gestacion",
   calving: "Parto",
-  deworming: "DesparasitaciÃ³n",
+  deworming: "Desparasitacion",
   other: "Otro",
 };
 
-const KIND_COLOR: Record<string, [number, number, number]> = {
-  birth: [0.13, 0.65, 0.4],
-  weighing: [0.14, 0.44, 0.94],
-  vaccination: [0.55, 0.2, 0.9],
-  treatment: [0.85, 0.2, 0.2],
-  certification: [0.1, 0.6, 0.8],
-  insemination: [0.85, 0.45, 0.1],
-  calving: [0.13, 0.65, 0.4],
-  deworming: [0.5, 0.35, 0.1],
-  other: [0.5, 0.5, 0.5],
+const KIND_COLOR: Record<string, RGB> = {
+  birth: rgb(0.13, 0.65, 0.4),
+  weighing: rgb(0.14, 0.44, 0.94),
+  vaccination: rgb(0.55, 0.2, 0.9),
+  treatment: rgb(0.85, 0.2, 0.2),
+  certification: rgb(0.1, 0.6, 0.8),
+  insemination: rgb(0.85, 0.45, 0.1),
+  calving: rgb(0.13, 0.65, 0.4),
+  deworming: rgb(0.5, 0.35, 0.1),
+  other: rgb(0.45, 0.5, 0.55),
 };
 
-const SEX_LABEL: Record<string, string> = { M: "Macho", F: "Hembra", m: "Macho", f: "Hembra" };
+const SEX_LABEL: Record<string, string> = {
+  M: "Macho",
+  F: "Hembra",
+  m: "Macho",
+  f: "Hembra",
+  male: "Macho",
+  female: "Hembra",
+};
 const STATUS_LABEL: Record<string, string> = {
   active: "Activo",
   sold: "Vendido",
   deceased: "Fallecido",
   transferred: "Transferido",
+  inactive: "Inactivo",
+};
+const STATUS_COLOR: Record<string, RGB> = {
+  active: rgb(0.1, 0.6, 0.35),
+  sold: rgb(0.14, 0.44, 0.94),
+  deceased: rgb(0.75, 0.18, 0.18),
+  transferred: rgb(0.5, 0.35, 0.1),
+  inactive: rgb(0.45, 0.5, 0.55),
 };
 
-function fmtDate(d: string | null) {
-  if (!d) return "â€”";
-  return new Date(d + (d.length === 10 ? "T12:00:00" : "")).toLocaleDateString("es-VE", {
+function fmtDate(d: string | null): string {
+  if (!d) return "—";
+  return new Date(d + (d.length === 10 ? "T12:00:00" : "")).toLocaleDateString("es-CO", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
 }
 
-function wrapText(
-  text: string,
-  maxWidth: number,
-  font: ReturnType<PDFDocument["embedFont"] extends Promise<infer T> ? () => T : never>,
-  size: number
-): string[] {
+type AnyFont = Awaited<ReturnType<PDFDocument["embedFont"]>>;
+
+function wrapText(text: string, maxWidth: number, font: AnyFont, size: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
   let line = "";
   for (const word of words) {
     const test = line ? `${line} ${word}` : word;
-    if (
-      (font as { widthOfTextAtSize(t: string, s: number): number }).widthOfTextAtSize(test, size) >
-      maxWidth
-    ) {
+    if (font.widthOfTextAtSize(test, size) > maxWidth) {
       if (line) lines.push(line);
       line = word;
     } else {
@@ -92,7 +124,7 @@ function wrapText(
     }
   }
   if (line) lines.push(line);
-  return lines;
+  return lines.length ? lines : [""];
 }
 
 export async function POST(req: Request) {
@@ -156,321 +188,447 @@ export async function POST(req: Request) {
 
   void canonicalJson(reportPayload);
   const payloadHash = hashPayload(reportPayload);
-  const generatedBy = reportPayload.generated_by;
+  const generatedBy = norm(reportPayload.generated_by);
 
-  // â”€â”€ PDF setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── PDF setup ──────────────────────────────────────────────────────────
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-  const W = 595;
-  const H = 842;
-  const margin = 44;
-  const contentW = W - margin * 2;
+  const W = 595; // A4 width pts
+  const H = 842; // A4 height pts
+  const ML = 48; // left margin
+  const MR = 48; // right margin
+  const contentW = W - ML - MR;
 
+  // ── Color palette ──────────────────────────────────────────────────────
   const C = {
-    primary: rgb(0.145, 0.439, 0.937),
-    dark: rgb(0.08, 0.09, 0.1),
-    mid: rgb(0.35, 0.38, 0.42),
-    light: rgb(0.6, 0.63, 0.67),
+    primary: rgb(0.1, 0.38, 0.9), // #1A61E6 blue
+    primaryDk: rgb(0.07, 0.27, 0.68), // darker blue
+    dark: rgb(0.08, 0.09, 0.12), // near-black
+    mid: rgb(0.3, 0.33, 0.4), // medium gray
+    light: rgb(0.55, 0.58, 0.64), // light gray
+    vlight: rgb(0.76, 0.78, 0.82), // very light gray
     white: rgb(1, 1, 1),
-    bg: rgb(0.96, 0.97, 0.98),
-    border: rgb(0.88, 0.89, 0.91),
-    green: rgb(0.13, 0.65, 0.4),
-    red: rgb(0.85, 0.2, 0.2),
-    blue10: rgb(0.93, 0.96, 1.0),
+    offWhite: rgb(0.975, 0.978, 0.984),
+    bgCard: rgb(0.96, 0.968, 0.984),
+    border: rgb(0.88, 0.9, 0.93),
+    green: rgb(0.1, 0.58, 0.34),
+    greenBg: rgb(0.91, 0.98, 0.94),
+    red: rgb(0.8, 0.16, 0.16),
+    redBg: rgb(0.99, 0.93, 0.93),
+    amber: rgb(0.8, 0.5, 0.05),
+    amberBg: rgb(0.99, 0.97, 0.91),
   };
 
+  // ── Page state ─────────────────────────────────────────────────────────
   let page = pdf.addPage([W, H]);
   let y = H;
+  let pageNum = 1;
+
+  const addPageNum = (p: ReturnType<typeof pdf.addPage>, n: number) => {
+    const label = `Pagina ${n}`;
+    p.drawText(label, {
+      x: W - MR - font.widthOfTextAtSize(label, 7),
+      y: 18,
+      size: 7,
+      font,
+      color: C.vlight,
+    });
+  };
 
   const newPage = () => {
+    addPageNum(page, pageNum);
+    pageNum++;
     page = pdf.addPage([W, H]);
-    y = H - 44;
+    y = H - 32;
+    // Thin top accent bar on subsequent pages
+    page.drawRectangle({ x: 0, y: H - 4, width: W, height: 4, color: C.primary });
+    // Small header
+    page.drawText(norm(`REPORTE INSAI  ·  ${norm(farm.name)}`), {
+      x: ML,
+      y: H - 18,
+      size: 7.5,
+      font,
+      color: C.light,
+    });
+    const pg = `Pag. ${pageNum}`;
+    page.drawText(pg, {
+      x: W - MR - font.widthOfTextAtSize(pg, 7.5),
+      y: H - 18,
+      size: 7.5,
+      font,
+      color: C.light,
+    });
+    page.drawLine({
+      start: { x: ML, y: H - 24 },
+      end: { x: W - MR, y: H - 24 },
+      thickness: 0.3,
+      color: C.border,
+    });
+    y = H - 38;
   };
 
   const ensureSpace = (needed: number) => {
-    if (y - needed < margin + 60) newPage();
+    if (y - needed < 60) newPage();
   };
 
-  // â”€â”€ Portada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Banda azul superior
-  page.drawRectangle({ x: 0, y: H - 90, width: W, height: 90, color: C.primary });
+  // ═══════════════════════════════════════════════════════════════════════
+  // COVER / HEADER
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Deep blue header band (full width)
+  const headerH = 100;
+  page.drawRectangle({ x: 0, y: H - headerH, width: W, height: headerH, color: C.primaryDk });
+  // Accent stripe at very top
+  page.drawRectangle({ x: 0, y: H - 4, width: W, height: 4, color: rgb(0.45, 0.72, 1) });
+  // Decorative right circle
+  page.drawCircle({ x: W + 10, y: H - 10, size: 90, color: C.primary, opacity: 0.4 });
+  page.drawCircle({ x: W - 30, y: H - 80, size: 55, color: rgb(0.45, 0.72, 1), opacity: 0.15 });
+
+  // Title
   page.drawText("REPORTE INSAI", {
-    x: margin,
-    y: H - 34,
-    size: 20,
+    x: ML,
+    y: H - 36,
+    size: 22,
     font: fontBold,
     color: C.white,
   });
   page.drawText("Trazabilidad Sanitaria Animal", {
-    x: margin,
+    x: ML,
     y: H - 54,
     size: 10,
     font,
-    color: rgb(0.78, 0.88, 1),
+    color: rgb(0.72, 0.86, 1),
   });
 
-  const dateStr = new Date().toLocaleDateString("es-VE", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  // Date top-right
+  const dateStr = norm(
+    new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" })
+  );
   page.drawText(dateStr, {
-    x: W - margin - font.widthOfTextAtSize(dateStr, 9),
-    y: H - 44,
-    size: 9,
+    x: W - MR - font.widthOfTextAtSize(dateStr, 8.5),
+    y: H - 38,
+    size: 8.5,
     font,
-    color: rgb(0.78, 0.88, 1),
+    color: rgb(0.72, 0.86, 1),
   });
 
-  y = H - 110;
+  // Period badge
+  const periodText = body.date_from
+    ? `Periodo: ${body.date_from}  ->  ${body.date_to ?? "Hoy"}`
+    : "Periodo: Completo";
+  page.drawText(norm(periodText), {
+    x: W - MR - font.widthOfTextAtSize(norm(periodText), 7.5),
+    y: H - 54,
+    size: 7.5,
+    font,
+    color: rgb(0.6, 0.78, 1),
+  });
 
-  // Info finca
-  page.drawText(farm.name, { x: margin, y, size: 14, font: fontBold, color: C.dark });
-  y -= 18;
-  if (farm.legal_id) {
-    page.drawText(`RIF: ${farm.legal_id}`, { x: margin, y, size: 9, font, color: C.mid });
-    y -= 13;
+  y = H - headerH - 16;
+
+  // ── Farm info block ────────────────────────────────────────────────────
+  const farmBlockH = 64;
+  page.drawRectangle({
+    x: ML,
+    y: y - farmBlockH,
+    width: contentW,
+    height: farmBlockH,
+    color: C.bgCard,
+    borderColor: C.border,
+    borderWidth: 0.5,
+  });
+  // Left accent
+  page.drawRectangle({ x: ML, y: y - farmBlockH, width: 3, height: farmBlockH, color: C.primary });
+
+  page.drawText(norm(farm.name), {
+    x: ML + 14,
+    y: y - 18,
+    size: 13,
+    font: fontBold,
+    color: C.dark,
+  });
+
+  const farmMeta1Parts = [
+    farm.legal_id ? `RIF: ${farm.legal_id}` : null,
+    farm.country ? norm(farm.country) : null,
+    farm.region ? norm(farm.region) : null,
+  ]
+    .filter(Boolean)
+    .join("   ·   ");
+
+  if (farmMeta1Parts) {
+    page.drawText(farmMeta1Parts, { x: ML + 14, y: y - 33, size: 8.5, font, color: C.mid });
   }
-  const farmAddr = [farm.address, farm.region, farm.country].filter(Boolean).join(", ");
-  if (farmAddr) {
-    page.drawText(farmAddr, { x: margin, y, size: 9, font, color: C.mid });
-    y -= 13;
+  if (farm.address) {
+    page.drawText(norm(farm.address), { x: ML + 14, y: y - 45, size: 7.5, font, color: C.light });
   }
-  page.drawText(`Generado por: ${generatedBy}`, { x: margin, y, size: 8, font, color: C.light });
-  y -= 13;
-  if (body.date_from || body.date_to) {
-    page.drawText(`PerÃ­odo: ${body.date_from ?? "Inicio"} â†’ ${body.date_to ?? "Hoy"}`, {
-      x: margin,
-      y,
-      size: 8,
-      font,
-      color: C.light,
-    });
-    y -= 13;
-  }
-  page.drawText(`Hash de integridad: ${payloadHash}`, {
-    x: margin,
-    y,
+  page.drawText(`Generado por: ${generatedBy}`, {
+    x: ML + 14,
+    y: y - 57,
     size: 7,
     font,
-    color: C.light,
+    color: C.vlight,
   });
-  y -= 20;
 
-  // Separador
-  page.drawLine({
-    start: { x: margin, y },
-    end: { x: W - margin, y },
-    thickness: 0.5,
-    color: C.border,
-  });
-  y -= 16;
+  y -= farmBlockH + 16;
 
-  // Resumen
+  // ── Summary stats cards ────────────────────────────────────────────────
   const totalEvents = reportPayload.animals.reduce((s, a) => s + a.events.length, 0);
-  const summaryCards = [
-    { label: "Animales", value: String(animals.length) },
-    { label: "Eventos totales", value: String(totalEvents) },
-    { label: "Activos", value: String(animals.filter((a) => a.status === "active").length) },
+  const activeCount = animals.filter((a) => a.status === "active").length;
+
+  const summaryItems = [
+    { label: "Animales", value: String(animals.length), icon: "●" },
+    { label: "Eventos totales", value: String(totalEvents), icon: "◆" },
+    { label: "Activos", value: String(activeCount), icon: "✓" },
     {
-      label: "PerÃ­odo",
-      value: body.date_from ? `${body.date_from} â†’ ${body.date_to ?? "hoy"}` : "Completo",
+      label: body.date_from ? "Periodo filtrado" : "Periodo",
+      value: body.date_from ? "Filtrado" : "Completo",
+      icon: "◷",
     },
   ];
+
   const cardW = (contentW - 12) / 4;
-  ensureSpace(60);
-  for (let i = 0; i < summaryCards.length; i++) {
-    const cx = margin + i * (cardW + 4);
+  const cardH = 58;
+
+  for (let i = 0; i < summaryItems.length; i++) {
+    const cx = ML + i * (cardW + 4);
+    const item = summaryItems[i];
+
+    // Card bg
     page.drawRectangle({
       x: cx,
-      y: y - 46,
+      y: y - cardH,
       width: cardW,
-      height: 52,
-      color: C.blue10,
+      height: cardH,
+      color: C.white,
+      borderColor: C.border,
+      borderWidth: 0.5,
     });
-    page.drawText(summaryCards[i].label, { x: cx + 8, y: y - 10, size: 7, font, color: C.mid });
-    page.drawText(summaryCards[i].value, {
-      x: cx + 8,
-      y: y - 26,
-      size: summaryCards[i].value.length > 10 ? 8 : 13,
+    // Bottom accent bar
+    page.drawRectangle({ x: cx, y: y - cardH, width: cardW, height: 3, color: C.primary });
+
+    // Label
+    page.drawText(item.label, { x: cx + 10, y: y - 14, size: 7, font, color: C.light });
+    // Value
+    const valSize = item.value.length > 8 ? 11 : 18;
+    page.drawText(item.value, {
+      x: cx + 10,
+      y: y - 36,
+      size: valSize,
       font: fontBold,
       color: C.primary,
     });
   }
-  y -= 64;
+  y -= cardH + 20;
 
-  // â”€â”€ Por animal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Divider
+  page.drawLine({ start: { x: ML, y }, end: { x: W - MR, y }, thickness: 0.4, color: C.border });
+  y -= 20;
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PER-ANIMAL SECTIONS
+  // ═══════════════════════════════════════════════════════════════════════
+
   for (const a of reportPayload.animals) {
-    ensureSpace(80);
+    ensureSpace(88);
 
-    // Cabecera animal
+    // ── Animal header card ───────────────────────────────────────────────
+    const animalCardH = 50;
     page.drawRectangle({
-      x: margin,
-      y: y - 36,
+      x: ML,
+      y: y - animalCardH,
       width: contentW,
-      height: 42,
-      color: C.bg,
+      height: animalCardH,
+      color: C.offWhite,
+      borderColor: C.border,
+      borderWidth: 0.5,
     });
+    // Primary left bar
     page.drawRectangle({
-      x: margin,
-      y: y - 36,
+      x: ML,
+      y: y - animalCardH,
       width: 4,
-      height: 42,
+      height: animalCardH,
       color: C.primary,
     });
 
-    page.drawText(`${a.tag}${a.name ? `  Â·  ${a.name}` : ""}`, {
-      x: margin + 12,
-      y: y - 10,
-      size: 11,
-      font: fontBold,
-      color: C.dark,
-    });
+    // Tag + name
+    const tagText = norm(a.tag);
+    const nameText = a.name ? `  ·  ${norm(a.name)}` : "";
+    page.drawText(tagText, { x: ML + 16, y: y - 16, size: 12, font: fontBold, color: C.dark });
+    if (nameText) {
+      const tagW = fontBold.widthOfTextAtSize(tagText, 12);
+      page.drawText(nameText, { x: ML + 16 + tagW, y: y - 16, size: 11, font, color: C.mid });
+    }
 
-    const meta = [
-      SEX_LABEL[a.sex] ?? a.sex ?? "â€”",
+    // Meta line
+    const metaParts = [
+      SEX_LABEL[a.sex] ? norm(SEX_LABEL[a.sex]) : null,
       a.birth_date ? `Nac. ${fmtDate(a.birth_date)}` : null,
       a.current_weight_kg ? `${a.current_weight_kg} kg` : null,
     ]
       .filter(Boolean)
-      .join("  Â·  ");
-    page.drawText(meta, { x: margin + 12, y: y - 24, size: 8, font, color: C.mid });
+      .join("   ·   ");
+    page.drawText(norm(metaParts), { x: ML + 16, y: y - 31, size: 8, font, color: C.mid });
 
-    // Badge estado
-    const statusLabel = STATUS_LABEL[a.status] ?? a.status;
-    const statusColor = a.status === "active" ? C.green : a.status === "deceased" ? C.red : C.mid;
-    const badgeW = fontBold.widthOfTextAtSize(statusLabel, 7.5) + 16;
+    // Event count chip
+    const evCountText = `${a.events.length} evento${a.events.length !== 1 ? "s" : ""}`;
+    const evChipW = font.widthOfTextAtSize(evCountText, 7) + 14;
     page.drawRectangle({
-      x: W - margin - badgeW - 4,
-      y: y - 28,
-      width: badgeW,
-      height: 18,
-      color: statusColor,
+      x: ML + 16,
+      y: y - 45,
+      width: evChipW,
+      height: 13,
+      color: C.bgCard,
+      borderColor: C.border,
+      borderWidth: 0.4,
     });
+    page.drawText(evCountText, { x: ML + 23, y: y - 39, size: 7, font, color: C.mid });
+
+    // Status badge
+    const statusLabel = norm(STATUS_LABEL[a.status] ?? a.status);
+    const statusColor = STATUS_COLOR[a.status] ?? C.mid;
+    const badgeW = fontBold.widthOfTextAtSize(statusLabel, 7.5) + 18;
+    const badgeX = W - MR - badgeW - 4;
+    page.drawRectangle({ x: badgeX, y: y - 30, width: badgeW, height: 18, color: statusColor });
     page.drawText(statusLabel, {
-      x: W - margin - badgeW + 4,
-      y: y - 20,
+      x: badgeX + 9,
+      y: y - 22,
       size: 7.5,
       font: fontBold,
       color: C.white,
     });
 
-    y -= 50;
+    y -= animalCardH + 8;
 
+    // ── Events ────────────────────────────────────────────────────────────
     if (a.events.length === 0) {
-      ensureSpace(20);
-      page.drawText("Sin eventos en el perÃ­odo seleccionado.", {
-        x: margin + 12,
+      ensureSpace(24);
+      page.drawText("Sin eventos en el periodo seleccionado.", {
+        x: ML + 14,
         y,
         size: 8.5,
         font,
-        color: C.light,
+        color: C.vlight,
       });
       y -= 20;
     } else {
-      // Tabla de eventos
+      // Table header
       ensureSpace(28);
-      // Encabezado tabla
-      page.drawRectangle({ x: margin, y: y - 14, width: contentW, height: 20, color: C.primary });
-      const tHeaders = ["Fecha", "Tipo", "Detalle"];
-      const tColsX = [margin + 4, margin + 76, margin + 160];
-      for (let i = 0; i < tHeaders.length; i++) {
-        page.drawText(tHeaders[i], {
-          x: tColsX[i],
-          y: y - 8,
-          size: 7.5,
-          font: fontBold,
-          color: C.white,
-        });
+      const COL = { date: ML + 4, type: ML + 82, detail: ML + 170, note: ML + 380 };
+
+      page.drawRectangle({ x: ML, y: y - 18, width: contentW, height: 22, color: C.primary });
+      // Column labels
+      for (const [label, x] of [
+        ["Fecha", COL.date],
+        ["Tipo de evento", COL.type],
+        ["Detalle", COL.detail],
+      ] as [string, number][]) {
+        page.drawText(label, { x, y: y - 11, size: 7.5, font: fontBold, color: C.white });
       }
-      y -= 20;
+      y -= 22;
 
-      let alt = false;
+      let rowAlt = false;
       for (const ev of a.events) {
-        const kindLabel = KIND_LABEL[ev.kind] ?? ev.kind;
-        const kindColor = KIND_COLOR[ev.kind] ?? [0.5, 0.5, 0.5];
+        const kindLabel = norm(KIND_LABEL[ev.kind] ?? ev.kind);
+        const kindColor = KIND_COLOR[ev.kind] ?? rgb(0.45, 0.5, 0.55);
 
-        // Limpiar detalle: sacar claves internas, mostrar valores legibles
+        // Build detail string
         const raw = ev.detail ?? {};
         const detailParts: string[] = [];
         for (const [k, v] of Object.entries(raw)) {
           if (["measured_by", "recorded_by", "performed_by", "breed_id"].includes(k)) continue;
-          const label = k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-          detailParts.push(`${label}: ${v}`);
+          const label = norm(k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()));
+          detailParts.push(`${label}: ${norm(String(v))}`);
         }
-        const detailStr = detailParts.join("  Â·  ") || "â€”";
-        const detailLines = wrapText(
-          detailStr,
-          contentW - 170,
-          font as Parameters<typeof wrapText>[2],
-          8
-        );
-        const rowH = Math.max(16, detailLines.length * 12 + 6);
+        const detailStr = detailParts.join("  ·  ") || "—";
+        const detailMaxW = contentW - (COL.detail - ML) - 8;
+        const detailLines = wrapText(norm(detailStr), detailMaxW, font, 7.5);
+        const rowH = Math.max(20, detailLines.length * 11 + 10);
 
-        ensureSpace(rowH + 4);
-        if (alt)
+        ensureSpace(rowH + 2);
+
+        // Alternating row bg
+        if (rowAlt) {
           page.drawRectangle({
-            x: margin,
-            y: y - rowH + 2,
+            x: ML,
+            y: y - rowH,
             width: contentW,
             height: rowH,
-            color: C.bg,
+            color: C.offWhite,
           });
+        }
 
-        page.drawText(fmtDate(ev.occurred_at), {
-          x: tColsX[0],
-          y: y - 10,
+        // Date cell
+        page.drawText(norm(fmtDate(ev.occurred_at)), {
+          x: COL.date,
+          y: y - 13,
           size: 8,
           font,
           color: C.mid,
         });
 
-        // Pill tipo
-        const pillW = fontBold.widthOfTextAtSize(kindLabel, 7) + 10;
+        // Kind pill
+        const pillW = fontBold.widthOfTextAtSize(kindLabel, 7) + 14;
         page.drawRectangle({
-          x: tColsX[1] - 1,
-          y: y - 14,
+          x: COL.type - 1,
+          y: y - 16,
           width: pillW,
           height: 14,
-          color: rgb(...kindColor),
-
-          opacity: 0.15,
+          color: kindColor,
+          opacity: 0.12,
         });
+        page.drawRectangle({ x: COL.type - 1, y: y - 16, width: 2, height: 14, color: kindColor });
         page.drawText(kindLabel, {
-          x: tColsX[1] + 4,
-          y: y - 9,
+          x: COL.type + 6,
+          y: y - 10,
           size: 7,
           font: fontBold,
-          color: rgb(...kindColor),
+          color: kindColor,
         });
 
+        // Detail lines
         for (let li = 0; li < detailLines.length; li++) {
           page.drawText(detailLines[li], {
-            x: tColsX[2],
-            y: y - 9 - li * 12,
-            size: 8,
+            x: COL.detail,
+            y: y - 11 - li * 11,
+            size: 7.5,
             font,
             color: C.dark,
           });
         }
 
+        // Row divider
         page.drawLine({
-          start: { x: margin, y: y - rowH + 2 },
-          end: { x: W - margin, y: y - rowH + 2 },
-          thickness: 0.3,
+          start: { x: ML, y: y - rowH },
+          end: { x: W - MR, y: y - rowH },
+          thickness: 0.25,
           color: C.border,
         });
+
         y -= rowH;
-        alt = !alt;
+        rowAlt = !rowAlt;
       }
+
+      // Bottom border for table
+      page.drawLine({
+        start: { x: ML, y },
+        end: { x: W - MR, y },
+        thickness: 0.5,
+        color: C.border,
+      });
     }
 
-    y -= 14;
+    y -= 20;
   }
 
-  // â”€â”€ Pie de pÃ¡gina + QR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ═══════════════════════════════════════════════════════════════════════
+  // FOOTER (last page)
+  // ═══════════════════════════════════════════════════════════════════════
+  addPageNum(page, pageNum);
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fincaelprogreso.com";
   const qrDataUrl = await QRCode.toDataURL(`${appUrl}/dashboard/reportes`, {
     margin: 0,
@@ -479,47 +637,71 @@ export async function POST(req: Request) {
   const qrPng = await pdf.embedPng(qrDataUrl);
 
   const lastPage = pdf.getPage(pdf.getPageCount() - 1);
-  const footerY = margin + 10;
+  const footerY = 28;
+  const footerLineY = footerY + 78;
 
+  // Footer bg band
+  lastPage.drawRectangle({ x: 0, y: footerY - 8, width: W, height: 90, color: C.offWhite });
   lastPage.drawLine({
-    start: { x: margin, y: footerY + 80 },
-    end: { x: W - margin - 84, y: footerY + 80 },
-    thickness: 0.5,
+    start: { x: ML, y: footerLineY },
+    end: { x: W - MR - 88, y: footerLineY },
+    thickness: 0.4,
     color: C.border,
   });
+
   lastPage.drawText("Este reporte fue generado por la plataforma Finca El Progreso.", {
-    x: margin,
-    y: footerY + 66,
+    x: ML,
+    y: footerY + 62,
     size: 7,
     font,
     color: C.light,
   });
-  lastPage.drawText(`Generado: ${new Date().toLocaleString("es-VE")}  Â·  Por: ${generatedBy}`, {
-    x: margin,
-    y: footerY + 54,
-    size: 7,
-    font,
-    color: C.light,
+  lastPage.drawText(
+    norm(`Generado: ${new Date().toLocaleString("es-CO")}   ·   Por: ${generatedBy}`),
+    {
+      x: ML,
+      y: footerY + 49,
+      size: 7,
+      font,
+      color: C.light,
+    }
+  );
+  // Hash row with label
+  lastPage.drawText("Hash de integridad:", {
+    x: ML,
+    y: footerY + 36,
+    size: 6.5,
+    font: fontBold,
+    color: C.vlight,
   });
-  lastPage.drawText(`Hash: ${payloadHash}`, {
-    x: margin,
-    y: footerY + 42,
+  lastPage.drawText(payloadHash, {
+    x: ML + font.widthOfTextAtSize("Hash de integridad: ", 6.5),
+    y: footerY + 36,
     size: 6.5,
     font,
-    color: C.light,
+    color: C.vlight,
   });
   lastPage.drawText("La integridad de este documento puede verificarse en la plataforma.", {
-    x: margin,
-    y: footerY + 30,
+    x: ML,
+    y: footerY + 22,
     size: 7,
     font,
-    color: C.light,
+    color: C.vlight,
   });
-  lastPage.drawImage(qrPng, { x: W - margin - 72, y: footerY, width: 72, height: 72 });
+
+  // QR code
+  lastPage.drawImage(qrPng, { x: W - MR - 72, y: footerY - 4, width: 72, height: 72 });
+  lastPage.drawText("Verificar", {
+    x: W - MR - 72 + 20,
+    y: footerY - 14,
+    size: 6.5,
+    font,
+    color: C.vlight,
+  });
 
   const pdfBytes = await pdf.save();
 
-  // Persistir
+  // Persist
   const { data: report } = await sb
     .from("regulatory_reports")
     .insert({

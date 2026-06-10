@@ -17,9 +17,7 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
   }, []);
 
   const fichaUrl = origin ? `${origin}/t/${slug}` : `/t/${slug}`;
-  const verifyUrl = origin
-    ? `${origin}/api/verify/animals/${animalId}`
-    : `/api/verify/animals/${animalId}`;
+  const verifyUrl = origin ? `${origin}/verify/animals/${animalId}` : `/verify/animals/${animalId}`;
 
   const QrCard = ({
     url,

@@ -8,6 +8,8 @@ import {
   ArrowLeft,
   Beef,
   Calendar,
+  Check,
+  ChevronDown,
   FlaskConical,
   Loader2,
   MapPin,
@@ -18,7 +20,6 @@ import {
   Syringe,
   TrendingUp,
   X,
-  Check,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import WeighingForm from "@/components/WeighingForm";
@@ -867,24 +868,35 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 rows={(vaccinationsQuery.data ?? []).map((v) => {
                   const cat = v.vaccines_catalog as { name?: string } | { name: string }[] | null;
                   const name = Array.isArray(cat) ? cat[0]?.name : cat?.name;
-                  const isDue = v.next_due_at && new Date(v.next_due_at as string) < new Date();
-                  return {
-                    id: v.id as string,
-                    primary: name ?? "Vacuna",
-                    secondary: new Date(
-                      (v.applied_at as string).slice(0, 10) + "T12:00:00"
-                    ).toLocaleDateString("es-VE", {
+                  const fmtDate = (iso: string) =>
+                    new Date(iso.slice(0, 10) + "T12:00:00").toLocaleDateString("es-VE", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
-                    }),
+                    });
+                  const details: { label: string; value: string }[] = [
+                    { label: "Vacuna", value: name ?? "—" },
+                    { label: "Fecha aplicación", value: fmtDate(v.applied_at as string) },
+                    ...(v.dose_ml ? [{ label: "Dosis", value: `${v.dose_ml} ml` }] : []),
+                    ...(v.batch_number ? [{ label: "Lote", value: v.batch_number as string }] : []),
+                    ...(v.next_due_at
+                      ? [{ label: "Próxima dosis", value: fmtDate(v.next_due_at as string) }]
+                      : []),
+                    ...(v.notes ? [{ label: "Notas", value: v.notes as string }] : []),
+                    { label: "ID registro", value: (v.id as string).slice(0, 8) + "…" },
+                  ];
+                  return {
+                    id: v.id as string,
+                    primary: name ?? "Vacuna",
+                    secondary: fmtDate(v.applied_at as string),
                     tertiary: v.next_due_at
-                      ? `Próxima dosis: ${new Date(v.next_due_at as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}`
+                      ? `Próxima dosis: ${fmtDate(v.next_due_at as string)}`
                       : null,
                     badge: v.dose_ml ? `${v.dose_ml} ml` : undefined,
                     badgeColor: "bg-emerald-500/10 text-emerald-600",
                     icon: Syringe,
                     photo: vacDocsQuery.data?.[v.id as string] ?? null,
+                    details,
                     action: (
                       <SignAnchorButton
                         entityType="vaccinations"
@@ -956,12 +968,44 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                   const name = Array.isArray(cat) ? cat[0]?.name : cat?.name;
                   const kind = Array.isArray(cat) ? cat[0]?.kind : cat?.kind;
                   const active = !t.ended_at;
+                  const fmtDate = (iso: string) =>
+                    new Date(iso).toLocaleDateString("es-VE", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    });
+                  const details: { label: string; value: string }[] = [
+                    { label: "Tratamiento", value: name ?? "Libre" },
+                    ...(kind ? [{ label: "Tipo", value: kind }] : []),
+                    { label: "Inicio", value: fmtDate(t.started_at as string) },
+                    ...(t.ended_at
+                      ? [{ label: "Fin", value: fmtDate(t.ended_at as string) }]
+                      : [{ label: "Estado", value: "En curso" }]),
+                    ...(t.dose ? [{ label: "Dosis", value: t.dose as string }] : []),
+                    ...(t.withdrawal_until_meat
+                      ? [
+                          {
+                            label: "Retiro carne",
+                            value: fmtDate(t.withdrawal_until_meat as string),
+                          },
+                        ]
+                      : []),
+                    ...(t.withdrawal_until_milk
+                      ? [
+                          {
+                            label: "Retiro leche",
+                            value: fmtDate(t.withdrawal_until_milk as string),
+                          },
+                        ]
+                      : []),
+                    ...(t.notes ? [{ label: "Notas", value: t.notes as string }] : []),
+                  ];
                   return {
                     id: t.id as string,
                     primary: name ?? "Tratamiento libre",
-                    secondary: `Inicio: ${new Date(t.started_at as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}${t.ended_at ? ` · Fin: ${new Date(t.ended_at as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}` : ""}`,
+                    secondary: `Inicio: ${fmtDate(t.started_at as string)}${t.ended_at ? ` · Fin: ${fmtDate(t.ended_at as string)}` : ""}`,
                     tertiary: t.withdrawal_until_meat
-                      ? `⚠ Retiro carne: ${new Date(t.withdrawal_until_meat as string).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}`
+                      ? `⚠ Retiro carne: ${fmtDate(t.withdrawal_until_meat as string)}`
                       : (kind ?? t.dose ?? null),
                     badge: active ? "Activo" : "Finalizado",
                     badgeColor: active
@@ -969,6 +1013,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       : "bg-muted text-foreground/50",
                     icon: FlaskConical,
                     photo: treatDocsQuery.data?.[t.id as string] ?? null,
+                    details,
                     action: (
                       <SignAnchorButton
                         entityType="treatments"
@@ -1162,6 +1207,7 @@ type ListRow = {
   icon: typeof Beef;
   photo?: string | null;
   action?: React.ReactNode;
+  details?: { label: string; value: string }[];
 };
 
 type MovementRow = {
@@ -1497,6 +1543,8 @@ function RecordList({
   iconColor?: string;
   titleIcon?: typeof Beef;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   return (
     <div className="bg-card border-border rounded-2xl border overflow-hidden">
       <div className="border-border flex items-center justify-between border-b px-5 py-4">
@@ -1537,42 +1585,76 @@ function RecordList({
 
       {rows.length > 0 && (
         <ul className="divide-border divide-y">
-          {rows.map((r) => (
-            <li
-              key={r.id}
-              className="hover:bg-muted/20 flex items-center gap-4 px-5 py-3.5 transition-colors"
-            >
-              <div className="relative h-10 w-10 shrink-0">
-                {r.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.photo} alt="" className="h-10 w-10 rounded-xl object-cover" />
-                ) : (
-                  <div
-                    className={`${iconBg} ${iconColor} flex h-10 w-10 items-center justify-center rounded-xl`}
-                  >
-                    <r.icon className="h-4 w-4" />
+          {rows.map((r) => {
+            const isExpanded = expandedId === r.id;
+            const hasDetails = r.details && r.details.length > 0;
+            return (
+              <li key={r.id} className="divide-border divide-y">
+                <div
+                  className={`flex items-center gap-4 px-5 py-3.5 transition-colors ${hasDetails ? "cursor-pointer hover:bg-muted/20" : ""}`}
+                  onClick={() => hasDetails && setExpandedId(isExpanded ? null : r.id)}
+                >
+                  <div className="relative h-10 w-10 shrink-0">
+                    {r.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={r.photo} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                    ) : (
+                      <div
+                        className={`${iconBg} ${iconColor} flex h-10 w-10 items-center justify-center rounded-xl`}
+                      >
+                        <r.icon className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-foreground text-sm font-medium">{r.primary}</span>
+                      {r.badge && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.badgeColor ?? "bg-muted text-foreground/60"}`}
+                        >
+                          {r.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-foreground/45 mt-0.5 text-xs">{r.secondary}</div>
+                    {r.tertiary && (
+                      <div className="text-foreground/60 mt-0.5 text-xs font-medium">
+                        {r.tertiary}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {r.action && <div onClick={(e) => e.stopPropagation()}>{r.action}</div>}
+                    {hasDetails && (
+                      <ChevronDown
+                        className={`text-foreground/30 h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                      />
+                    )}
+                  </div>
+                </div>
+                {isExpanded && r.details && (
+                  <div className="bg-muted/10 px-5 py-4">
+                    <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {r.details.map((d) => (
+                        <div
+                          key={d.label}
+                          className="bg-background border-border/50 rounded-xl border px-3 py-2.5"
+                        >
+                          <dt className="text-foreground/40 text-[10px] font-semibold uppercase tracking-wider">
+                            {d.label}
+                          </dt>
+                          <dd className="text-foreground mt-0.5 break-all text-xs font-medium">
+                            {d.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
                   </div>
                 )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-foreground text-sm font-medium">{r.primary}</span>
-                  {r.badge && (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.badgeColor ?? "bg-muted text-foreground/60"}`}
-                    >
-                      {r.badge}
-                    </span>
-                  )}
-                </div>
-                <div className="text-foreground/45 mt-0.5 text-xs">{r.secondary}</div>
-                {r.tertiary && (
-                  <div className="text-foreground/60 mt-0.5 text-xs font-medium">{r.tertiary}</div>
-                )}
-              </div>
-              {r.action && <div className="shrink-0">{r.action}</div>}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

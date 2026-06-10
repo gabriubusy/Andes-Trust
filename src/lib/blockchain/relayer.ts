@@ -44,7 +44,8 @@ export async function relayContractWrite({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = encodeFunctionData({ abi, functionName, args } as any);
   const wallet = getWalletClient();
-  const hash = await wallet.sendTransaction({ to, data });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hash = await wallet.sendTransaction({ to, data } as any);
   await getPublicClient().waitForTransactionReceipt({ hash });
   return hash;
 }

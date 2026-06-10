@@ -24,11 +24,15 @@ type AlertRow = {
   type: "vaccination_due" | "treatment_withdrawal" | "weighing_due" | "custom";
   due_at: string;
   status: "open" | "acknowledged" | "dismissed" | "resolved";
-  payload: { animal_tag?: string; last_applied_at?: string; last_weighing_at?: string } & Record<
-    string,
-    unknown
-  >;
+  payload: {
+    animal_tag?: string;
+    animal_name?: string;
+    last_applied_at?: string;
+    last_weighing_at?: string;
+    vaccination_id?: string;
+  } & Record<string, unknown>;
   source_table: string | null;
+  source_id: string | null;
   animals: { tag: string; name: string | null } | null;
 };
 
@@ -69,7 +73,7 @@ export default function AlertasPage() {
       let q = supabase!
         .from("alerts")
         .select(
-          "id, farm_id, animal_id, type, due_at, status, payload, source_table, animals(tag, name)"
+          "id, farm_id, animal_id, type, due_at, status, payload, source_table, source_id, animals(tag, name)"
         )
         .eq("farm_id", farmId!)
         .order("due_at", { ascending: true });
