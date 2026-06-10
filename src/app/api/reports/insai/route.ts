@@ -535,13 +535,106 @@ export async function POST(req: Request) {
         const kindLabel = norm(KIND_LABEL[ev.kind] ?? ev.kind);
         const kindColor = KIND_COLOR[ev.kind] ?? rgb(0.45, 0.5, 0.55);
 
-        // Build detail string
+        // Build detail string — translated labels ordered by event kind
+        const SKIP_KEYS = new Set([
+          "measured_by",
+          "recorded_by",
+          "performed_by",
+          "breed_id",
+          "animal_id",
+        ]);
+        const LABEL_ES: Record<string, string> = {
+          // weighing
+          weight_kg: "Peso (kg)",
+          previous_weight_kg: "Peso anterior (kg)",
+          gain_kg: "Ganancia (kg)",
+          // vaccination
+          vaccine_name: "Vacuna",
+          vaccine_id: "ID vacuna",
+          batch_number: "Lote",
+          next_due_at: "Proxima dosis",
+          applied_by: "Aplicado por",
+          dose_ml: "Dosis (ml)",
+          route: "Via",
+          site: "Sitio",
+          // treatment
+          product_name: "Producto",
+          diagnosis: "Diagnostico",
+          dosage: "Dosis",
+          duration_days: "Duracion (dias)",
+          ended_at: "Fin tratamiento",
+          withdrawal_until_meat: "Retiro carne",
+          withdrawal_until_milk: "Retiro leche",
+          treatment_id: "ID tratamiento",
+          // insemination
+          semen_id: "ID semen",
+          bull_name: "Toro",
+          technique: "Tecnica",
+          technician: "Tecnico",
+          // pregnancy_check
+          result: "Resultado",
+          method: "Metodo",
+          estimated_calving: "Parto estimado",
+          gestation_days: "Dias gestacion",
+          // calving
+          calf_tag: "Arete cria",
+          calf_sex: "Sexo cria",
+          calf_weight_kg: "Peso cria (kg)",
+          dystocia: "Distosica",
+          calf_alive: "Cria viva",
+          // birth
+          birth_weight_kg: "Peso nacimiento (kg)",
+          sire_tag: "Padre",
+          dam_tag: "Madre",
+          // deworming
+          product: "Producto",
+          dose: "Dosis",
+          // certification
+          certificate_number: "N° certificado",
+          issuer: "Emisor",
+          valid_until: "Valido hasta",
+          notes: "Notas",
+          description: "Descripcion",
+        };
+        const KIND_ORDER: Record<string, string[]> = {
+          weighing: ["weight_kg", "previous_weight_kg", "gain_kg"],
+          vaccination: ["vaccine_name", "batch_number", "dose_ml", "route", "site", "next_due_at"],
+          treatment: [
+            "product_name",
+            "diagnosis",
+            "dosage",
+            "duration_days",
+            "ended_at",
+            "withdrawal_until_meat",
+            "withdrawal_until_milk",
+          ],
+          insemination: ["technique", "bull_name", "semen_id", "technician"],
+          pregnancy_check: ["result", "method", "gestation_days", "estimated_calving"],
+          calving: ["calf_tag", "calf_sex", "calf_weight_kg", "calf_alive", "dystocia"],
+          birth: ["birth_weight_kg", "sire_tag", "dam_tag"],
+          deworming: ["product_name", "product", "dosage", "dose", "route"],
+          certification: ["certificate_number", "issuer", "valid_until"],
+        };
         const raw = ev.detail ?? {};
+        const orderedKeys = KIND_ORDER[ev.kind] ?? [];
+        const allKeys = [
+          ...orderedKeys,
+          ...Object.keys(raw).filter((k) => !orderedKeys.includes(k)),
+        ];
         const detailParts: string[] = [];
-        for (const [k, v] of Object.entries(raw)) {
-          if (["measured_by", "recorded_by", "performed_by", "breed_id"].includes(k)) continue;
-          const label = norm(k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()));
-          detailParts.push(`${label}: ${norm(String(v))}`);
+        for (const k of allKeys) {
+          if (SKIP_KEYS.has(k) || !(k in raw)) continue;
+          const v = (raw as Record<string, unknown>)[k];
+          if (v === null || v === undefined || v === "") continue;
+          const label =
+            LABEL_ES[k] ?? norm(k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()));
+          let valStr = String(v);
+          // format ISO dates
+          if (/^\d{4}-\d{2}-\d{2}/.test(valStr)) valStr = fmtDate(valStr);
+          // translate booleans
+          if (valStr === "true") valStr = "Si";
+          if (valStr === "false") valStr = "No";
+          detailParts.push(`${label}: ${norm(valStr)}`);
         }
         const detailStr = detailParts.join("  ·  ") || "—";
         const detailMaxW = contentW - (COL.detail - ML) - 8;

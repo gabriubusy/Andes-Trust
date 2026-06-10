@@ -31,7 +31,7 @@ const schema = z
   })
   .superRefine((data, ctx) => {
     const now = new Date();
-    const applied = data.applied_at ? new Date(data.applied_at) : null;
+    const applied = data.applied_at ? new Date(data.applied_at + "T12:00:00") : null;
     const nextDue = data.next_due_at ? new Date(data.next_due_at) : null;
 
     if (applied && applied > now) {
@@ -98,7 +98,7 @@ export default function VaccinationForm({
   const [dateWarning, setDateWarning] = useState<string | null>(null);
 
   const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const birthDateStr = animalBirthDate ?? null;
 
   const {
@@ -139,7 +139,7 @@ export default function VaccinationForm({
   useEffect(() => {
     setDateWarning(null);
     if (!watchApplied) return;
-    const applied = new Date(watchApplied);
+    const applied = new Date(watchApplied + "T12:00:00");
     const now = new Date();
     if (applied > now) {
       setDateWarning("La fecha de aplicación no puede ser futura.");
@@ -185,7 +185,7 @@ export default function VaccinationForm({
   const mutation = useMutation({
     mutationFn: async (v: Values) => {
       const appliedAt = v.applied_at
-        ? new Date(v.applied_at).toISOString()
+        ? new Date(v.applied_at + "T12:00:00").toISOString()
         : new Date().toISOString();
       const payload = {
         animal_id: animalId,
@@ -263,10 +263,10 @@ export default function VaccinationForm({
           </label>
           <input
             id="applied_at"
-            type="datetime-local"
+            type="date"
             className={inputClass}
             max={todayStr}
-            min={birthDateStr ? birthDateStr.slice(0, 10) + "T00:00" : undefined}
+            min={birthDateStr ? birthDateStr.slice(0, 10) : undefined}
             {...register("applied_at")}
           />
           {errors.applied_at && (

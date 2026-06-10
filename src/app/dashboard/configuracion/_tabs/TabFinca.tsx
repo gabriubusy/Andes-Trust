@@ -2,11 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Check, MapPin, Building2, Hash, Globe, Save } from "lucide-react";
+import { Loader2, Check, MapPin, Building2, Hash, Globe, Save, FileText, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useSupabase } from "@/hooks/use-supabase";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
-import { inputClass, labelClass, type FarmDetail } from "./shared";
+import { type FarmDetail } from "./shared";
+
+const inputBase =
+  "border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border py-2.5 text-sm focus:ring-2 focus:outline-none transition-colors placeholder:text-foreground/30";
+
+function FieldIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30">
+      {children}
+    </span>
+  );
+}
 
 export function TabFinca() {
   const { supabase } = useSupabase();
@@ -72,7 +84,7 @@ export function TabFinca() {
       queryClient.invalidateQueries({ queryKey: ["current-farm"] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-      toast.success("Guardado correctamente");
+      toast.success("Datos de la finca actualizados");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -82,114 +94,155 @@ export function TabFinca() {
 
   if (detailQuery.isLoading) {
     return (
-      <div className="bg-card border-border max-w-2xl rounded-2xl border p-6">
-        <div className="flex items-center gap-3 py-8 justify-center">
-          <Loader2 className="text-primary h-5 w-5 animate-spin" />
-          <span className="text-foreground/50 text-sm">Cargando datos de la finca…</span>
+      <div className="bg-card border-border rounded-2xl border p-6 space-y-4">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-14 w-14 rounded-2xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 rounded-xl" />
+          ))}
         </div>
       </div>
     );
   }
 
+  const locationParts = [form.region, form.country].filter(Boolean).join(", ");
+
   return (
-    <div className="max-w-2xl space-y-4">
-      {/* Header card */}
-      <div className="bg-card border-border rounded-2xl border p-6">
-        <div className="flex items-start gap-3 mb-6">
-          <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
-            <Building2 className="h-5 w-5" />
+    <div className="space-y-4">
+      {/* ── Main form card ── */}
+      <div className="bg-card border-border rounded-2xl border overflow-hidden">
+        {/* Card header */}
+        <div className="border-border border-b px-6 py-4 flex items-center gap-3">
+          <div className="bg-blue-500/10 flex h-9 w-9 items-center justify-center rounded-xl">
+            <Building2 className="h-4 w-4 text-blue-500" />
           </div>
           <div>
-            <h3 className="text-foreground text-base font-bold">Información de la finca</h3>
-            <p className="text-foreground/50 text-xs mt-0.5">
+            <h3 className="text-foreground text-sm font-bold">Información de la finca</h3>
+            <p className="text-foreground/40 text-xs mt-0.5">
               Aparece en certificados, fichas públicas y reportes regulatorios.
             </p>
           </div>
         </div>
 
-        <div className="space-y-5">
-          {/* Name */}
+        <div className="p-6 space-y-6">
+          {/* Section: Identidad */}
           <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5">
-                <Building2 className="h-3 w-3" /> Nombre de la finca *
-              </span>
-            </label>
-            <input
-              className={inputClass}
-              value={form.name}
-              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-              placeholder="Ej. Finca El Progreso"
-            />
-          </div>
-
-          {/* Legal ID */}
-          <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5">
-                <Hash className="h-3 w-3" /> NIT / Cédula jurídica
-              </span>
-            </label>
-            <input
-              className={inputClass}
-              value={form.legal_id ?? ""}
-              onChange={(e) => set("legal_id", e.target.value)}
-              placeholder="Identificación fiscal (opcional)"
-            />
-          </div>
-
-          {/* Country + Region */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>
-                <span className="flex items-center gap-1.5">
-                  <Globe className="h-3 w-3" /> País
-                </span>
-              </label>
-              <input
-                className={inputClass}
-                value={form.country ?? ""}
-                onChange={(e) => set("country", e.target.value)}
-                placeholder="Ej. Colombia"
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Región / Departamento</label>
-              <input
-                className={inputClass}
-                value={form.region ?? ""}
-                onChange={(e) => set("region", e.target.value)}
-                placeholder="Ej. Antioquia"
-              />
+            <p className="text-foreground/40 mb-3 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1.5">
+              <Building2 className="h-3 w-3" /> Identidad
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-foreground/60 mb-1.5 block text-xs font-medium">
+                  Nombre de la finca <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <FieldIcon>
+                    <Building2 className="h-4 w-4" />
+                  </FieldIcon>
+                  <input
+                    className={`${inputBase} pl-9`}
+                    value={form.name}
+                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                    placeholder="Ej. Finca El Progreso"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-foreground/60 mb-1.5 block text-xs font-medium">
+                  RIF / NIT / Cédula jurídica
+                  <span className="text-foreground/30 ml-1.5 font-normal">(opcional)</span>
+                </label>
+                <div className="relative">
+                  <FieldIcon>
+                    <Hash className="h-4 w-4" />
+                  </FieldIcon>
+                  <input
+                    className={`${inputBase} pl-9`}
+                    value={form.legal_id ?? ""}
+                    onChange={(e) => set("legal_id", e.target.value)}
+                    placeholder="Identificación fiscal"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Address */}
+          {/* Divider */}
+          <div className="border-border border-t" />
+
+          {/* Section: Ubicación */}
           <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5">
-                <MapPin className="h-3 w-3" /> Dirección
-              </span>
-            </label>
-            <input
-              className={inputClass}
-              value={form.address ?? ""}
-              onChange={(e) => set("address", e.target.value)}
-              placeholder="Vereda, municipio, km…"
-            />
+            <p className="text-foreground/40 mb-3 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1.5">
+              <MapPin className="h-3 w-3" /> Ubicación
+            </p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-foreground/60 mb-1.5 block text-xs font-medium">
+                    País
+                  </label>
+                  <div className="relative">
+                    <FieldIcon>
+                      <Globe className="h-4 w-4" />
+                    </FieldIcon>
+                    <input
+                      className={`${inputBase} pl-9`}
+                      value={form.country ?? ""}
+                      onChange={(e) => set("country", e.target.value)}
+                      placeholder="Ej. Venezuela"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-foreground/60 mb-1.5 block text-xs font-medium">
+                    Estado / Departamento
+                  </label>
+                  <input
+                    className={`${inputBase} px-3`}
+                    value={form.region ?? ""}
+                    onChange={(e) => set("region", e.target.value)}
+                    placeholder="Ej. Barinas"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-foreground/60 mb-1.5 block text-xs font-medium">
+                  Dirección
+                </label>
+                <div className="relative">
+                  <FieldIcon>
+                    <MapPin className="h-4 w-4" />
+                  </FieldIcon>
+                  <input
+                    className={`${inputBase} pl-9`}
+                    value={form.address ?? ""}
+                    onChange={(e) => set("address", e.target.value)}
+                    placeholder="Vereda, municipio, km…"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Save */}
-        <div className="mt-6 flex items-center justify-between border-t border-border pt-5">
-          <p className="text-foreground/40 text-xs">* Campo requerido</p>
+        {/* Footer */}
+        <div className="border-border bg-muted/20 border-t px-6 py-4 flex items-center justify-between gap-3">
+          <p className="text-foreground/30 text-xs flex items-center gap-1">
+            <span className="text-red-400">*</span> Campo requerido
+          </p>
           <button
             type="button"
             disabled={!form.name.trim() || updateMutation.isPending}
             onClick={() => updateMutation.mutate()}
-            className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:opacity-60 ${
+            className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium transition-all disabled:opacity-50 ${
               saved
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             }`}
           >
@@ -200,10 +253,43 @@ export function TabFinca() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {saved ? "Cambios guardados" : "Guardar cambios"}
+            {saved ? "Guardado" : "Guardar cambios"}
           </button>
         </div>
       </div>
+
+      {/* ── Preview card ── */}
+      {form.name && (
+        <div className="bg-card border-border rounded-2xl border overflow-hidden">
+          <div className="border-border border-b px-6 py-3 flex items-center gap-2">
+            <Eye className="text-foreground/30 h-3.5 w-3.5" />
+            <span className="text-foreground/40 text-xs font-medium">
+              Vista previa — así aparece en certificados y reportes
+            </span>
+          </div>
+          <div className="px-6 py-4 flex items-start gap-4">
+            <div className="bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+              <Building2 className="text-primary h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-foreground font-bold text-sm leading-tight">{form.name}</p>
+              {form.legal_id && (
+                <p className="text-foreground/50 text-xs mt-0.5">RIF / NIT: {form.legal_id}</p>
+              )}
+              {locationParts && (
+                <p className="text-foreground/40 text-xs mt-0.5 flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> {locationParts}
+                </p>
+              )}
+              {form.address && <p className="text-foreground/30 text-xs mt-0.5">{form.address}</p>}
+            </div>
+            <div className="ml-auto flex items-center gap-1.5 shrink-0">
+              <FileText className="text-foreground/20 h-3.5 w-3.5" />
+              <span className="text-foreground/20 text-[10px]">Certificados · INSAI · Fichas</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -99,14 +99,14 @@ export default function EquipoPage() {
 
   const membersQuery = useQuery<Member[]>({
     queryKey: ["farm-members", farmId],
-    enabled: !!supabase && !!farmId,
+    enabled: !!farmId,
     queryFn: async () => {
-      const { data, error } = await supabase!
-        .from("farm_members")
-        .select("profile_id, role, profiles(id, email, full_name, wallet_address)")
-        .eq("farm_id", farmId!);
-      if (error) throw error;
-      return (data ?? []) as unknown as Member[];
+      const token = await getAccessToken();
+      const res = await fetch(`/api/team/member?farm_id=${farmId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Error al cargar miembros");
+      return res.json();
     },
   });
 

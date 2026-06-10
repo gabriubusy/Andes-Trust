@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Loader2, PackageX, Plus, Receipt, TrendingUp, User } from "lucide-react";
+import { ChevronRight, PackageX, Plus, Receipt, TrendingUp, User } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -169,9 +170,10 @@ export default function VentasPage() {
 
       {/* List */}
       {salesQuery.isLoading ? (
-        <div className="flex items-center gap-2 py-12">
-          <Loader2 className="text-primary h-5 w-5 animate-spin" />
-          <span className="text-muted-foreground text-sm">Cargando ventas…</span>
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : visible.length === 0 ? (
         <div className="bg-card border-border rounded-2xl border p-12 text-center">

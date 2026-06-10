@@ -126,8 +126,12 @@ export default function ReproduccionPage() {
     },
   });
 
-  const females = (animalsQuery.data ?? []).filter((a) => a.sex === "F" || a.sex === "f");
-  const males = (animalsQuery.data ?? []).filter((a) => a.sex === "M" || a.sex === "m");
+  const females = (animalsQuery.data ?? []).filter(
+    (a) => a.sex === "F" || a.sex === "f" || a.sex === "female"
+  );
+  const males = (animalsQuery.data ?? []).filter(
+    (a) => a.sex === "M" || a.sex === "m" || a.sex === "male"
+  );
 
   // ── Inseminaciones ───────────────────────────────────────────────────
   const insemQuery = useQuery<Insemination[]>({

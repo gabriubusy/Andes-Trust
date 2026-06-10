@@ -16,6 +16,7 @@ import {
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
 type AlertRow = {
   id: string;
@@ -191,9 +192,7 @@ export default function AlertasPage() {
         {/* List */}
         <div className="bg-card border-border rounded-2xl border">
           {alertsQuery.isLoading ? (
-            <div className="text-foreground/50 flex items-center justify-center py-16 text-sm">
-              Cargando alertas…
-            </div>
+            <SkeletonList rows={5} />
           ) : (alertsQuery.data ?? []).length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16">
               <BellRing className="text-foreground/20 h-10 w-10" />

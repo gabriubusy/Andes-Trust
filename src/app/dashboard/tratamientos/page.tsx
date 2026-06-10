@@ -9,7 +9,6 @@ import {
   BookOpen,
   Clock,
   FlaskConical,
-  Loader2,
   Pill,
   Search,
   Stethoscope,
@@ -17,6 +16,7 @@ import {
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { SkeletonCard, SkeletonTable } from "@/components/ui/Skeleton";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -220,9 +220,10 @@ export default function TratamientosPage() {
       {tab === "activos" && (
         <div className="space-y-3">
           {activeQuery.isLoading && (
-            <div className="flex items-center gap-2 py-8">
-              <Loader2 className="text-primary h-4 w-4 animate-spin" />
-              <span className="text-muted-foreground text-sm">Cargando…</span>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           )}
           {!activeQuery.isLoading && activeCount === 0 && (
@@ -322,9 +323,10 @@ export default function TratamientosPage() {
       {tab === "historial" && (
         <div className="space-y-3">
           {historyQuery.isLoading && (
-            <div className="flex items-center gap-2 py-8">
-              <Loader2 className="text-primary h-4 w-4 animate-spin" />
-              <span className="text-muted-foreground text-sm">Cargando historial…</span>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           )}
           {!historyQuery.isLoading && (historyQuery.data ?? []).length === 0 && (
@@ -418,12 +420,7 @@ export default function TratamientosPage() {
             />
           </div>
 
-          {catalogQuery.isLoading && (
-            <div className="flex items-center gap-2 py-8">
-              <Loader2 className="text-primary h-4 w-4 animate-spin" />
-              <span className="text-muted-foreground text-sm">Cargando catálogo…</span>
-            </div>
-          )}
+          {catalogQuery.isLoading && <SkeletonTable rows={5} cols={4} />}
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {filteredCatalog.map((c) => (

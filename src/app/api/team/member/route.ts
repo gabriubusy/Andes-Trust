@@ -19,7 +19,7 @@ function getAdmin() {
     _admin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false } },
+      { auth: { persistSession: false } }
     );
   }
   return _admin;
@@ -34,7 +34,11 @@ async function actorAdmin(req: Request, farmId: string) {
   try {
     const claims = await getPrivy().verifyAuthToken(tok);
     const sb = getAdmin();
-    const { data: profile } = await sb.from("profiles").select("id").eq("privy_did", claims.userId).single();
+    const { data: profile } = await sb
+      .from("profiles")
+      .select("id")
+      .eq("privy_did", claims.userId)
+      .single();
     if (!profile) return null;
     const { data: m } = await sb
       .from("farm_members")
@@ -45,6 +49,45 @@ async function actorAdmin(req: Request, farmId: string) {
     return m?.role === "owner" || m?.role === "admin" ? profile : null;
   } catch {
     return null;
+  }
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const farmId = url.searchParams.get("farm_id");
+  if (!farmId) return NextResponse.json({ error: "missing_farm_id" }, { status: 400 });
+
+  const auth = req.headers.get("authorization");
+  const tok = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!tok) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  try {
+    const claims = await getPrivy().verifyAuthToken(tok);
+    const sb = getAdmin();
+    const { data: profile } = await sb
+      .from("profiles")
+      .select("id")
+      .eq("privy_did", claims.userId)
+      .single();
+    if (!profile) return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
+
+    // Verify requester belongs to this farm
+    const { data: membership } = await sb
+      .from("farm_members")
+      .select("role")
+      .eq("farm_id", farmId)
+      .eq("profile_id", profile.id)
+      .maybeSingle();
+    if (!membership) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+    const { data, error } = await sb
+      .from("farm_members")
+      .select("profile_id, role, profiles(id, email, full_name, wallet_address)")
+      .eq("farm_id", farmId);
+    if (error) throw error;
+    return NextResponse.json(data ?? []);
+  } catch {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 }
 
@@ -87,7 +130,8 @@ export async function DELETE(req: Request) {
   const farmId = url.searchParams.get("farm_id");
   const profileId = url.searchParams.get("profile_id");
   if (!farmId || !profileId) return NextResponse.json({ error: "missing_params" }, { status: 400 });
-  if (!(await actorAdmin(req, farmId))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!(await actorAdmin(req, farmId)))
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const sb = getAdmin();
   const { data: target } = await sb

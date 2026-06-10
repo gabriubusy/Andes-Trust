@@ -6,6 +6,7 @@ import { Loader2, Check } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type FarmDetail = {
   id: string;
@@ -96,9 +97,10 @@ export default function FincaSettingsPage() {
         </p>
 
         {detailQuery.isLoading ? (
-          <div className="flex items-center gap-2 py-6">
-            <Loader2 className="text-primary h-4 w-4 animate-spin" />
-            <span className="text-foreground/60 text-sm">Cargando…</span>
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 rounded-xl" />
+            ))}
           </div>
         ) : (
           <div className="space-y-4">
