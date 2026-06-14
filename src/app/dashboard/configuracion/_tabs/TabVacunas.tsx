@@ -2,11 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Loader2, Syringe } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Syringe, RefreshCw, Clock } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { inputClass, labelClass, type Vaccine } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
 import { toast } from "sonner";
+
+const ROUTE_STYLES: Record<string, string> = {
+  IM: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  SC: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  oral: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  IV: "bg-red-500/10 text-red-400 border-red-500/20",
+  IN: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+};
 
 function VaccineModal({
   vaccine,
@@ -204,14 +213,20 @@ export function TabVacunas() {
   return (
     <>
       <div className="bg-card border-border overflow-hidden rounded-2xl border">
+        {/* Header */}
         <div className="border-border flex items-center justify-between border-b px-5 py-4">
-          <div>
-            <h2 className="text-foreground text-base font-bold">Vacunas disponibles</h2>
-            <p className="text-foreground/60 text-xs">
-              {vaccinesQuery.isLoading
-                ? "Cargando…"
-                : `${vaccines.length} vacuna${vaccines.length === 1 ? "" : "s"}`}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-500/10 flex h-9 w-9 items-center justify-center rounded-xl">
+              <Syringe className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div>
+              <h2 className="text-foreground text-sm font-bold">Vacunas disponibles</h2>
+              <p className="text-foreground/40 text-xs">
+                {vaccinesQuery.isLoading
+                  ? "Cargando…"
+                  : `${vaccines.length} vacuna${vaccines.length === 1 ? "" : "s"} en el catálogo`}
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -222,70 +237,114 @@ export function TabVacunas() {
           </button>
         </div>
 
+        {/* Skeleton loading */}
+        {vaccinesQuery.isLoading && (
+          <div className="divide-border divide-y">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-36" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-12 rounded-full" />
+                <Skeleton className="h-3.5 w-12" />
+                <Skeleton className="h-7 w-7 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
         {!vaccinesQuery.isLoading && vaccines.length === 0 && (
-          <div className="px-5 py-12 text-center">
-            <Syringe className="text-foreground/30 mx-auto h-8 w-8" />
-            <p className="text-foreground/70 mt-3 text-sm">No hay vacunas en el catálogo.</p>
+          <div className="flex flex-col items-center gap-3 px-5 py-14">
+            <div className="bg-emerald-500/10 flex h-14 w-14 items-center justify-center rounded-2xl">
+              <Syringe className="h-7 w-7 text-emerald-500/60" />
+            </div>
+            <div className="text-center">
+              <p className="text-foreground text-sm font-medium">Sin vacunas registradas</p>
+              <p className="text-foreground/40 mt-0.5 text-xs">
+                Agrega las vacunas que usas en tu finca para registrar aplicaciones fácilmente.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setModal({})}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium"
             >
               <Plus className="h-4 w-4" /> Agregar primera vacuna
             </button>
           </div>
         )}
 
+        {/* Table */}
         {vaccines.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-foreground/60 text-xs uppercase">
+              <thead className="bg-muted/40 text-foreground/40 text-[11px] uppercase tracking-wide">
                 <tr>
-                  <th className="px-5 py-3 text-left font-medium">Nombre</th>
-                  <th className="px-5 py-3 text-left font-medium">Enfermedad</th>
-                  <th className="px-5 py-3 text-left font-medium">Vía</th>
-                  <th className="px-5 py-3 text-left font-medium">Dosis</th>
-                  <th className="px-5 py-3 text-left font-medium">Refuerzo</th>
-                  <th className="px-5 py-3" />
+                  <th className="px-5 py-2.5 text-left font-semibold">Nombre</th>
+                  <th className="px-5 py-2.5 text-left font-semibold">Enfermedad</th>
+                  <th className="px-5 py-2.5 text-left font-semibold">Vía</th>
+                  <th className="px-5 py-2.5 text-left font-semibold">Dosis</th>
+                  <th className="px-5 py-2.5 text-left font-semibold">Refuerzo</th>
+                  <th className="px-5 py-2.5" />
                 </tr>
               </thead>
               <tbody>
                 {vaccines.map((v) => (
                   <tr
                     key={v.id}
-                    className="border-border hover:bg-muted/40 border-t transition-colors"
+                    className="border-border hover:bg-muted/30 border-t transition-colors"
                   >
-                    <td className="text-foreground px-5 py-3 font-medium">
-                      {v.name}
+                    <td className="px-5 py-3">
+                      <p className="text-foreground font-medium leading-tight">{v.name}</p>
                       {v.manufacturer && (
-                        <div className="text-foreground/50 text-xs font-normal">
-                          {v.manufacturer}
-                        </div>
+                        <p className="text-foreground/40 text-xs">{v.manufacturer}</p>
                       )}
                     </td>
-                    <td className="text-foreground/70 px-5 py-3">{v.disease ?? "—"}</td>
-                    <td className="text-foreground/70 px-5 py-3">{v.route ?? "—"}</td>
-                    <td className="text-foreground/70 px-5 py-3 tabular-nums">
+                    <td className="text-foreground/60 px-5 py-3 text-xs">{v.disease ?? "—"}</td>
+                    <td className="px-5 py-3">
+                      {v.route ? (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${ROUTE_STYLES[v.route] ?? "bg-muted text-foreground/60 border-border"}`}
+                        >
+                          {v.route}
+                        </span>
+                      ) : (
+                        <span className="text-foreground/30 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="text-foreground/60 px-5 py-3 tabular-nums text-xs">
                       {v.dose_ml ? `${v.dose_ml} ml` : "—"}
                     </td>
-                    <td className="text-foreground/70 px-5 py-3 tabular-nums">
-                      {v.booster_days ? `${v.booster_days} días` : "—"}
+                    <td className="px-5 py-3">
+                      {v.booster_days ? (
+                        <span className="text-foreground/60 inline-flex items-center gap-1 tabular-nums text-xs">
+                          <RefreshCw className="h-3 w-3 text-foreground/30" />
+                          {v.booster_days} días
+                        </span>
+                      ) : (
+                        <span className="text-foreground/30 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
                           onClick={() => setModal(v)}
-                          className="text-foreground/60 hover:text-foreground hover:bg-muted rounded-lg p-1.5"
+                          className="text-foreground/40 hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors"
+                          title="Editar"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeleteId(v.id)}
-                          className="text-foreground/60 hover:text-accent hover:bg-accent/10 rounded-lg p-1.5"
+                          className="text-foreground/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                          title="Eliminar"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>

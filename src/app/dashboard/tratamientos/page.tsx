@@ -96,6 +96,61 @@ function WithdrawalChip({ label, date }: { label: string; date: string | null })
   );
 }
 
+function WithdrawalBar({
+  label,
+  emoji,
+  date,
+  startedAt,
+}: {
+  label: string;
+  emoji: string;
+  date: string | null;
+  startedAt: string;
+}) {
+  if (!date) return null;
+  const days = daysLeft(date);
+  const total = Math.ceil((new Date(date).getTime() - new Date(startedAt).getTime()) / 86_400_000);
+  const elapsed = total - (days ?? 0);
+  const pct = total > 0 ? Math.min(100, Math.max(0, (elapsed / total) * 100)) : 100;
+
+  if (days === null) return null;
+
+  if (days < 0) {
+    return (
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-[13px]">{emoji}</span>
+        <span className="text-muted-foreground w-12 shrink-0">{label}</span>
+        <div className="bg-emerald-500/20 h-1.5 flex-1 overflow-hidden rounded-full">
+          <div className="h-full w-full rounded-full bg-emerald-500" />
+        </div>
+        <span className="text-emerald-600 dark:text-emerald-400 w-16 text-right font-medium">
+          Cumplido
+        </span>
+      </div>
+    );
+  }
+
+  const urgent = days <= 3;
+  const barColor = urgent ? "bg-red-500" : "bg-amber-500";
+  const trackColor = urgent ? "bg-red-500/20" : "bg-amber-500/20";
+  const textColor = urgent
+    ? "text-red-600 dark:text-red-400"
+    : "text-amber-700 dark:text-amber-400";
+
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-[13px]">{emoji}</span>
+      <span className="text-muted-foreground w-12 shrink-0">{label}</span>
+      <div className={`${trackColor} h-1.5 flex-1 overflow-hidden rounded-full`}>
+        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={`w-16 text-right font-semibold tabular-nums ${textColor}`}>
+        {days}d restantes
+      </span>
+    </div>
+  );
+}
+
 // ─── component ───────────────────────────────────────────────────────────────
 
 type Tab = "activos" | "historial" | "catalogo";
@@ -239,80 +294,132 @@ export default function TratamientosPage() {
             const milkDays = daysLeft(t.withdrawal_until_milk);
             const inWithdrawal =
               (meatDays !== null && meatDays >= 0) || (milkDays !== null && milkDays >= 0);
+            const urgentWithdrawal =
+              (meatDays !== null && meatDays >= 0 && meatDays <= 3) ||
+              (milkDays !== null && milkDays >= 0 && milkDays <= 3);
+            const hasWithdrawal = !!(t.withdrawal_until_meat || t.withdrawal_until_milk);
+
             return (
               <div
                 key={t.id}
-                className={`bg-card border rounded-2xl p-4 ${
-                  inWithdrawal ? "border-amber-500/30" : "border-border"
+                className={`bg-card relative overflow-hidden rounded-2xl border transition-shadow hover:shadow-md ${
+                  urgentWithdrawal
+                    ? "border-red-500/30"
+                    : inWithdrawal
+                      ? "border-amber-500/30"
+                      : "border-border"
                 }`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-primary/10 mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                      <Pill className="text-primary h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-foreground font-semibold">
-                        {t.treatments_catalog?.name ?? "Tratamiento libre"}
+                {/* Left accent bar */}
+                <div
+                  className={`absolute top-0 left-0 h-full w-1 rounded-l-2xl ${
+                    urgentWithdrawal
+                      ? "bg-red-500"
+                      : inWithdrawal
+                        ? "bg-amber-500"
+                        : "bg-primary/40"
+                  }`}
+                />
+
+                <div className="pl-5 pr-4 py-4">
+                  {/* Top row: drug info + animal meta */}
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    {/* Left: drug */}
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div
+                        className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          inWithdrawal ? "bg-amber-500/10" : "bg-primary/10"
+                        }`}
+                      >
+                        <Pill
+                          className={`h-4 w-4 ${inWithdrawal ? "text-amber-600 dark:text-amber-400" : "text-primary"}`}
+                        />
                       </div>
-                      {t.treatments_catalog?.active_ingredient && (
-                        <div className="text-muted-foreground text-xs">
-                          {t.treatments_catalog.active_ingredient}
+                      <div className="min-w-0">
+                        <div className="text-foreground text-sm font-semibold">
+                          {t.treatments_catalog?.name ?? "Tratamiento libre"}
                         </div>
+                        {t.treatments_catalog?.active_ingredient && (
+                          <div className="text-muted-foreground text-xs">
+                            {t.treatments_catalog.active_ingredient}
+                          </div>
+                        )}
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <KindBadge kind={t.treatments_catalog?.kind ?? null} />
+                          {inWithdrawal && (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                urgentWithdrawal
+                                  ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                                  : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                              }`}
+                            >
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              Retiro activo
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: animal + dates */}
+                    <div className="text-right text-xs shrink-0">
+                      {t.animals ? (
+                        <Link
+                          href={`/dashboard/animales/${t.animals.id}`}
+                          className="text-primary font-mono text-sm font-bold hover:underline"
+                        >
+                          {t.animals.tag}
+                          {t.animals.name && (
+                            <span className="text-muted-foreground font-sans font-normal">
+                              {" "}
+                              — {t.animals.name}
+                            </span>
+                          )}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">Animal eliminado</span>
                       )}
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        <KindBadge kind={t.treatments_catalog?.kind ?? null} />
-                        {inWithdrawal && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                            <AlertTriangle className="h-2.5 w-2.5" />
-                            Retiro activo
+                      <div className="text-muted-foreground mt-1 flex flex-col gap-0.5">
+                        <span>
+                          Inicio:{" "}
+                          <span className="text-foreground/70 font-medium">
+                            {new Date(t.started_at).toLocaleDateString("es-VE")}
+                          </span>
+                        </span>
+                        {t.dose && (
+                          <span>
+                            Dosis: <span className="text-foreground/70 font-medium">{t.dose}</span>
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-right text-xs">
-                    {t.animals ? (
-                      <Link
-                        href={`/dashboard/animales/${t.animals.id}`}
-                        className="text-primary font-mono font-semibold hover:underline"
-                      >
-                        {t.animals.tag}
-                        {t.animals.name ? ` — ${t.animals.name}` : ""}
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground">Animal eliminado</span>
-                    )}
-                    <div className="text-muted-foreground mt-0.5">
-                      Inicio: {new Date(t.started_at).toLocaleDateString()}
+                  {/* Withdrawal progress bars */}
+                  {hasWithdrawal && (
+                    <div className="border-border mt-3 space-y-2 border-t pt-3">
+                      <WithdrawalBar
+                        label="Carne"
+                        emoji="🥩"
+                        date={t.withdrawal_until_meat}
+                        startedAt={t.started_at}
+                      />
+                      <WithdrawalBar
+                        label="Leche"
+                        emoji="🥛"
+                        date={t.withdrawal_until_milk}
+                        startedAt={t.started_at}
+                      />
                     </div>
-                    {t.dose && <div className="text-muted-foreground">Dosis: {t.dose}</div>}
-                  </div>
+                  )}
+
+                  {t.notes && (
+                    <p className="text-muted-foreground mt-2 border-t border-border/40 pt-2 text-xs italic">
+                      {t.notes}
+                    </p>
+                  )}
                 </div>
-
-                {(t.withdrawal_until_meat || t.withdrawal_until_milk) && (
-                  <div className="border-border mt-3 flex flex-wrap gap-2 border-t pt-3">
-                    <WithdrawalChip label="🥩 Carne" date={t.withdrawal_until_meat} />
-                    <WithdrawalChip label="🥛 Leche" date={t.withdrawal_until_milk} />
-                    {t.withdrawal_until_meat &&
-                      daysLeft(t.withdrawal_until_meat) !== null &&
-                      daysLeft(t.withdrawal_until_meat)! < 0 && (
-                        <span className="text-muted-foreground text-xs">
-                          ✓ Retiro carne cumplido
-                        </span>
-                      )}
-                    {t.withdrawal_until_milk &&
-                      daysLeft(t.withdrawal_until_milk) !== null &&
-                      daysLeft(t.withdrawal_until_milk)! < 0 && (
-                        <span className="text-muted-foreground text-xs">
-                          ✓ Retiro leche cumplido
-                        </span>
-                      )}
-                  </div>
-                )}
-
-                {t.notes && <p className="text-muted-foreground mt-2 text-xs">{t.notes}</p>}
               </div>
             );
           })}

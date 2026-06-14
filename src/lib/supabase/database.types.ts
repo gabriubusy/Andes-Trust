@@ -150,7 +150,6 @@ export type Database = {
           acquired_at: string | null
           birth_date: string | null
           birth_weight_kg: number | null
-          breed_id: string | null
           color: string | null
           created_at: string
           current_weight_kg: number | null
@@ -173,7 +172,6 @@ export type Database = {
           acquired_at?: string | null
           birth_date?: string | null
           birth_weight_kg?: number | null
-          breed_id?: string | null
           color?: string | null
           created_at?: string
           current_weight_kg?: number | null
@@ -196,7 +194,6 @@ export type Database = {
           acquired_at?: string | null
           birth_date?: string | null
           birth_weight_kg?: number | null
-          breed_id?: string | null
           color?: string | null
           created_at?: string
           current_weight_kg?: number | null
@@ -216,13 +213,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "animals_breed_id_fkey"
-            columns: ["breed_id"]
-            isOneToOne: false
-            referencedRelation: "breeds"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "animals_farm_id_fkey"
             columns: ["farm_id"]

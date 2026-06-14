@@ -307,6 +307,19 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   });
 
   useEffect(() => {
+    if (editing && animalQuery.data && Object.keys(editValues).length === 0) {
+      const a = animalQuery.data;
+      setEditValues({
+        name: a.name || "",
+        color: a.color || "",
+        birth_date: a.birth_date ? a.birth_date.split("T")[0] : "",
+        purpose: a.purpose ?? undefined,
+        status: a.status,
+      });
+    }
+  }, [animalQuery.data, editing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!supabase || !animalQuery.data?.photo_url) {
@@ -567,10 +580,10 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     type="button"
                     onClick={() => {
                       setEditValues({
-                        name: animal.name ?? undefined,
-                        color: animal.color ?? undefined,
-                        birth_date: animal.birth_date ?? undefined,
-                        purpose: animal.purpose ?? undefined,
+                        name: animal.name || "",
+                        color: animal.color || "",
+                        birth_date: animal.birth_date || "",
+                        purpose: animal.purpose || undefined,
                         status: animal.status,
                       });
                       setEditing(true);
@@ -661,22 +674,30 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     { label: "Nombre", key: "name" as const, type: "text" },
                     { label: "Color", key: "color" as const, type: "text" },
                     { label: "Fecha de nacimiento", key: "birth_date" as const, type: "date" },
-                  ].map(({ label, key, type }) => (
-                    <div key={key}>
-                      <label className="text-foreground/60 mb-1 block text-xs font-medium">
-                        {label}
-                      </label>
-                      <input
-                        type={type}
-                        value={(editValues[key] as string) ?? ""}
-                        max={type === "date" ? new Date().toISOString().slice(0, 10) : undefined}
-                        onChange={(e) =>
-                          setEditValues((p) => ({ ...p, [key]: e.target.value }) as Partial<Animal>)
-                        }
-                        className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
-                      />
-                    </div>
-                  ))}
+                  ].map(({ label, key, type }) => {
+                    let value = editValues[key] as string | undefined;
+                    if (type === "date" && value) {
+                      value = value.split("T")[0];
+                    }
+                    return (
+                      <div key={key}>
+                        <label className="text-foreground/60 mb-1 block text-xs font-medium">
+                          {label}
+                        </label>
+                        <input
+                          type={type}
+                          value={value ?? ""}
+                          max={type === "date" ? new Date().toISOString().slice(0, 10) : undefined}
+                          onChange={(e) =>
+                            setEditValues(
+                              (p) => ({ ...p, [key]: e.target.value }) as Partial<Animal>
+                            )
+                          }
+                          className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+                        />
+                      </div>
+                    );
+                  })}
                   <div>
                     <label className="text-foreground/60 mb-1 block text-xs font-medium">
                       Propósito

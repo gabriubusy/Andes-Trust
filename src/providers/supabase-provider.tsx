@@ -36,6 +36,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     let cancelled = false;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function fetchToken(): Promise<TokenState> {
       if (inflight.current) return inflight.current;
@@ -61,7 +62,19 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    void fetchToken().then((s) => {
+    function scheduleRefresh(expiresAt: number) {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      // Renovar 2 minutos antes de que expire
+      const msUntilRefresh = expiresAt - Date.now() - 2 * 60 * 1000;
+      if (msUntilRefresh <= 0) {
+        void doFetch();
+        return;
+      }
+      refreshTimer = setTimeout(() => void doFetch(), msUntilRefresh);
+    }
+
+    async function doFetch() {
+      const s = await fetchToken();
       if (cancelled) return;
       if ((s as unknown as string) === "not_invited") {
         setNotInvited(true);
@@ -72,12 +85,17 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
           duration: 6000,
         });
         void logout();
-      } else {
+      } else if (s) {
         setState(s);
+        scheduleRefresh(s.expiresAt);
       }
-    });
+    }
+
+    void doFetch();
+
     return () => {
       cancelled = true;
+      if (refreshTimer) clearTimeout(refreshTimer);
     };
   }, [ready, authenticated, getAccessToken, logout]);
 

@@ -16,7 +16,6 @@ import AnimalPhotoUploader from "@/components/AnimalPhotoUploader";
 const schema = z.object({
   tag: z.string().min(1, "El arete es obligatorio").max(50),
   name: z.string().max(120).optional(),
-  breed_id: z.string().optional(),
   sex: z.enum(["male", "female"]),
   purpose: z.enum(["", "dairy", "beef", "dual", "breeding"]).optional(),
   birth_date: z
@@ -52,6 +51,7 @@ export default function AnimalForm() {
   const { supabase, profileId } = useSupabase();
   const farmQuery = useCurrentFarm();
   const [photo, setPhoto] = useState<File | null>(null);
+  const [selectedBreedIds, setSelectedBreedIds] = useState<string[]>([]);
 
   const {
     register,
@@ -100,6 +100,12 @@ export default function AnimalForm() {
       toast.error("Error al cargar: " + (femalesQuery.error as Error).message);
   }, [femalesQuery.error]);
 
+  function toggleBreed(id: string) {
+    setSelectedBreedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
   const create = useMutation({
     mutationFn: async (values: FormValues) => {
       if (!supabase || !profileId || !farmQuery.data) {
@@ -114,7 +120,6 @@ export default function AnimalForm() {
           farm_id: farmId,
           tag: values.tag,
           name: values.name || null,
-          breed_id: values.breed_id || null,
           sex: values.sex,
           purpose: values.purpose || null,
           birth_date: values.birth_date || null,
@@ -129,6 +134,12 @@ export default function AnimalForm() {
         .select("id")
         .single();
       if (animalError || !animal) throw animalError ?? new Error("No se creó el animal.");
+
+      if (selectedBreedIds.length > 0) {
+        await supabase
+          .from("animal_breeds")
+          .insert(selectedBreedIds.map((breed_id) => ({ animal_id: animal.id, breed_id })));
+      }
 
       if (weight !== null) {
         await supabase.from("weighings").insert({
@@ -179,16 +190,37 @@ export default function AnimalForm() {
           <label className={labelClass}>Nombre / alias</label>
           <input className={inputClass} placeholder="Lucero" {...register("name")} />
         </div>
-        <div>
-          <label className={labelClass}>Raza</label>
-          <select className={inputClass} {...register("breed_id")}>
-            <option value="">— sin raza —</option>
-            {breedsQuery.data?.map((b: { id: string; name: string }) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+        <div className="md:col-span-2">
+          <label className={labelClass}>
+            Razas{" "}
+            {selectedBreedIds.length > 0 && (
+              <span className="text-primary font-normal">
+                ({selectedBreedIds.length} seleccionadas)
+              </span>
+            )}
+          </label>
+          <div className="border-border bg-background rounded-lg border p-3">
+            {breedsQuery.isLoading ? (
+              <p className="text-muted-foreground text-xs">Cargando razas…</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
+                {(breedsQuery.data ?? []).map((b: { id: string; name: string }) => (
+                  <label
+                    key={b.id}
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-muted text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      className="accent-primary"
+                      checked={selectedBreedIds.includes(b.id)}
+                      onChange={() => toggleBreed(b.id)}
+                    />
+                    {b.name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div>
           <label className={labelClass}>Sexo *</label>

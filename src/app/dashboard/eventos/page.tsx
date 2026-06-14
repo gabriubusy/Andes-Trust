@@ -20,6 +20,10 @@ import {
   StickyNote,
   ChevronLeft,
   ChevronRight,
+  CalendarDays,
+  TrendingUp,
+  Clock,
+  X,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
@@ -36,65 +40,130 @@ type EventRow = {
 
 const EVENT_META: Record<
   string,
-  { label: string; icon: React.ElementType; color: string; bg: string }
+  { label: string; icon: React.ElementType; color: string; bg: string; ring: string }
 > = {
-  birth: { label: "Nacimiento", icon: Baby, color: "text-green-500", bg: "bg-green-500/10" },
-  weighing: { label: "Pesaje", icon: Scale, color: "text-blue-500", bg: "bg-blue-500/10" },
+  birth: {
+    label: "Nacimiento",
+    icon: Baby,
+    color: "text-green-400",
+    bg: "bg-green-500/10",
+    ring: "ring-green-500/20",
+  },
+  weighing: {
+    label: "Pesaje",
+    icon: Scale,
+    color: "text-blue-400",
+    bg: "bg-blue-500/10",
+    ring: "ring-blue-500/20",
+  },
   vaccination: {
     label: "Vacunación",
     icon: Syringe,
-    color: "text-purple-500",
+    color: "text-purple-400",
     bg: "bg-purple-500/10",
+    ring: "ring-purple-500/20",
   },
-  treatment: { label: "Tratamiento", icon: Pill, color: "text-orange-500", bg: "bg-orange-500/10" },
+  treatment: {
+    label: "Tratamiento",
+    icon: Pill,
+    color: "text-orange-400",
+    bg: "bg-orange-500/10",
+    ring: "ring-orange-500/20",
+  },
   deworming: {
     label: "Desparasitación",
     icon: Bug,
-    color: "text-yellow-500",
+    color: "text-yellow-400",
     bg: "bg-yellow-500/10",
+    ring: "ring-yellow-500/20",
   },
-  insemination: { label: "Inseminación", icon: Dna, color: "text-pink-500", bg: "bg-pink-500/10" },
+  insemination: {
+    label: "Inseminación",
+    icon: Dna,
+    color: "text-pink-400",
+    bg: "bg-pink-500/10",
+    ring: "ring-pink-500/20",
+  },
   pregnancy_check: {
     label: "Revisión gestación",
     icon: Stethoscope,
-    color: "text-teal-500",
+    color: "text-teal-400",
     bg: "bg-teal-500/10",
+    ring: "ring-teal-500/20",
   },
-  calving: { label: "Parto", icon: HeartPulse, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  calving: {
+    label: "Parto",
+    icon: HeartPulse,
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    ring: "ring-emerald-500/20",
+  },
   transfer: {
     label: "Transferencia",
     icon: ArrowRightLeft,
-    color: "text-indigo-500",
+    color: "text-indigo-400",
     bg: "bg-indigo-500/10",
+    ring: "ring-indigo-500/20",
   },
-  sale: { label: "Venta", icon: ShoppingCart, color: "text-sky-500", bg: "bg-sky-500/10" },
-  death: { label: "Muerte", icon: Skull, color: "text-red-500", bg: "bg-red-500/10" },
-  slaughter: { label: "Sacrificio", icon: Skull, color: "text-rose-500", bg: "bg-rose-500/10" },
-  note: { label: "Nota", icon: StickyNote, color: "text-gray-400", bg: "bg-gray-500/10" },
+  sale: {
+    label: "Venta",
+    icon: ShoppingCart,
+    color: "text-sky-400",
+    bg: "bg-sky-500/10",
+    ring: "ring-sky-500/20",
+  },
+  death: {
+    label: "Muerte",
+    icon: Skull,
+    color: "text-red-400",
+    bg: "bg-red-500/10",
+    ring: "ring-red-500/20",
+  },
+  slaughter: {
+    label: "Sacrificio",
+    icon: Skull,
+    color: "text-rose-400",
+    bg: "bg-rose-500/10",
+    ring: "ring-rose-500/20",
+  },
+  note: {
+    label: "Nota",
+    icon: StickyNote,
+    color: "text-gray-400",
+    bg: "bg-gray-500/10",
+    ring: "ring-gray-500/20",
+  },
 };
 
 const PAYLOAD_LABELS: Record<string, string> = {
   location_from: "Desde",
   location_to: "Hacia",
-  weight_kg: "Peso (kg)",
-  dose_ml: "Dosis (ml)",
+  weight_kg: "Peso",
+  dose_ml: "Dosis",
   batch_number: "Lote",
   buyer: "Comprador",
   price: "Precio",
+  vaccine_name: "Vacuna",
+  product_name: "Producto",
+  diagnosis: "Diagnóstico",
 };
 
 const ALL_TYPES = Object.keys(EVENT_META);
 const PAGE_SIZE = 30;
 
-function formatPayload(payload: Record<string, unknown>) {
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatPayloadChips(payload: Record<string, unknown>) {
   return Object.entries(payload)
     .filter(([, v]) => v !== null && v !== undefined && v !== "")
-    .map(([k, v]) => `${PAYLOAD_LABELS[k] ?? k}: ${v}`)
-    .join(" · ");
+    .slice(0, 4)
+    .map(([k, v]) => ({ label: PAYLOAD_LABELS[k] ?? k.replace(/_/g, " "), value: String(v) }));
 }
 
 function groupByDay(events: EventRow[]) {
-  const groups: { label: string; events: EventRow[] }[] = [];
+  const groups: { label: string; date: Date; events: EventRow[] }[] = [];
   const map = new Map<string, EventRow[]>();
 
   for (const e of events) {
@@ -104,11 +173,9 @@ function groupByDay(events: EventRow[]) {
     yesterday.setDate(today.getDate() - 1);
 
     let label: string;
-    if (d.toDateString() === today.toDateString()) {
-      label = "Hoy";
-    } else if (d.toDateString() === yesterday.toDateString()) {
-      label = "Ayer";
-    } else {
+    if (d.toDateString() === today.toDateString()) label = "Hoy";
+    else if (d.toDateString() === yesterday.toDateString()) label = "Ayer";
+    else {
       label = d.toLocaleDateString("es-VE", {
         weekday: "long",
         day: "numeric",
@@ -120,11 +187,10 @@ function groupByDay(events: EventRow[]) {
 
     if (!map.has(label)) {
       map.set(label, []);
-      groups.push({ label, events: map.get(label)! });
+      groups.push({ label, date: d, events: map.get(label)! });
     }
     map.get(label)!.push(e);
   }
-
   return groups;
 }
 
@@ -147,8 +213,7 @@ export default function EventosPage() {
         .eq("farm_id", farmId!)
         .order("occurred_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (typeFilter !== "all") q = q.eq("type", typeFilter as any);
+      if (typeFilter !== "all") q = q.eq("type", typeFilter as never);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as EventRow[];
@@ -168,7 +233,6 @@ export default function EventosPage() {
 
   const groups = groupByDay(filtered);
 
-  // Stats
   const total = eventsQuery.data?.length ?? 0;
   const todayCount = (eventsQuery.data ?? []).filter(
     (e) => new Date(e.occurred_at).toDateString() === new Date().toDateString()
@@ -178,65 +242,104 @@ export default function EventosPage() {
     return acc;
   }, {});
   const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+  const topMeta = topType ? EVENT_META[topType[0]] : null;
+  const TopIcon = topMeta?.icon ?? Activity;
 
   return (
     <DashboardShell title="Eventos" subtitle="Historial de la finca">
-      <div className="flex flex-col gap-6">
-        {/* Stats */}
+      <div className="flex flex-col gap-5">
+        {/* ── Stats ── */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="bg-card border-border rounded-2xl border px-5 py-4">
-            <p className="text-foreground/50 text-xs">Esta página</p>
-            <p className="text-foreground mt-1 text-2xl font-semibold">{total}</p>
-            <p className="text-foreground/40 text-xs">eventos</p>
-          </div>
-          <div className="bg-card border-border rounded-2xl border px-5 py-4">
-            <p className="text-foreground/50 text-xs">Hoy</p>
-            <p className="text-foreground mt-1 text-2xl font-semibold">{todayCount}</p>
-            <p className="text-foreground/40 text-xs">registros</p>
-          </div>
-          {topType && (
-            <div className="bg-card border-border col-span-2 rounded-2xl border px-5 py-4 sm:col-span-1">
-              <p className="text-foreground/50 text-xs">Tipo más frecuente</p>
-              <p className="text-foreground mt-1 text-lg font-semibold">
-                {EVENT_META[topType[0]]?.label ?? topType[0]}
-              </p>
-              <p className="text-foreground/40 text-xs">{topType[1]} veces</p>
+          <div className="bg-card border-border rounded-2xl border p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <CalendarDays className="h-5 w-5 text-primary" />
             </div>
+            <div>
+              <p className="text-foreground text-2xl font-bold leading-none">{total}</p>
+              <p className="text-foreground/40 text-xs mt-1">eventos esta página</p>
+            </div>
+          </div>
+
+          <div className="bg-card border-border rounded-2xl border p-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
+              <Clock className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-foreground text-2xl font-bold leading-none">{todayCount}</p>
+              <p className="text-foreground/40 text-xs mt-1">registros hoy</p>
+            </div>
+          </div>
+
+          {topType && topMeta ? (
+            <div className="bg-card border-border col-span-2 sm:col-span-1 rounded-2xl border p-4 flex items-center gap-3">
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${topMeta.bg}`}
+              >
+                <TopIcon className={`h-5 w-5 ${topMeta.color}`} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-foreground/40 text-xs">Tipo más frecuente</p>
+                <p className="text-foreground font-semibold text-sm mt-0.5 truncate">
+                  {topMeta.label}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <TrendingUp className="h-3 w-3 text-foreground/30" />
+                  <span className="text-foreground/40 text-xs">{topType[1]} registros</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-card border-border col-span-2 sm:col-span-1 rounded-2xl border p-4" />
           )}
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="text-foreground/40 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Buscar por animal, tipo, nota…"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              className="border-border bg-background text-foreground focus:border-primary w-full rounded-xl border py-2 pr-4 pl-9 text-sm outline-none"
-            />
+        {/* ── Filtros ── */}
+        <div className="bg-card border-border rounded-2xl border overflow-hidden">
+          {/* Search bar */}
+          <div className="border-border border-b px-4 py-3">
+            <div className="relative">
+              <Search className="text-foreground/30 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Buscar por animal, tipo, nota…"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                className="bg-muted/40 text-foreground focus:bg-muted/70 w-full rounded-xl border-0 py-2 pr-9 pl-9 text-sm outline-none transition-colors placeholder:text-foreground/30"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          {/* Type chips — scrollable */}
+          <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 scrollbar-none">
             <button
               onClick={() => {
                 setTypeFilter("all");
                 setPage(0);
               }}
-              className={`rounded-xl border px-3 py-1.5 text-xs transition-colors ${
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                 typeFilter === "all"
-                  ? "bg-primary border-primary text-primary-foreground"
-                  : "border-border text-foreground/60 hover:border-primary/40"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-muted text-foreground/60 hover:text-foreground"
               }`}
             >
-              Todos
+              Todos {total > 0 && <span className="ml-1 opacity-60">{total}</span>}
             </button>
             {ALL_TYPES.map((t) => {
               const meta = EVENT_META[t];
               const Icon = meta.icon;
+              const count = typeCounts[t] ?? 0;
+              const active = typeFilter === t;
               return (
                 <button
                   key={t}
@@ -244,116 +347,173 @@ export default function EventosPage() {
                     setTypeFilter(t);
                     setPage(0);
                   }}
-                  className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs transition-colors ${
-                    typeFilter === t
-                      ? "bg-primary border-primary text-primary-foreground"
-                      : "border-border text-foreground/60 hover:border-primary/40"
+                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                    active
+                      ? `${meta.bg} ${meta.color} ring-1 ${meta.ring}`
+                      : "bg-muted text-foreground/50 hover:text-foreground"
                   }`}
                 >
                   <Icon className="h-3 w-3" />
                   {meta.label}
+                  {count > 0 && (
+                    <span className={`ml-0.5 text-[10px] ${active ? "opacity-70" : "opacity-40"}`}>
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Timeline */}
+        {/* ── Timeline ── */}
         {eventsQuery.isLoading ? (
-          <div className="text-foreground/50 flex items-center justify-center py-20 text-sm">
-            Cargando eventos…
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-card border-border h-20 animate-pulse rounded-2xl border"
+              />
+            ))}
           </div>
         ) : groups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-20">
-            <Activity className="text-foreground/20 h-10 w-10" />
+          <div className="bg-card border-border flex flex-col items-center justify-center gap-3 rounded-2xl border py-24">
+            <div className="bg-muted flex h-14 w-14 items-center justify-center rounded-2xl">
+              <Activity className="text-foreground/20 h-7 w-7" />
+            </div>
             <p className="text-foreground/50 text-sm">No hay eventos registrados</p>
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="text-primary text-xs hover:underline"
+              >
+                Limpiar búsqueda
+              </button>
+            )}
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="space-y-6">
             {groups.map((group) => (
               <div key={group.label}>
+                {/* Day header */}
                 <div className="mb-3 flex items-center gap-3">
-                  <span className="text-foreground/50 text-xs font-semibold uppercase tracking-wider">
-                    {group.label}
-                  </span>
+                  <div className="bg-muted flex h-7 items-center gap-2 rounded-full px-3">
+                    <CalendarDays className="text-foreground/40 h-3 w-3" />
+                    <span className="text-foreground/60 text-xs font-semibold">{group.label}</span>
+                  </div>
                   <div className="border-border flex-1 border-t" />
-                  <span className="text-foreground/30 text-xs">{group.events.length}</span>
+                  <span className="bg-muted text-foreground/40 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                    {group.events.length} evento{group.events.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {group.events.map((event) => {
-                    const meta = EVENT_META[event.type] ?? {
-                      label: event.type,
-                      icon: Activity,
-                      color: "text-gray-400",
-                      bg: "bg-gray-500/10",
-                    };
-                    const Icon = meta.icon;
-                    const payloadStr = formatPayload(event.payload ?? {});
 
-                    return (
-                      <div
-                        key={event.id}
-                        className="bg-card border-border hover:border-border/80 flex items-start gap-4 rounded-2xl border px-5 py-4 transition-colors"
-                      >
+                {/* Events */}
+                <div className="relative pl-5">
+                  {/* Vertical timeline line */}
+                  <div className="border-border absolute left-0 top-0 bottom-0 w-px border-l border-dashed" />
+
+                  <div className="space-y-2">
+                    {group.events.map((event) => {
+                      const meta = EVENT_META[event.type] ?? {
+                        label: event.type,
+                        icon: Activity,
+                        color: "text-gray-400",
+                        bg: "bg-gray-500/10",
+                        ring: "ring-gray-500/20",
+                      };
+                      const Icon = meta.icon;
+                      const chips = formatPayloadChips(event.payload ?? {});
+
+                      return (
                         <div
-                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${meta.bg}`}
+                          key={event.id}
+                          className="bg-card border-border hover:border-primary/20 group relative flex items-start gap-3 rounded-2xl border px-4 py-3.5 transition-all hover:shadow-sm"
                         >
-                          <Icon className={`h-4 w-4 ${meta.color}`} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-foreground text-sm font-medium">
-                              {meta.label}
-                            </span>
-                            {event.animals && (
-                              <Link
-                                href={`/dashboard/animales/${event.animals.id}`}
-                                className="bg-muted text-foreground/70 hover:text-primary rounded-full px-2 py-0.5 text-xs transition-colors"
-                              >
-                                {event.animals.name
-                                  ? `${event.animals.name} (${event.animals.tag})`
-                                  : event.animals.tag}
-                              </Link>
+                          {/* Timeline dot */}
+                          <div
+                            className={`absolute -left-[22px] top-4 h-2.5 w-2.5 rounded-full border-2 border-background ${meta.bg.replace("/10", "/60")}`}
+                          />
+
+                          {/* Icon */}
+                          <div
+                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${meta.bg} ${meta.ring}`}
+                          >
+                            <Icon className={`h-4 w-4 ${meta.color}`} />
+                          </div>
+
+                          {/* Content */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`text-sm font-semibold ${meta.color}`}>
+                                {meta.label}
+                              </span>
+                              {event.animals && (
+                                <Link
+                                  href={`/dashboard/animales/${event.animals.id}`}
+                                  className="bg-muted hover:bg-muted/80 text-foreground/70 hover:text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors"
+                                >
+                                  {event.animals.name
+                                    ? `${event.animals.name} · ${event.animals.tag}`
+                                    : event.animals.tag}
+                                </Link>
+                              )}
+                            </div>
+
+                            {event.notes && (
+                              <p className="text-foreground/60 mt-1.5 text-xs leading-relaxed">
+                                {event.notes}
+                              </p>
+                            )}
+
+                            {chips.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {chips.map((c) => (
+                                  <span
+                                    key={c.label}
+                                    className="bg-muted/60 text-foreground/50 rounded-lg px-2 py-0.5 text-[11px]"
+                                  >
+                                    <span className="text-foreground/30">{c.label}:</span>{" "}
+                                    <span className="font-medium text-foreground/60">
+                                      {c.value}
+                                    </span>
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </div>
-                          {event.notes && (
-                            <p className="text-foreground/60 mt-1 text-xs">{event.notes}</p>
-                          )}
-                          {payloadStr && (
-                            <p className="text-foreground/40 mt-0.5 text-xs">{payloadStr}</p>
-                          )}
+
+                          {/* Time */}
+                          <time className="text-foreground/30 shrink-0 pt-0.5 text-[11px] font-medium">
+                            {fmtTime(event.occurred_at)}
+                          </time>
                         </div>
-                        <time className="text-foreground/40 shrink-0 pt-0.5 text-xs">
-                          {new Date(event.occurred_at).toLocaleTimeString("es-VE", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </time>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Pagination */}
+        {/* ── Pagination ── */}
         {(eventsQuery.data?.length ?? 0) > 0 && (
           <div className="flex items-center justify-between">
-            <span className="text-foreground/50 text-sm">Página {page + 1}</span>
+            <span className="text-foreground/40 text-sm">
+              Página <span className="text-foreground font-medium">{page + 1}</span>
+            </span>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors disabled:opacity-40"
+                className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
               >
                 <ChevronLeft className="h-4 w-4" /> Anterior
               </button>
               <button
                 onClick={() => setPage((p) => p + 1)}
                 disabled={(eventsQuery.data?.length ?? 0) < PAGE_SIZE}
-                className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors disabled:opacity-40"
+                className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
               >
                 Siguiente <ChevronRight className="h-4 w-4" />
               </button>

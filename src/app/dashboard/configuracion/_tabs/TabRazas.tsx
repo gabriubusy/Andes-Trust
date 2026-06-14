@@ -313,11 +313,17 @@ export function TabRazas() {
 
                     {/* Species chip */}
                     <td className="px-5 py-3.5">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${SPECIES_STYLES[b.species] ?? "bg-muted text-foreground/50 border-border"}`}
-                      >
-                        {SPECIES_LABELS[b.species] ?? b.species}
-                      </span>
+                      {b.species ? (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${SPECIES_STYLES[b.species] ?? "bg-muted text-foreground/50 border-border"}`}
+                        >
+                          {SPECIES_LABELS[b.species] ?? b.species}
+                        </span>
+                      ) : (
+                        <span className="bg-amber-500/10 text-amber-400 border-amber-500/20 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium">
+                          Bovina
+                        </span>
+                      )}
                     </td>
 
                     {/* Purpose chip */}
@@ -329,7 +335,7 @@ export function TabRazas() {
                           {PURPOSE_LABELS[b.purpose] ?? b.purpose}
                         </span>
                       ) : (
-                        <span className="text-foreground/30 text-xs italic">—</span>
+                        <span className="text-foreground/30 text-xs">Sin especificar</span>
                       )}
                     </td>
 

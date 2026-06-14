@@ -266,7 +266,6 @@ export default function VaccinationForm({
             type="date"
             className={inputClass}
             max={todayStr}
-            min={birthDateStr ? birthDateStr.slice(0, 10) : undefined}
             {...register("applied_at")}
           />
           {errors.applied_at && (

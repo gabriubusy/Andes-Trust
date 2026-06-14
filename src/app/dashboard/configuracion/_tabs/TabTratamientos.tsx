@@ -2,11 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Loader2, FlaskConical } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, FlaskConical, Beef, Droplets } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { inputClass, labelClass, type Treatment } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
 import { toast } from "sonner";
+
+const KIND_STYLES: Record<string, string> = {
+  antibiótico: "bg-red-500/10 text-red-400 border-red-500/20",
+  antiparasitario: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  antiinflamatorio: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  vitamina: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  hormona: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  otro: "bg-muted text-foreground/50 border-border",
+};
 
 function TreatmentModal({
   item,
@@ -220,14 +230,20 @@ export function TabTratamientos() {
   return (
     <>
       <div className="bg-card border-border overflow-hidden rounded-2xl border">
+        {/* Header */}
         <div className="border-border flex items-center justify-between border-b px-5 py-4">
-          <div>
-            <h2 className="text-foreground text-base font-bold">Tratamientos disponibles</h2>
-            <p className="text-foreground/60 text-xs">
-              {query.isLoading
-                ? "Cargando…"
-                : `${items.length} tratamiento${items.length === 1 ? "" : "s"}`}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-500/10 flex h-9 w-9 items-center justify-center rounded-xl">
+              <FlaskConical className="h-4 w-4 text-amber-500" />
+            </div>
+            <div>
+              <h2 className="text-foreground text-sm font-bold">Tratamientos disponibles</h2>
+              <p className="text-foreground/40 text-xs">
+                {query.isLoading
+                  ? "Cargando…"
+                  : `${items.length} tratamiento${items.length === 1 ? "" : "s"} en el catálogo`}
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -238,70 +254,128 @@ export function TabTratamientos() {
           </button>
         </div>
 
+        {/* Skeleton loading */}
+        {query.isLoading && (
+          <div className="divide-border divide-y">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-36" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-5 w-12 rounded-full" />
+                <Skeleton className="h-3.5 w-14" />
+                <Skeleton className="h-3.5 w-14" />
+                <Skeleton className="h-7 w-7 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
         {!query.isLoading && items.length === 0 && (
-          <div className="px-5 py-12 text-center">
-            <FlaskConical className="text-foreground/30 mx-auto h-8 w-8" />
-            <p className="text-foreground/70 mt-3 text-sm">No hay tratamientos en el catálogo.</p>
+          <div className="flex flex-col items-center gap-3 px-5 py-14">
+            <div className="bg-amber-500/10 flex h-14 w-14 items-center justify-center rounded-2xl">
+              <FlaskConical className="h-7 w-7 text-amber-500/60" />
+            </div>
+            <div className="text-center">
+              <p className="text-foreground text-sm font-medium">Sin tratamientos registrados</p>
+              <p className="text-foreground/40 mt-0.5 text-xs">
+                Agrega medicamentos y antiparasitarios para registrar tratamientos con un clic.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => setModal({})}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-1 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium"
             >
               <Plus className="h-4 w-4" /> Agregar primero
             </button>
           </div>
         )}
 
+        {/* Table */}
         {items.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-foreground/60 text-xs uppercase">
+              <thead className="bg-muted/40 text-foreground/40 text-[11px] uppercase tracking-wide">
                 <tr>
-                  <th className="px-5 py-3 text-left font-medium">Nombre</th>
-                  <th className="px-5 py-3 text-left font-medium">Tipo</th>
-                  <th className="px-5 py-3 text-left font-medium">Vía</th>
-                  <th className="px-5 py-3 text-left font-medium">Retiro carne</th>
-                  <th className="px-5 py-3 text-left font-medium">Retiro leche</th>
-                  <th className="px-5 py-3" />
+                  <th className="px-5 py-2.5 text-left font-semibold">Nombre</th>
+                  <th className="px-5 py-2.5 text-left font-semibold">Tipo</th>
+                  <th className="px-5 py-2.5 text-left font-semibold">Vía</th>
+                  <th className="px-5 py-2.5 text-left font-semibold">
+                    <span className="inline-flex items-center gap-1">
+                      <Beef className="h-3 w-3" /> Retiro carne
+                    </span>
+                  </th>
+                  <th className="px-5 py-2.5 text-left font-semibold">
+                    <span className="inline-flex items-center gap-1">
+                      <Droplets className="h-3 w-3" /> Retiro leche
+                    </span>
+                  </th>
+                  <th className="px-5 py-2.5" />
                 </tr>
               </thead>
               <tbody>
                 {items.map((t) => (
                   <tr
                     key={t.id}
-                    className="border-border hover:bg-muted/40 border-t transition-colors"
+                    className="border-border hover:bg-muted/30 border-t transition-colors"
                   >
-                    <td className="text-foreground px-5 py-3 font-medium">
-                      {t.name}
+                    <td className="px-5 py-3">
+                      <p className="text-foreground font-medium leading-tight">{t.name}</p>
                       {t.active_ingredient && (
-                        <div className="text-foreground/50 text-xs font-normal">
-                          {t.active_ingredient}
-                        </div>
+                        <p className="text-foreground/40 text-xs">{t.active_ingredient}</p>
                       )}
                     </td>
-                    <td className="text-foreground/70 px-5 py-3 capitalize">{t.kind ?? "—"}</td>
-                    <td className="text-foreground/70 px-5 py-3">{t.route ?? "—"}</td>
-                    <td className="text-foreground/70 px-5 py-3 tabular-nums">
-                      {t.withdrawal_meat_days ? `${t.withdrawal_meat_days} días` : "—"}
+                    <td className="px-5 py-3">
+                      {t.kind ? (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${KIND_STYLES[t.kind] ?? "bg-muted text-foreground/60 border-border"}`}
+                        >
+                          {t.kind}
+                        </span>
+                      ) : (
+                        <span className="text-foreground/30 text-xs">—</span>
+                      )}
                     </td>
-                    <td className="text-foreground/70 px-5 py-3 tabular-nums">
-                      {t.withdrawal_milk_days ? `${t.withdrawal_milk_days} días` : "—"}
+                    <td className="text-foreground/60 px-5 py-3 text-xs">{t.route ?? "—"}</td>
+                    <td className="px-5 py-3 tabular-nums">
+                      {t.withdrawal_meat_days ? (
+                        <span className="text-foreground/60 text-xs">
+                          {t.withdrawal_meat_days} días
+                        </span>
+                      ) : (
+                        <span className="text-foreground/30 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 tabular-nums">
+                      {t.withdrawal_milk_days ? (
+                        <span className="text-foreground/60 text-xs">
+                          {t.withdrawal_milk_days} días
+                        </span>
+                      ) : (
+                        <span className="text-foreground/30 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
                           onClick={() => setModal(t)}
-                          className="text-foreground/60 hover:text-foreground hover:bg-muted rounded-lg p-1.5"
+                          className="text-foreground/40 hover:text-foreground hover:bg-muted rounded-lg p-1.5 transition-colors"
+                          title="Editar"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeleteId(t.id)}
-                          className="text-foreground/60 hover:text-accent hover:bg-accent/10 rounded-lg p-1.5"
+                          className="text-foreground/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                          title="Eliminar"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>

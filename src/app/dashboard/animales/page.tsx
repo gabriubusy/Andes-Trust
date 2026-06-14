@@ -34,8 +34,15 @@ type AnimalRow = {
   current_weight_kg: number | null;
   birth_date: string | null;
   photo_url: string | null;
-  breeds: { name: string } | null;
+  animal_breeds: { breeds: { name: string } | null }[] | null;
 };
+
+function breedNames(a: { animal_breeds: { breeds: { name: string } | null }[] | null }): string {
+  return (a.animal_breeds ?? [])
+    .map((ab) => ab.breeds?.name)
+    .filter(Boolean)
+    .join(", ");
+}
 
 type SortKey = "tag" | "name" | "breeds" | "current_weight_kg";
 type SortDir = "asc" | "desc";
@@ -108,7 +115,7 @@ export default function AnimalesListPage() {
       const { data, error } = await supabase
         .from("animals")
         .select(
-          "id, tag, name, sex, status, current_weight_kg, birth_date, photo_url, breeds(name)"
+          "id, tag, name, sex, status, current_weight_kg, birth_date, photo_url, animal_breeds(breeds(name))"
         )
         .eq("farm_id", farmId)
         .order("created_at", { ascending: false });
@@ -157,7 +164,7 @@ export default function AnimalesListPage() {
         (a) =>
           a.tag.toLowerCase().includes(q) ||
           (a.name ?? "").toLowerCase().includes(q) ||
-          (a.breeds?.name ?? "").toLowerCase().includes(q)
+          breedNames(a).toLowerCase().includes(q)
       );
     }
     if (statusFilter !== "all") list = list.filter((a) => a.status === statusFilter);
@@ -170,8 +177,8 @@ export default function AnimalesListPage() {
         va = a.current_weight_kg ?? -1;
         vb = b.current_weight_kg ?? -1;
       } else if (sortKey === "breeds") {
-        va = a.breeds?.name ?? "";
-        vb = b.breeds?.name ?? "";
+        va = breedNames(a);
+        vb = breedNames(b);
       } else {
         va = (a[sortKey] ?? "") as string;
         vb = (b[sortKey] ?? "") as string;
@@ -451,9 +458,9 @@ export default function AnimalesListPage() {
 
                     {/* Breed */}
                     <td className="px-4 py-3.5">
-                      {a.breeds?.name ? (
+                      {breedNames(a) ? (
                         <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-xs">
-                          {a.breeds.name}
+                          {breedNames(a)}
                         </span>
                       ) : (
                         <span className="text-foreground/30 text-xs italic">—</span>

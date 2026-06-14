@@ -143,7 +143,7 @@ export default function ReproduccionPage() {
         .select(
           "id, animal_id, sire_id, sire_external, method, performed_at, notes, animals(tag, name), sire:animals!inseminations_sire_id_fkey(tag, name), pregnancies(id, insemination_id, animal_id, confirmed_at, expected_due_at, result, notes)"
         )
-        .eq("animals.farm_id", farmId!)
+        .eq("farm_id", farmId!)
         .order("performed_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Insemination[];
@@ -160,6 +160,7 @@ export default function ReproduccionPage() {
         .select(
           "id, insemination_id, animal_id, confirmed_at, expected_due_at, result, notes, animals(tag, name)"
         )
+        .eq("farm_id", farmId!)
         .or("result.is.null,result.eq.pregnant")
         .order("expected_due_at", { ascending: true });
       if (error) throw error;
@@ -591,6 +592,7 @@ function InseminationModal({
       const { data: insem, error } = await (supabase as any)
         .from("inseminations")
         .insert({
+          farm_id: farmId,
           animal_id: animalId,
           method,
           sire_id: sireId || null,
@@ -604,6 +606,7 @@ function InseminationModal({
 
       if (createPreg) {
         const { error: pe } = await (supabase as any).from("pregnancies").insert({
+          farm_id: farmId,
           animal_id: animalId,
           insemination_id: insem.id,
           expected_due_at: estimateDue(performedAt),
@@ -762,6 +765,7 @@ function InseminationModal({
 function PregnancyModal({
   females,
   inseminations,
+  farmId,
   supabase,
   preselectedInsemId,
   onClose,
@@ -786,6 +790,7 @@ function PregnancyModal({
   const mutation = useMutation({
     mutationFn: async () => {
       const { error } = await (supabase as any).from("pregnancies").insert({
+        farm_id: farmId,
         animal_id: animalId,
         insemination_id: insemId || null,
         confirmed_at: confirmedAt,
