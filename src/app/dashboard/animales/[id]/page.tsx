@@ -47,7 +47,7 @@ type AnimalUpdate = {
 };
 
 type Animal = AnimalUpdate & {
-  breeds: { name: string } | null;
+  animal_breeds: { breeds: { name: string } | null }[] | null;
 };
 
 type Tab = "info" | "pesajes" | "vacunas" | "tratamientos" | "leche" | "movimientos" | "qr";
@@ -76,7 +76,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       const { data, error } = await supabase
         .from("animals")
         .select(
-          "id, tag, name, sex, status, current_weight_kg, birth_date, birth_weight_kg, color, photo_url, purpose, breeds(name)"
+          "id, tag, name, sex, status, current_weight_kg, birth_date, birth_weight_kg, color, photo_url, purpose, animal_breeds(breeds(name))"
         )
         .eq("id", id)
         .maybeSingle();
@@ -459,9 +459,15 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 <span className="bg-muted text-foreground/70 rounded-full px-2.5 py-0.5 text-[11px] font-medium">
                   {animal.sex === "female" ? "♀ Hembra" : "♂ Macho"}
                 </span>
-                {animal.breeds?.name && (
+                {(animal.animal_breeds ?? [])
+                  .map((ab) => ab.breeds?.name)
+                  .filter(Boolean)
+                  .join(", ") && (
                   <span className="bg-muted text-foreground/70 rounded-full px-2.5 py-0.5 text-[11px] font-medium">
-                    {animal.breeds.name}
+                    {(animal.animal_breeds ?? [])
+                      .map((ab) => ab.breeds?.name)
+                      .filter(Boolean)
+                      .join(", ")}
                   </span>
                 )}
                 {animal.purpose && (
@@ -527,7 +533,15 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               <p className="text-foreground font-mono text-sm font-bold">{animal.tag}</p>
               <p className="text-foreground/50 truncate text-xs">
                 {animal.sex === "female" ? "Hembra" : "Macho"}
-                {animal.breeds?.name ? ` · ${animal.breeds.name}` : ""}
+                {(animal.animal_breeds ?? [])
+                  .map((ab) => ab.breeds?.name)
+                  .filter(Boolean)
+                  .join(", ")
+                  ? ` · ${(animal.animal_breeds ?? [])
+                      .map((ab) => ab.breeds?.name)
+                      .filter(Boolean)
+                      .join(", ")}`
+                  : ""}
                 {animal.current_weight_kg ? ` · ${animal.current_weight_kg} kg` : ""}
               </p>
             </div>
@@ -632,7 +646,15 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                   <Field label="Arete" value={animal.tag} />
                   <Field label="Nombre" value={animal.name ?? "—"} />
                   <Field label="Sexo" value={animal.sex === "female" ? "Hembra" : "Macho"} />
-                  <Field label="Raza" value={animal.breeds?.name ?? "—"} />
+                  <Field
+                    label="Raza"
+                    value={
+                      (animal.animal_breeds ?? [])
+                        .map((ab) => ab.breeds?.name)
+                        .filter(Boolean)
+                        .join(", ") || "—"
+                    }
+                  />
                   <Field label="Propósito" value={animal.purpose ?? "—"} />
                   <Field
                     label="Fecha de nacimiento"

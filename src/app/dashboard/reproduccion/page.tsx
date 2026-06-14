@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   HeartPulse,
   Plus,
@@ -793,14 +794,18 @@ function PregnancyModal({
         farm_id: farmId,
         animal_id: animalId,
         insemination_id: insemId || null,
-        confirmed_at: confirmedAt,
-        expected_due_at: expectedDue,
+        confirmed_at: confirmedAt || null,
+        expected_due_at: expectedDue || null,
         result: "pregnant",
         notes: notes || null,
       });
       if (error) throw error;
     },
-    onSuccess: onDone,
+    onSuccess: () => {
+      toast.success("Gestación registrada");
+      onDone();
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   return (

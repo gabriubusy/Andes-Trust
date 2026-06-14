@@ -16,6 +16,7 @@ import {
   Syringe,
   FileCheck,
   Receipt,
+  ShoppingCart,
   BarChart3,
   Users,
   Settings,
@@ -86,8 +87,15 @@ const navItems: {
   {
     icon: Receipt,
     label: "Ventas",
-    href: "/dashboard/ventas",
+    href: "/dashboard/ventas?tab=sales",
     matches: ["/dashboard/ventas"],
+    roles: ["owner", "admin"],
+  },
+  {
+    icon: ShoppingCart,
+    label: "Compras",
+    href: "/dashboard/ventas?tab=purchases",
+    matches: ["__purchases__"],
     roles: ["owner", "admin"],
   },
   {
@@ -155,6 +163,9 @@ const ALERT_LABELS: Record<string, string> = {
 export default function DashboardShell({ title, subtitle, children, action }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams =
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const tabParam = searchParams?.get("tab") ?? null;
   const { ready, authenticated, user, logout } = usePrivy();
   const farmQuery = useCurrentFarm();
   const { supabase } = useSupabase();
@@ -253,6 +264,12 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   );
 
   const isActive = (item: (typeof navItems)[number]) => {
+    // Special case: Compras link
+    if (item.matches?.includes("__purchases__"))
+      return pathname === "/dashboard/ventas" && tabParam === "purchases";
+    // Ventas link: active only when NOT in purchases tab
+    if (item.href.startsWith("/dashboard/ventas?tab=sales"))
+      return pathname === "/dashboard/ventas" && tabParam !== "purchases";
     if (item.matches?.some((m) => pathname.startsWith(m))) return true;
     return pathname === item.href;
   };

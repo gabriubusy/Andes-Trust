@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronRight,
@@ -425,10 +426,24 @@ export default function VentasPage() {
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
   const qc = useQueryClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const [mode, setMode] = useState<Mode>("sales");
+  const [mode, setMode] = useState<Mode>(() =>
+    searchParams.get("tab") === "purchases" ? "purchases" : "sales"
+  );
   const [filter, setFilter] = useState<SaleFilter>("all");
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    setMode(tab === "purchases" ? "purchases" : "sales");
+  }, [searchParams]);
+
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    router.replace(`/dashboard/ventas?tab=${m}`, { scroll: false });
+  };
 
   // ── Sales query ──
   const salesQuery = useQuery<SaleRow[]>({
@@ -544,33 +559,38 @@ export default function VentasPage() {
       }
     >
       {/* ── Mode toggle ── */}
-      <div className="flex gap-1 bg-muted rounded-xl p-1 w-fit">
+      <div className="flex gap-0 border border-border rounded-xl overflow-hidden w-fit">
         <button
-          onClick={() => setMode("sales")}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          onClick={() => switchMode("sales")}
+          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all ${
             mode === "sales"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-foreground/60 hover:text-foreground"
+              ? "bg-primary text-white shadow-sm"
+              : "bg-card text-foreground/50 hover:text-foreground hover:bg-muted"
           }`}
         >
           <TrendingUp className="h-4 w-4" /> Ventas
           {allSales.length > 0 && (
-            <span className="bg-primary/15 text-primary rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${mode === "sales" ? "bg-white/20 text-white" : "bg-primary/15 text-primary"}`}
+            >
               {allSales.length}
             </span>
           )}
         </button>
+        <div className="w-px bg-border" />
         <button
-          onClick={() => setMode("purchases")}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          onClick={() => switchMode("purchases")}
+          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all ${
             mode === "purchases"
-              ? "bg-card text-foreground shadow-sm"
-              : "text-foreground/60 hover:text-foreground"
+              ? "bg-amber-500 text-white shadow-sm"
+              : "bg-card text-foreground/50 hover:text-foreground hover:bg-muted"
           }`}
         >
           <ShoppingCart className="h-4 w-4" /> Compras
           {allPurchases.length > 0 && (
-            <span className="bg-amber-500/15 text-amber-500 rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${mode === "purchases" ? "bg-white/20 text-white" : "bg-amber-500/15 text-amber-500"}`}
+            >
               {allPurchases.length}
             </span>
           )}
