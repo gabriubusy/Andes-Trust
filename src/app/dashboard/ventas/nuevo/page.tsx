@@ -232,7 +232,7 @@ export default function NuevaVentaPage() {
           invoice_number: invoiceNumber || null,
           notes: notes || null,
           created_by: profileId,
-          status: "confirmed",
+          status: "draft",
         })
         .select("id")
         .single();

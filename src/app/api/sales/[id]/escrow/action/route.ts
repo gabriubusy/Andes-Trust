@@ -198,6 +198,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .from("sales")
         .update({
           escrow_status: "created",
+          status: "confirmed",
           escrow_token: tokenAddress,
           escrow_amount: body.amount,
           escrow_buyer: body.buyer,

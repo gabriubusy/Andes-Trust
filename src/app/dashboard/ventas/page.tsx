@@ -70,7 +70,7 @@ type RawPurchaseRow = Omit<PurchaseRow, "_item_count"> & { purchase_items: { id:
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
-  draft: "Borrador",
+  draft: "Pendiente",
   confirmed: "Confirmada",
   paid: "Pagada",
   cancelled: "Cancelada",
