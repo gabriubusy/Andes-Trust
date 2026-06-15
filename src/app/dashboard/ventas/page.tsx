@@ -97,6 +97,13 @@ type PurchaseItem = {
 
 type AnimalOption = { id: string; tag: string; name: string | null };
 
+type PurchaseCondition = {
+  id: string;
+  description: string;
+  reduction_type: "fixed" | "percent";
+  reduction_value: number;
+};
+
 function PurchaseModal({
   farmId,
   supabase,
@@ -121,6 +128,8 @@ function PurchaseModal({
   const [cryptoPaying, setCryptoPaying] = useState(false);
   const [cryptoTx, setCryptoTx] = useState<string | null>(null);
   const [savedPurchaseId, setSavedPurchaseId] = useState<string | null>(null);
+  const [conditions, setConditions] = useState<PurchaseCondition[]>([]);
+  const [triggeredConditions, setTriggeredConditions] = useState<Set<string>>(new Set());
   const [items, setItems] = useState<PurchaseItem[]>([
     { animal_id: null, description: "", quantity: 1, price_per_unit: "" },
   ]);
@@ -159,6 +168,36 @@ function PurchaseModal({
   const updateItem = <K extends keyof PurchaseItem>(i: number, key: K, val: PurchaseItem[K]) =>
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, [key]: val } : it)));
 
+  const addCondition = () =>
+    setConditions((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), description: "", reduction_type: "fixed", reduction_value: 0 },
+    ]);
+
+  const removeCondition = (id: string) => setConditions((prev) => prev.filter((c) => c.id !== id));
+
+  const updateCondition = <K extends keyof PurchaseCondition>(
+    id: string,
+    key: K,
+    val: PurchaseCondition[K]
+  ) => setConditions((prev) => prev.map((c) => (c.id === id ? { ...c, [key]: val } : c)));
+
+  const toggleTriggered = (id: string) =>
+    setTriggeredConditions((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const conditionDiscount = conditions
+    .filter((c) => triggeredConditions.has(c.id))
+    .reduce((sum, c) => {
+      if (c.reduction_type === "fixed") return sum + c.reduction_value;
+      return sum + (totalAmount * c.reduction_value) / 100;
+    }, 0);
+
+  const finalAmount = Math.max(0, totalAmount - conditionDiscount);
+
   const mutation = useMutation({
     mutationFn: async (): Promise<string | null> => {
       // Insert purchase header
@@ -173,6 +212,7 @@ function PurchaseModal({
           payment_method: paymentMethod || null,
           invoice_number: invoiceNumber.trim() || null,
           notes: notes.trim() || null,
+          conditions: conditions.length > 0 ? conditions : null,
           // auto-paid if all items are linked; else confirmed
           status: allLinked ? "paid" : "confirmed",
         })
@@ -261,7 +301,7 @@ function PurchaseModal({
         body: JSON.stringify({
           purchase_id: savedPurchaseId,
           to_address: cryptoAddress,
-          amount_usdc: totalAmount,
+          amount_usdc: finalAmount,
         }),
       });
       const json = await res.json();
@@ -470,6 +510,80 @@ function PurchaseModal({
             </div>
           )}
 
+          {/* Conditions */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <label className={labelCls + " mb-0"}>Condiciones de pago</label>
+                <p className="text-foreground/40 text-xs mt-0.5">
+                  Si se cumplen, se descuentan del monto al pagar
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addCondition}
+                className="text-amber-500 hover:text-amber-400 text-xs font-medium flex items-center gap-1"
+              >
+                <Plus className="h-3 w-3" /> Agregar
+              </button>
+            </div>
+            {conditions.length > 0 && (
+              <div className="space-y-2">
+                {conditions.map((c) => (
+                  <div
+                    key={c.id}
+                    className="border-border bg-muted/20 rounded-xl border p-3 grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center"
+                  >
+                    <input
+                      className={inputCls}
+                      placeholder="Ej: Animal llega enfermo"
+                      value={c.description}
+                      onChange={(e) => updateCondition(c.id, "description", e.target.value)}
+                    />
+                    <select
+                      className={inputCls + " w-28"}
+                      value={c.reduction_type}
+                      onChange={(e) =>
+                        updateCondition(
+                          c.id,
+                          "reduction_type",
+                          e.target.value as "fixed" | "percent"
+                        )
+                      }
+                    >
+                      <option value="fixed">$ Fijo</option>
+                      <option value="percent">% Porcentaje</option>
+                    </select>
+                    <div className="relative w-24">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30 text-sm">
+                        {c.reduction_type === "percent" ? "%" : "$"}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={c.reduction_type === "percent" ? 100 : undefined}
+                        step="0.01"
+                        className={`${inputCls} pl-7`}
+                        placeholder="0"
+                        value={c.reduction_value || ""}
+                        onChange={(e) =>
+                          updateCondition(c.id, "reduction_value", parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeCondition(c.id)}
+                      className="text-foreground/30 hover:text-red-400 p-1 rounded"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Notes */}
           <div>
             <label className={labelCls}>Notas (opcional)</label>
@@ -531,6 +645,62 @@ function PurchaseModal({
                     </button>
                   </div>
                 </div>
+                {/* Conditions checklist before paying */}
+                {conditions.filter((c) => c.description.trim()).length > 0 && (
+                  <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+                    <p className="text-xs font-medium text-foreground/60">
+                      Marca las condiciones que se cumplieron (se descontarán del pago):
+                    </p>
+                    {conditions
+                      .filter((c) => c.description.trim())
+                      .map((c) => {
+                        const triggered = triggeredConditions.has(c.id);
+                        const discount =
+                          c.reduction_type === "fixed"
+                            ? c.reduction_value
+                            : (totalAmount * c.reduction_value) / 100;
+                        return (
+                          <label
+                            key={c.id}
+                            className="flex items-center gap-3 cursor-pointer group"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={triggered}
+                              onChange={() => toggleTriggered(c.id)}
+                              className="h-4 w-4 rounded accent-amber-500"
+                            />
+                            <span
+                              className={`text-sm flex-1 ${triggered ? "line-through text-foreground/40" : "text-foreground"}`}
+                            >
+                              {c.description}
+                            </span>
+                            <span className="text-xs text-red-400 shrink-0">
+                              −${discount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    {conditionDiscount > 0 && (
+                      <div className="border-t border-border pt-2 flex justify-between text-xs">
+                        <span className="text-foreground/50">Descuento aplicado</span>
+                        <span className="text-red-400 font-medium">
+                          −$
+                          {conditionDiscount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Final amount summary */}
+                <div className="bg-muted/30 rounded-xl px-4 py-3 flex items-center justify-between">
+                  <span className="text-foreground/60 text-sm">Monto a pagar</span>
+                  <span className="text-foreground font-bold text-lg">
+                    ${finalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USDC
+                  </span>
+                </div>
+
                 <div className="flex gap-2 justify-end">
                   <button
                     type="button"
@@ -551,7 +721,7 @@ function PurchaseModal({
                       <Wallet className="h-4 w-4" />
                     )}
                     Pagar ahora · $
-                    {totalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USDC
+                    {finalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USDC
                   </button>
                 </div>
               </>
