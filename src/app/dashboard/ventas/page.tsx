@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronRight,
@@ -17,6 +18,9 @@ import {
   Loader2,
   Save,
   Trash2,
+  QrCode,
+  Wallet,
+  CheckCircle2,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
@@ -104,6 +108,7 @@ function PurchaseModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const { getAccessToken } = usePrivy();
   const today = new Date().toISOString().slice(0, 10);
   const [sellerName, setSellerName] = useState("");
   const [purchasedAt, setPurchasedAt] = useState(today);
@@ -111,6 +116,10 @@ function PurchaseModal({
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [notes, setNotes] = useState("");
+  const [cryptoAddress, setCryptoAddress] = useState("");
+  const [cryptoPaying, setCryptoPaying] = useState(false);
+  const [cryptoTx, setCryptoTx] = useState<string | null>(null);
+  const [savedPurchaseId, setSavedPurchaseId] = useState<string | null>(null);
   const [items, setItems] = useState<PurchaseItem[]>([
     { animal_id: null, description: "", quantity: 1, price_per_unit: "" },
   ]);
@@ -150,7 +159,7 @@ function PurchaseModal({
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, [key]: val } : it)));
 
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<string | null> => {
       // Insert purchase header
       const { data: purchase, error: pErr } = await supabase!
         .from("purchases")
@@ -185,13 +194,85 @@ function PurchaseModal({
         const { error: iErr } = await supabase!.from("purchase_items").insert(itemRows);
         if (iErr) throw iErr;
       }
+      return purchase.id;
     },
-    onSuccess: () => {
+    onSuccess: (purchaseId) => {
       toast.success("Compra registrada");
-      onDone();
+      if (paymentMethod === "crypto" && purchaseId) {
+        setSavedPurchaseId(purchaseId);
+      } else {
+        onDone();
+      }
     },
     onError: (err) => toast.error((err as Error).message),
   });
+
+  async function scanQR() {
+    try {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.capture = "environment";
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const bitmap = await createImageBitmap(file);
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(bitmap, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const jsQR = (await import("jsqr")).default;
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code?.data) {
+          // Support raw address or EIP-681 format: ethereum:0x...
+          const raw = code.data
+            .replace(/^ethereum:/i, "")
+            .split("?")[0]
+            .trim();
+          setCryptoAddress(raw);
+        } else {
+          toast.error("No se encontró un código QR válido");
+        }
+      };
+      input.click();
+    } catch {
+      toast.error("Error al leer el QR");
+    }
+  }
+
+  async function payCrypto() {
+    if (!savedPurchaseId || !cryptoAddress) return;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(cryptoAddress)) {
+      toast.error("Dirección de wallet inválida");
+      return;
+    }
+    setCryptoPaying(true);
+    try {
+      const privyToken = await getAccessToken();
+      const res = await fetch("/api/purchases/pay-crypto", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(privyToken ? { Authorization: `Bearer ${privyToken}` } : {}),
+        },
+        body: JSON.stringify({
+          purchase_id: savedPurchaseId,
+          to_address: cryptoAddress,
+          amount_usdc: totalAmount,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Error en el pago");
+      setCryptoTx(json.tx as string);
+      toast.success("Pago enviado en blockchain");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCryptoPaying(false);
+    }
+  }
 
   const inputCls =
     "border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-foreground/30";
@@ -279,6 +360,31 @@ function PurchaseModal({
             </div>
           </div>
 
+          {/* Crypto address field */}
+          {paymentMethod === "crypto" && (
+            <div>
+              <label className={labelCls}>Dirección wallet del vendedor</label>
+              <div className="flex gap-2">
+                <input
+                  className={inputCls}
+                  value={cryptoAddress}
+                  onChange={(e) => setCryptoAddress(e.target.value)}
+                  placeholder="0x..."
+                  spellCheck={false}
+                />
+                <button
+                  type="button"
+                  onClick={scanQR}
+                  title="Escanear QR"
+                  className="border-border bg-background hover:bg-muted flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm text-amber-500 whitespace-nowrap"
+                >
+                  <QrCode className="h-4 w-4" />
+                  <span className="hidden sm:inline">Leer QR</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Items */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -294,28 +400,12 @@ function PurchaseModal({
             <div className="space-y-2">
               {items.map((item, i) => (
                 <div key={i} className="border-border bg-muted/20 rounded-xl border p-3 space-y-2">
-                  <div className="grid grid-cols-[1fr_auto] gap-2 items-start">
-                    <div>
-                      <label className={labelCls}>Animal (opcional)</label>
-                      <select
-                        className={inputCls}
-                        value={item.animal_id ?? ""}
-                        onChange={(e) => updateItem(i, "animal_id", e.target.value || null)}
-                      >
-                        <option value="">— sin vincular —</option>
-                        {animalsQuery.data?.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.tag}
-                            {a.name ? ` · ${a.name}` : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="flex justify-end">
                     {items.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeItem(i)}
-                        className="mt-5 text-foreground/30 hover:text-red-400 p-1 rounded"
+                        className="text-foreground/30 hover:text-red-400 p-1 rounded"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -392,28 +482,106 @@ function PurchaseModal({
           </div>
         </div>
 
-        <div className="mt-5 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="border-border text-foreground/70 hover:bg-muted rounded-xl border px-4 py-2 text-sm font-medium"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            disabled={!sellerName.trim() || mutation.isPending}
-            onClick={() => mutation.mutate()}
-            className="bg-amber-500 hover:bg-amber-500/90 text-white inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            {mutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+        {/* Crypto payment panel — shown after purchase is saved */}
+        {savedPurchaseId && paymentMethod === "crypto" && (
+          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+            {cryptoTx ? (
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-emerald-400">Pago enviado en blockchain</p>
+                  <p className="text-xs text-foreground/50 break-all mt-0.5">TX: {cryptoTx}</p>
+                  <button
+                    type="button"
+                    onClick={onDone}
+                    className="mt-3 bg-emerald-500 hover:bg-emerald-500/90 text-white rounded-xl px-4 py-2 text-sm font-medium"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
             ) : (
-              <Save className="h-4 w-4" />
+              <>
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-amber-500" />
+                  <span className="text-sm font-medium text-foreground">Pago crypto pendiente</span>
+                </div>
+                <p className="text-xs text-foreground/50">
+                  La compra fue guardada. Confirma la dirección y ejecuta el pago en USDC (Polygon
+                  Amoy).
+                </p>
+                <div>
+                  <label className={labelCls}>Dirección wallet del vendedor</label>
+                  <div className="flex gap-2">
+                    <input
+                      className={inputCls}
+                      value={cryptoAddress}
+                      onChange={(e) => setCryptoAddress(e.target.value)}
+                      placeholder="0x..."
+                      spellCheck={false}
+                    />
+                    <button
+                      type="button"
+                      onClick={scanQR}
+                      title="Escanear QR"
+                      className="border-border bg-background hover:bg-muted flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm text-amber-500"
+                    >
+                      <QrCode className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={onDone}
+                    className="border-border text-foreground/70 hover:bg-muted rounded-xl border px-4 py-2 text-sm font-medium"
+                  >
+                    Pagar después
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!cryptoAddress || cryptoPaying}
+                    onClick={payCrypto}
+                    className="bg-amber-500 hover:bg-amber-500/90 text-white inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
+                  >
+                    {cryptoPaying ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Wallet className="h-4 w-4" />
+                    )}
+                    Pagar ahora · $
+                    {totalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USDC
+                  </button>
+                </div>
+              </>
             )}
-            Guardar compra
-          </button>
-        </div>
+          </div>
+        )}
+
+        {!savedPurchaseId && (
+          <div className="mt-5 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="border-border text-foreground/70 hover:bg-muted rounded-xl border px-4 py-2 text-sm font-medium"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={!sellerName.trim() || mutation.isPending}
+              onClick={() => mutation.mutate()}
+              className="bg-amber-500 hover:bg-amber-500/90 text-white inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {mutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Guardar compra
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

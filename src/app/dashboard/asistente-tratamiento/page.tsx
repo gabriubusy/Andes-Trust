@@ -289,7 +289,7 @@ export default function AsistenteTratamientoPage() {
         {/* ── Resultados ── */}
         <div className="space-y-3">
           {suggest.isIdle && (
-            <div className="bg-card border-border flex flex-col items-center justify-center gap-3 rounded-2xl border py-20 text-center">
+            <div className="hidden lg:flex bg-card border-border flex-col items-center justify-center gap-3 rounded-2xl border py-20 text-center">
               <div className="bg-muted flex h-14 w-14 items-center justify-center rounded-2xl">
                 <Stethoscope className="text-muted-foreground/40 h-7 w-7" />
               </div>

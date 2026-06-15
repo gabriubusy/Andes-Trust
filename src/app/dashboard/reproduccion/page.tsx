@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -521,7 +521,6 @@ function UpdateResultButton({
   supabase: ReturnType<typeof useSupabase>["supabase"];
   onDone: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const mutation = useMutation({
     mutationFn: async (result: string) => {
       const { error } = await (supabase as any)
@@ -530,35 +529,42 @@ function UpdateResultButton({
         .eq("id", pregnancy.id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      setOpen(false);
-      onDone();
-    },
+    onSuccess: () => onDone(),
   });
 
+  const actions: { key: string; label: string; className: string }[] = [
+    {
+      key: "calved",
+      label: "Parida",
+      className:
+        "border border-green-600/40 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40",
+    },
+    {
+      key: "empty",
+      label: "Vacia",
+      className:
+        "border border-amber-500/40 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40",
+    },
+    {
+      key: "aborted",
+      label: "Aborto",
+      className:
+        "border border-red-500/40 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40",
+    },
+  ];
+
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="border-border text-foreground/60 hover:bg-muted inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs"
-      >
-        Actualizar <ChevronDown className="h-3 w-3" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-8 z-20 bg-card border-border shadow-lg rounded-xl border w-44 overflow-hidden">
-          {Object.entries(RESULT_META).map(([key, meta]) => (
-            <button
-              key={key}
-              onClick={() => mutation.mutate(key)}
-              disabled={mutation.isPending}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center gap-2"
-            >
-              {meta.icon}
-              <span>{meta.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="flex items-center gap-1">
+      {actions.map((a) => (
+        <button
+          key={a.key}
+          onClick={() => mutation.mutate(a.key)}
+          disabled={mutation.isPending}
+          className={`rounded-md px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${a.className}`}
+        >
+          {a.label}
+        </button>
+      ))}
     </div>
   );
 }
