@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -100,15 +100,16 @@ type AnimalOption = { id: string; tag: string; name: string | null };
 function PurchaseModal({
   farmId,
   supabase,
+  getAccessToken,
   onClose,
   onDone,
 }: {
   farmId: string;
   supabase: ReturnType<typeof useSupabase>["supabase"];
+  getAccessToken: () => Promise<string | null>;
   onClose: () => void;
   onDone: () => void;
 }) {
-  const { getAccessToken } = usePrivy();
   const today = new Date().toISOString().slice(0, 10);
   const [sellerName, setSellerName] = useState("");
   const [purchasedAt, setPurchasedAt] = useState(today);
@@ -589,8 +590,9 @@ function PurchaseModal({
 
 // ─── main component ───────────────────────────────────────────────────────────
 
-export default function VentasPage() {
+function VentasPageInner() {
   const { supabase } = useSupabase();
+  const { getAccessToken } = usePrivy();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
   const qc = useQueryClient();
@@ -727,37 +729,36 @@ export default function VentasPage() {
       }
     >
       {/* ── Mode toggle ── */}
-      <div className="flex gap-0 border border-border rounded-xl overflow-hidden w-fit">
+      <div className="bg-muted/60 border border-border rounded-xl p-1 flex gap-1 w-fit">
         <button
           onClick={() => switchMode("sales")}
-          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
             mode === "sales"
-              ? "bg-primary text-white shadow-sm"
-              : "bg-card text-foreground/50 hover:text-foreground hover:bg-muted"
+              ? "bg-primary text-white shadow-md shadow-primary/25"
+              : "text-foreground/50 hover:text-foreground hover:bg-muted"
           }`}
         >
           <TrendingUp className="h-4 w-4" /> Ventas
           {allSales.length > 0 && (
             <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${mode === "sales" ? "bg-white/20 text-white" : "bg-primary/15 text-primary"}`}
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${mode === "sales" ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground/60"}`}
             >
               {allSales.length}
             </span>
           )}
         </button>
-        <div className="w-px bg-border" />
         <button
           onClick={() => switchMode("purchases")}
-          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
             mode === "purchases"
-              ? "bg-amber-500 text-white shadow-sm"
-              : "bg-card text-foreground/50 hover:text-foreground hover:bg-muted"
+              ? "bg-amber-500 text-white shadow-md shadow-amber-500/25"
+              : "text-foreground/50 hover:text-foreground hover:bg-muted"
           }`}
         >
           <ShoppingCart className="h-4 w-4" /> Compras
           {allPurchases.length > 0 && (
             <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${mode === "purchases" ? "bg-white/20 text-white" : "bg-amber-500/15 text-amber-500"}`}
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${mode === "purchases" ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground/60"}`}
             >
               {allPurchases.length}
             </span>
@@ -1044,6 +1045,7 @@ export default function VentasPage() {
         <PurchaseModal
           farmId={farmId}
           supabase={supabase}
+          getAccessToken={getAccessToken}
           onClose={() => setShowPurchaseModal(false)}
           onDone={() => {
             setShowPurchaseModal(false);
@@ -1052,6 +1054,14 @@ export default function VentasPage() {
         />
       )}
     </DashboardShell>
+  );
+}
+
+export default function VentasPage() {
+  return (
+    <Suspense>
+      <VentasPageInner />
+    </Suspense>
   );
 }
 
