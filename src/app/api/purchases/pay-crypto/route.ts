@@ -77,13 +77,17 @@ export async function POST(req: Request) {
     .single();
   if (!profile) return NextResponse.json({ error: "no_profile" }, { status: 401 });
 
-  const { data: purchase } = await sb
+  const { data: purchase, error: purchaseErr } = await sb
     .from("purchases")
     .select("id, farm_id, total_amount, status, payment_method")
     .eq("id", body.purchase_id)
     .single();
 
-  if (!purchase) return NextResponse.json({ error: "purchase_not_found" }, { status: 404 });
+  if (!purchase)
+    return NextResponse.json(
+      { error: "purchase_not_found", detail: purchaseErr?.message, code: purchaseErr?.code },
+      { status: 404 }
+    );
 
   const { data: membership } = await sb
     .from("farm_members")

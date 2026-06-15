@@ -44,6 +44,13 @@ type SaleRow = {
 
 type RawSaleRow = Omit<SaleRow, "_item_count"> & { sale_items: { id: string }[] };
 
+type PurchaseCondition = {
+  id: string;
+  description: string;
+  reduction_type: "fixed" | "percent";
+  reduction_value: number;
+};
+
 type PurchaseRow = {
   id: string;
   seller_name: string;
@@ -54,6 +61,7 @@ type PurchaseRow = {
   payment_method: string | null;
   invoice_number: string | null;
   notes: string | null;
+  conditions: PurchaseCondition[] | null;
   _item_count: number;
 };
 
@@ -96,13 +104,6 @@ type PurchaseItem = {
 };
 
 type AnimalOption = { id: string; tag: string; name: string | null };
-
-type PurchaseCondition = {
-  id: string;
-  description: string;
-  reduction_type: "fixed" | "percent";
-  reduction_value: number;
-};
 
 function PurchaseModal({
   farmId,
@@ -758,6 +759,261 @@ function PurchaseModal({
   );
 }
 
+// ─── Crypto pay modal (for existing confirmed purchases) ──────────────────────
+
+function CryptoPayModal({
+  purchase,
+  getAccessToken,
+  onClose,
+  onDone,
+}: {
+  purchase: PurchaseRow;
+  getAccessToken: () => Promise<string | null>;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [cryptoAddress, setCryptoAddress] = useState("");
+  const [cryptoPaying, setCryptoPaying] = useState(false);
+  const [cryptoTx, setCryptoTx] = useState<string | null>(null);
+  const [triggeredConditions, setTriggeredConditions] = useState<Set<string>>(new Set());
+
+  const conditions = purchase.conditions ?? [];
+
+  const conditionDiscount = conditions
+    .filter((c) => triggeredConditions.has(c.id))
+    .reduce((sum, c) => {
+      if (c.reduction_type === "fixed") return sum + c.reduction_value;
+      return sum + (purchase.total_amount * c.reduction_value) / 100;
+    }, 0);
+
+  const finalAmount = Math.max(0, purchase.total_amount - conditionDiscount);
+
+  const toggleTriggered = (id: string) =>
+    setTriggeredConditions((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  async function scanQR() {
+    try {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.capture = "environment";
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const bitmap = await createImageBitmap(file);
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(bitmap, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const jsQR = (await import("jsqr")).default;
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code?.data) {
+          const raw = code.data
+            .replace(/^ethereum:/i, "")
+            .split("?")[0]
+            .trim();
+          setCryptoAddress(raw);
+        } else {
+          toast.error("No se encontró un código QR válido");
+        }
+      };
+      input.click();
+    } catch {
+      toast.error("Error al leer el QR");
+    }
+  }
+
+  async function payCrypto() {
+    if (!cryptoAddress) return;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(cryptoAddress)) {
+      toast.error("Dirección de wallet inválida");
+      return;
+    }
+    setCryptoPaying(true);
+    try {
+      const privyToken = await getAccessToken();
+      const res = await fetch("/api/purchases/pay-crypto", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(privyToken ? { Authorization: `Bearer ${privyToken}` } : {}),
+        },
+        body: JSON.stringify({
+          purchase_id: purchase.id,
+          to_address: cryptoAddress,
+          amount_usdc: finalAmount,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Error en el pago");
+      setCryptoTx(json.tx as string);
+      toast.success("Pago enviado en blockchain");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCryptoPaying(false);
+    }
+  }
+
+  const inputCls =
+    "border-border bg-background text-foreground focus:border-primary w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-foreground/30";
+  const labelCls = "text-foreground/60 mb-1.5 block text-xs font-medium";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="bg-card border-border w-full max-w-lg rounded-2xl border p-6 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-amber-500/10 flex h-8 w-8 items-center justify-center rounded-xl">
+              <Wallet className="h-4 w-4 text-amber-500" />
+            </div>
+            <div>
+              <h2 className="text-foreground text-base font-bold">Pago crypto</h2>
+              <p className="text-foreground/50 text-xs">{purchase.seller_name}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-foreground/40 hover:text-foreground rounded-lg p-1"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {cryptoTx ? (
+          <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+            <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-emerald-400">Pago enviado en blockchain</p>
+              <p className="text-xs text-foreground/50 break-all mt-1">TX: {cryptoTx}</p>
+              <button
+                onClick={onDone}
+                className="mt-3 bg-emerald-500 hover:bg-emerald-500/90 text-white rounded-xl px-4 py-2 text-sm font-medium"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Conditions checklist */}
+            {conditions.filter((c) => c.description.trim()).length > 0 && (
+              <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground/60">
+                  Marca las condiciones que se cumplieron:
+                </p>
+                {conditions
+                  .filter((c) => c.description.trim())
+                  .map((c) => {
+                    const triggered = triggeredConditions.has(c.id);
+                    const discount =
+                      c.reduction_type === "fixed"
+                        ? c.reduction_value
+                        : (purchase.total_amount * c.reduction_value) / 100;
+                    return (
+                      <label key={c.id} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={triggered}
+                          onChange={() => toggleTriggered(c.id)}
+                          className="h-4 w-4 rounded accent-amber-500"
+                        />
+                        <span
+                          className={`text-sm flex-1 ${triggered ? "line-through text-foreground/40" : "text-foreground"}`}
+                        >
+                          {c.description}
+                        </span>
+                        <span className="text-xs text-red-400 shrink-0">
+                          −${discount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                        </span>
+                      </label>
+                    );
+                  })}
+                {conditionDiscount > 0 && (
+                  <div className="border-t border-border pt-2 flex justify-between text-xs">
+                    <span className="text-foreground/50">Descuento aplicado</span>
+                    <span className="text-red-400 font-medium">
+                      −${conditionDiscount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Amount summary */}
+            <div className="bg-muted/30 rounded-xl px-4 py-3 flex items-center justify-between">
+              <div>
+                <p className="text-foreground/60 text-xs">Monto original</p>
+                <p className="text-foreground/40 text-sm line-through">
+                  ${purchase.total_amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}{" "}
+                  {purchase.currency}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-foreground/60 text-xs">Monto a pagar</p>
+                <p className="text-foreground font-bold text-lg">
+                  ${finalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USDC
+                </p>
+              </div>
+            </div>
+
+            {/* Wallet address */}
+            <div>
+              <label className={labelCls}>Dirección wallet del vendedor</label>
+              <div className="flex gap-2">
+                <input
+                  className={inputCls}
+                  value={cryptoAddress}
+                  onChange={(e) => setCryptoAddress(e.target.value)}
+                  placeholder="0x..."
+                  spellCheck={false}
+                />
+                <button
+                  type="button"
+                  onClick={scanQR}
+                  title="Escanear QR"
+                  className="border-border bg-background hover:bg-muted flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm text-amber-500"
+                >
+                  <QrCode className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="border-border text-foreground/70 hover:bg-muted rounded-xl border px-4 py-2 text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!cryptoAddress || cryptoPaying}
+                onClick={payCrypto}
+                className="bg-amber-500 hover:bg-amber-500/90 text-white inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {cryptoPaying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wallet className="h-4 w-4" />
+                )}
+                Pagar · ${finalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USDC
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── main component ───────────────────────────────────────────────────────────
 
 function VentasPageInner() {
@@ -774,6 +1030,7 @@ function VentasPageInner() {
   );
   const [filter, setFilter] = useState<SaleFilter>("all");
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [payingPurchase, setPayingPurchase] = useState<PurchaseRow | null>(null);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -832,7 +1089,7 @@ function VentasPageInner() {
       )
         .from("purchases")
         .select(
-          "id, seller_name, purchased_at, total_amount, currency, status, payment_method, invoice_number, notes, purchase_items(id)"
+          "id, seller_name, purchased_at, total_amount, currency, status, payment_method, invoice_number, notes, conditions, purchase_items(id)"
         )
         .eq("farm_id", farmId!)
         .order("purchased_at", { ascending: false })
@@ -1198,11 +1455,21 @@ function VentasPageInner() {
                         ? (PAYMENT_LABEL[p.payment_method] ?? p.payment_method)
                         : "—"}
                     </span>
-                    <span
-                      className={`hidden rounded-full px-2.5 py-1 text-xs font-semibold md:inline-flex md:items-center ${STATUS_CLS[p.status] ?? "bg-muted text-foreground/60"}`}
-                    >
-                      {STATUS_LABEL[p.status] ?? p.status}
-                    </span>
+                    <div className="hidden md:flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center ${STATUS_CLS[p.status] ?? "bg-muted text-foreground/60"}`}
+                      >
+                        {STATUS_LABEL[p.status] ?? p.status}
+                      </span>
+                      {p.payment_method === "crypto" && p.status === "confirmed" && (
+                        <button
+                          onClick={() => setPayingPurchase(p)}
+                          className="bg-amber-500 hover:bg-amber-500/90 text-white rounded-lg px-2.5 py-1 text-xs font-semibold inline-flex items-center gap-1"
+                        >
+                          <Wallet className="h-3 w-3" /> Pagar
+                        </button>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1219,6 +1486,18 @@ function VentasPageInner() {
           onClose={() => setShowPurchaseModal(false)}
           onDone={() => {
             setShowPurchaseModal(false);
+            qc.invalidateQueries({ queryKey: ["purchases", farmId] });
+          }}
+        />
+      )}
+
+      {payingPurchase && (
+        <CryptoPayModal
+          purchase={payingPurchase}
+          getAccessToken={getAccessToken}
+          onClose={() => setPayingPurchase(null)}
+          onDone={() => {
+            setPayingPurchase(null);
             qc.invalidateQueries({ queryKey: ["purchases", farmId] });
           }}
         />
