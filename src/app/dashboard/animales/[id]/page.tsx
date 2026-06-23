@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { use, useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -18,6 +18,7 @@ import {
   Plus,
   QrCode,
   Syringe,
+  Trash2,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -30,7 +31,7 @@ import AnimalQrCard from "@/components/AnimalQrCard";
 import SignAnchorButton from "@/components/SignAnchorButton";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
-import { getSignedPhotoUrl } from "@/lib/supabase/storage";
+import { getSignedPhotoUrl, uploadAnimalPhoto } from "@/lib/supabase/storage";
 
 type AnimalUpdate = {
   id: string;
@@ -58,7 +59,9 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const farmQuery = useCurrentFarm();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("info");
+  const [delModal, setDelModal] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState(searchParams.get("edit") === "1");
   const [vacModal, setVacModal] = useState(false);
@@ -67,6 +70,9 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const [milkModal, setMilkModal] = useState(false);
   const [movModal, setMovModal] = useState(false);
   const [editValues, setEditValues] = useState<Partial<Animal>>({});
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const animalQuery = useQuery<Animal | null>({
     queryKey: ["animal", id],
@@ -157,13 +163,40 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const updateMutation = useMutation({
     mutationFn: async (values: Partial<AnimalUpdate> & { breed_id?: string | null }) => {
       if (!supabase) throw new Error("Sesión no lista.");
-      const { error } = await supabase.from("animals").update(values).eq("id", id);
+      const payload = { ...values };
+      if (photoFile) {
+        if (!profileId || !farmQuery.data?.id) throw new Error("Sesión no lista.");
+        const { storagePath } = await uploadAnimalPhoto({
+          supabase,
+          farmId: farmQuery.data.id,
+          animalId: id,
+          profileId,
+          file: photoFile,
+        });
+        payload.photo_url = storagePath;
+      }
+      const { error } = await supabase.from("animals").update(payload).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["animal", id] });
       queryClient.invalidateQueries({ queryKey: ["animals"] });
       setEditing(false);
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setPhotoError(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!supabase) throw new Error("Sesión no lista.");
+      const { error } = await supabase.from("animals").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["animals"] });
+      router.push("/dashboard/animales");
     },
   });
 
@@ -514,6 +547,14 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               )}
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setDelModal(true)}
+            className="border-red-500/30 text-red-500 hover:bg-red-500/10 inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors"
+          >
+            <Trash2 className="h-4 w-4" /> Eliminar animal
+          </button>
         </div>
 
         <div className="space-y-6">
@@ -610,7 +651,12 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setEditing(false)}
+                      onClick={() => {
+                        setEditing(false);
+                        setPhotoFile(null);
+                        setPhotoPreview(null);
+                        setPhotoError(null);
+                      }}
                       className="text-foreground/60 hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
                     >
                       <X className="h-3.5 w-3.5" /> Cancelar
@@ -757,6 +803,53 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       <option value="dead">Fallecido</option>
                       <option value="retired">Retirado</option>
                     </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-foreground/60 mb-1 block text-xs font-medium">
+                      Foto del animal
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <div className="bg-muted/40 border-border h-20 w-20 shrink-0 overflow-hidden rounded-xl border">
+                        {photoPreview || photoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={photoPreview ?? photoUrl ?? ""}
+                            alt={animal.tag}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <Beef className="text-foreground/20 h-7 w-7" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] ?? null;
+                            setPhotoError(null);
+                            if (!file) {
+                              setPhotoFile(null);
+                              setPhotoPreview(null);
+                              return;
+                            }
+                            if (file.size > 8 * 1024 * 1024) {
+                              setPhotoError("La imagen supera 8 MB.");
+                              return;
+                            }
+                            setPhotoFile(file);
+                            setPhotoPreview(URL.createObjectURL(file));
+                          }}
+                          className="text-foreground/70 file:bg-muted file:text-foreground hover:file:bg-muted/70 block w-full text-xs file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-medium"
+                        />
+                        <p className="text-foreground/40 mt-1 text-[10px]">
+                          JPG, PNG o WebP · máx. 8 MB
+                        </p>
+                        {photoError && <p className="text-accent mt-1 text-xs">{photoError}</p>}
+                      </div>
+                    </div>
                   </div>
                   {updateMutation.error && (
                     <p className="text-accent text-xs md:col-span-2">
@@ -1225,6 +1318,55 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
           )}
         </div>
       </div>
+
+      {delModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !deleteMutation.isPending && setDelModal(false)}
+          />
+          <div className="bg-card border-border relative z-10 w-full max-w-md rounded-2xl border shadow-2xl">
+            <div className="border-border flex items-center gap-2 border-b px-6 py-4">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              <h2 className="text-foreground text-base font-bold">Eliminar animal</h2>
+            </div>
+            <div className="space-y-4 p-6">
+              <p className="text-foreground/70 text-sm">
+                ¿Seguro que quieres eliminar{" "}
+                <span className="text-foreground font-semibold">{animal.tag}</span>
+                {animal.name ? ` (${animal.name})` : ""}? Se borrarán también todos sus pesajes,
+                vacunas, tratamientos y demás registros asociados. Esta acción no se puede deshacer.
+              </p>
+              {deleteMutation.error && (
+                <p className="text-accent text-xs">{(deleteMutation.error as Error).message}</p>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => setDelModal(false)}
+                  className="text-foreground/60 hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate()}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-60"
+                >
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardShell>
   );
 }
