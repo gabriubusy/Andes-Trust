@@ -1400,7 +1400,7 @@ function VentasPageInner() {
             </div>
           ) : (
             <div className="bg-card border-border overflow-hidden rounded-2xl border">
-              <div className="border-border hidden grid-cols-[1fr_120px_130px_110px_120px] items-center gap-4 border-b px-5 py-3 md:grid">
+              <div className="border-border hidden grid-cols-[1fr_120px_130px_110px_180px] items-center gap-4 border-b px-5 py-3 md:grid">
                 {["Vendedor", "Animales", "Total", "Pago", "Estado"].map((h) => (
                   <span
                     key={h}
@@ -1414,7 +1414,7 @@ function VentasPageInner() {
                 {allPurchases.map((p) => (
                   <li
                     key={p.id}
-                    className="hover:bg-muted/30 grid items-center gap-4 px-5 py-4 transition-colors md:grid-cols-[1fr_120px_130px_110px_120px]"
+                    className="hover:bg-muted/30 grid items-center gap-4 px-5 py-4 transition-colors md:grid-cols-[1fr_120px_130px_110px_180px]"
                   >
                     <div className="flex items-center gap-3">
                       <div className="bg-amber-500/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
@@ -1455,16 +1455,16 @@ function VentasPageInner() {
                         ? (PAYMENT_LABEL[p.payment_method] ?? p.payment_method)
                         : "—"}
                     </span>
-                    <div className="hidden md:flex items-center gap-2">
+                    <div className="hidden md:flex items-center gap-2 min-w-0">
                       <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center ${STATUS_CLS[p.status] ?? "bg-muted text-foreground/60"}`}
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center ${STATUS_CLS[p.status] ?? "bg-muted text-foreground/60"}`}
                       >
                         {STATUS_LABEL[p.status] ?? p.status}
                       </span>
                       {p.payment_method === "crypto" && p.status === "confirmed" && (
                         <button
                           onClick={() => setPayingPurchase(p)}
-                          className="bg-amber-500 hover:bg-amber-500/90 text-white rounded-lg px-2.5 py-1 text-xs font-semibold inline-flex items-center gap-1"
+                          className="bg-amber-500 hover:bg-amber-500/90 text-white shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold inline-flex items-center gap-1"
                         >
                           <Wallet className="h-3 w-3" /> Pagar
                         </button>
