@@ -1,26 +1,7 @@
 import { ShieldCheck, ShieldAlert, ShieldX, ExternalLink, Hash, Clock, User } from "lucide-react";
+import { verifyEntity } from "@/lib/verify/verifyEntity";
 
-type VerifyResult = {
-  entity: string;
-  id: string;
-  current_hash: string;
-  integrity_ok: boolean;
-  signatures: {
-    signer: string;
-    signed_at: string;
-    signed_hash: string;
-    signature_valid: boolean;
-    hash_matches_current: boolean;
-  }[];
-  anchors: {
-    network: string;
-    tx_hash: string;
-    contract_address: string;
-    anchored_hash: string;
-    anchored_at: string;
-    matches_current: boolean;
-  }[];
-};
+export const dynamic = "force-dynamic";
 
 const ENTITY_LABEL: Record<string, string> = {
   animals: "Animal",
@@ -32,17 +13,6 @@ const ENTITY_LABEL: Record<string, string> = {
 };
 
 const EXPLORER = process.env.NEXT_PUBLIC_EXPLORER_URL ?? "https://amoy.polygonscan.com";
-
-async function getData(entity: string, id: string): Promise<VerifyResult | null> {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  try {
-    const res = await fetch(`${base}/api/verify/${entity}/${id}`, { cache: "no-store" });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
-}
 
 function shortHash(h: string) {
   return h.slice(0, 10) + "…" + h.slice(-8);
@@ -68,7 +38,7 @@ export default async function VerifyPage({
   params: Promise<{ entity: string; id: string }>;
 }) {
   const { entity, id } = await params;
-  const data = await getData(entity, id);
+  const data = await verifyEntity(entity, id);
 
   if (!data) {
     return (

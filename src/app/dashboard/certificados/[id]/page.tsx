@@ -125,6 +125,21 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
     },
   });
 
+  const anchorQuery = useQuery<string | null>({
+    queryKey: ["anchor", "certifications", id],
+    enabled: !!supabase,
+    queryFn: async () => {
+      const { data, error } = await supabase!
+        .from("blockchain_records")
+        .select("tx_hash")
+        .eq("entity_type", "certifications")
+        .eq("entity_id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.tx_hash ?? null;
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase!.from("certifications").delete().eq("id", id);
@@ -286,7 +301,11 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
                 entityType="certifications"
                 entityId={id}
                 anchor
-                onDone={() => qc.invalidateQueries({ queryKey: ["certification", id] })}
+                txHash={anchorQuery.data}
+                onDone={() => {
+                  qc.invalidateQueries({ queryKey: ["certification", id] });
+                  qc.invalidateQueries({ queryKey: ["anchor", "certifications", id] });
+                }}
               />
             </div>
 
