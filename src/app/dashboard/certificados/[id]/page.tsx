@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Award,
+  Check,
+  Copy,
   Download,
   ExternalLink,
-  Link2,
   QrCode,
   ShieldCheck,
   AlertTriangle,
@@ -18,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { QRCodeCanvas } from "qrcode.react";
+import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import SignAnchorButton from "@/components/SignAnchorButton";
@@ -51,6 +54,8 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
   const qc = useQueryClient();
   const [origin, setOrigin] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
@@ -78,10 +83,30 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setDownloading(false);
     }
+  }
+
+  async function downloadQr() {
+    if (!verifyUrl) return;
+    const dataUrl = await qrCodePngDataUrl(verifyUrl, 1024);
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `qr-certificado-${id}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast.success("QR descargado");
+  }
+
+  async function copyLink() {
+    if (!verifyUrl) return;
+    await navigator.clipboard.writeText(verifyUrl);
+    setCopied(true);
+    toast.success("Enlace copiado");
+    setTimeout(() => setCopied(false), 2000);
   }
 
   const certQuery = useQuery<CertDetail>({
@@ -107,8 +132,10 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["certifications"] });
+      toast.success("Certificado eliminado");
       router.push("/dashboard/certificados");
     },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const fmt = (d: string | null) =>
@@ -125,17 +152,16 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
   };
 
   const cert = certQuery.data;
+  const typeLabel = cert ? (CERT_TYPE_LABELS[cert.type] ?? cert.type) : "";
 
   return (
     <DashboardShell title="Detalle certificado" subtitle="Certificados">
-      <div className="flex items-center gap-2">
-        <Link
-          href="/dashboard/certificados"
-          className="text-foreground/70 hover:text-foreground inline-flex items-center gap-1 text-sm"
-        >
-          <ArrowLeft className="h-4 w-4" /> Volver al listado
-        </Link>
-      </div>
+      <Link
+        href="/dashboard/certificados"
+        className="text-foreground/70 hover:text-foreground inline-flex w-fit cursor-pointer items-center gap-1 text-sm transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" /> Volver al listado
+      </Link>
 
       {certQuery.isLoading && (
         <div className="flex items-center gap-3 py-8">
@@ -145,210 +171,235 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
       )}
 
       {cert && (
-        <div className="space-y-6">
-          {/* Cabecera */}
-          <div className="bg-card border-border rounded-2xl border p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <span className="bg-primary/10 text-primary mb-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium">
-                  {CERT_TYPE_LABELS[cert.type] ?? cert.type}
-                </span>
-                <h2 className="text-foreground text-xl font-bold">
-                  Certificado de {CERT_TYPE_LABELS[cert.type] ?? cert.type}
-                </h2>
-                {cert.issuer && (
-                  <p className="text-foreground/60 mt-1 text-sm">Emitido por: {cert.issuer}</p>
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          {/* ── Columna principal ─────────────────────────────────────── */}
+          <div className="space-y-6">
+            {/* Cabecera */}
+            <div className="bg-card border-border rounded-2xl border p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="from-primary/20 to-primary/5 border-primary/20 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border bg-linear-to-br">
+                    <Award className="text-primary h-7 w-7" />
+                  </div>
+                  <div>
+                    <span className="bg-primary/10 text-primary mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium">
+                      {typeLabel}
+                    </span>
+                    <h2 className="text-foreground text-xl font-bold tracking-tight">
+                      Certificado de {typeLabel}
+                    </h2>
+                    {cert.issuer && (
+                      <p className="text-foreground/60 mt-1 text-sm">Emitido por: {cert.issuer}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Estado */}
+                {isExpired(cert.valid_until) ? (
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-500">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Vencido
+                  </span>
+                ) : isNearExpiry(cert.valid_until) ? (
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Por vencer
+                  </span>
+                ) : (
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Vigente
+                  </span>
                 )}
               </div>
 
-              {/* Estado */}
-              {isExpired(cert.valid_until) ? (
-                <span className="bg-destructive/10 text-destructive inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
-                  <AlertTriangle className="h-3.5 w-3.5" /> Vencido
-                </span>
-              ) : isNearExpiry(cert.valid_until) ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-600">
-                  <AlertTriangle className="h-3.5 w-3.5" /> Por vencer
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-600">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Vigente
-                </span>
-              )}
-            </div>
-
-            {/* Datos */}
-            <dl className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div>
-                <dt className="text-foreground/50 text-xs font-semibold tracking-wider uppercase">
-                  Animal
-                </dt>
-                <dd className="text-foreground mt-1 font-mono text-sm">
+              {/* Datos en tarjetas */}
+              <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <DataTile label="Animal">
                   {cert.animals ? (
                     <Link
                       href={`/dashboard/animales/${cert.animals.id}`}
-                      className="text-primary hover:underline"
+                      className="text-primary cursor-pointer font-mono hover:underline"
                     >
                       {cert.animals.tag}
                       {cert.animals.name ? ` · ${cert.animals.name}` : ""}
                     </Link>
                   ) : (
-                    "Finca (general)"
+                    <span className="text-foreground/70">Finca (general)</span>
                   )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-foreground/50 text-xs font-semibold tracking-wider uppercase">
-                  Fecha emisión
-                </dt>
-                <dd className="text-foreground mt-1 text-sm">{fmt(cert.issued_at)}</dd>
-              </div>
-              <div>
-                <dt className="text-foreground/50 text-xs font-semibold tracking-wider uppercase">
-                  Vence
-                </dt>
-                <dd
-                  className={`mt-1 text-sm font-medium ${isExpired(cert.valid_until) ? "text-destructive" : "text-foreground"}`}
+                </DataTile>
+                <DataTile label="Fecha emisión">{fmt(cert.issued_at)}</DataTile>
+                <DataTile label="Vence">
+                  <span className={isExpired(cert.valid_until) ? "text-red-500" : undefined}>
+                    {fmt(cert.valid_until)}
+                  </span>
+                </DataTile>
+                <DataTile label="Registrado">{fmt(cert.created_at)}</DataTile>
+              </dl>
+
+              {cert.metadata?.notes && (
+                <div className="bg-muted/40 border-border mt-5 rounded-xl border p-4">
+                  <p className="text-foreground/50 mb-1 text-[10px] font-semibold tracking-wider uppercase">
+                    Notas
+                  </p>
+                  <p className="text-foreground/80 text-sm">{cert.metadata.notes}</p>
+                </div>
+              )}
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={downloadPdf}
+                  disabled={downloading}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {fmt(cert.valid_until)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-foreground/50 text-xs font-semibold tracking-wider uppercase">
-                  Registrado
-                </dt>
-                <dd className="text-foreground/70 mt-1 text-sm">{fmt(cert.created_at)}</dd>
-              </div>
-            </dl>
-
-            {cert.metadata?.notes && (
-              <div className="bg-muted/50 border-border mt-5 rounded-xl border p-4">
-                <p className="text-foreground/60 mb-1 text-xs font-semibold tracking-wider uppercase">
-                  Notas
-                </p>
-                <p className="text-foreground/80 text-sm">{cert.metadata.notes}</p>
-              </div>
-            )}
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={downloadPdf}
-                disabled={downloading}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60"
-              >
-                {downloading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
+                  {downloading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {downloading ? "Generando PDF…" : "Descargar PDF"}
+                </button>
+                {cert.document_url && (
+                  <a
+                    href={cert.document_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="border-border text-foreground/70 hover:bg-muted inline-flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Ver documento oficial
+                  </a>
                 )}
-                {downloading ? "Generando PDF…" : "Descargar PDF"}
-              </button>
-              {cert.document_url && (
-                <a
-                  href={cert.document_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="border-border text-foreground/70 hover:bg-muted inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors"
+              </div>
+            </div>
+
+            {/* Firma criptográfica */}
+            <div className="bg-card border-border rounded-2xl border p-6 shadow-sm">
+              <div className="mb-1 flex items-center gap-2">
+                <ShieldCheck className="text-primary h-5 w-5" />
+                <h3 className="text-foreground text-base font-bold">
+                  Firma digital e inmutabilidad
+                </h3>
+              </div>
+              <p className="text-foreground/60 mb-4 text-xs">
+                Ancla este certificado en blockchain para hacerlo verificable e inmutable por
+                terceros.
+              </p>
+              <SignAnchorButton
+                entityType="certifications"
+                entityId={id}
+                anchor
+                onDone={() => qc.invalidateQueries({ queryKey: ["certification", id] })}
+              />
+            </div>
+
+            {/* Zona de peligro */}
+            <div className="bg-card border-red-500/20 rounded-2xl border p-6 shadow-sm">
+              <div className="mb-1 flex items-center gap-2">
+                <Trash2 className="h-4 w-4 text-red-500" />
+                <h3 className="text-foreground text-sm font-bold">Eliminar certificado</h3>
+              </div>
+              <p className="text-foreground/60 mb-4 text-xs">Esta acción no se puede deshacer.</p>
+              {!confirmingDelete ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(true)}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-red-500/40 px-4 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10"
                 >
-                  <ExternalLink className="h-4 w-4" /> Ver documento oficial
-                </a>
+                  <Trash2 className="h-4 w-4" /> Eliminar
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-foreground/70 text-sm">¿Seguro?</span>
+                  <button
+                    type="button"
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={deleteMutation.isPending}
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                    Sí, eliminar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={deleteMutation.isPending}
+                    className="text-foreground/60 hover:text-foreground hover:bg-muted inline-flex cursor-pointer items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Firma criptográfica */}
-          <div className="bg-card border-border rounded-2xl border p-6">
-            <h3 className="text-foreground mb-1 text-base font-bold">
-              Firma digital e inmutabilidad
-            </h3>
-            <p className="text-foreground/60 mb-4 text-xs">
-              Firma este certificado con tu wallet para anclarlo en blockchain y hacerlo verificable
-              por terceros.
-            </p>
-            <SignAnchorButton
-              entityType="certifications"
-              entityId={id}
-              anchor
-              onDone={() => qc.invalidateQueries({ queryKey: ["certification", id] })}
-            />
-          </div>
-
-          {/* QR verificable */}
-          <div className="bg-card border-border rounded-2xl border p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <QrCode className="text-primary h-5 w-5" />
-              <h3 className="text-foreground text-base font-bold">QR de verificación</h3>
-            </div>
-            <p className="text-foreground/60 mb-4 text-xs">
-              Cualquier persona puede escanear este código para verificar la autenticidad del
-              certificado.
-            </p>
-            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-              <div className="rounded-xl bg-white p-4 shadow-sm">
-                {verifyUrl ? (
-                  <QRCodeCanvas value={verifyUrl} size={180} level="M" includeMargin={false} />
-                ) : (
-                  <div className="h-[180px] w-[180px] animate-pulse bg-neutral-100 rounded" />
-                )}
+          {/* ── Columna QR verificable ────────────────────────────────── */}
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <div className="bg-card border-border rounded-2xl border p-6 shadow-sm">
+              <div className="mb-1 flex items-center gap-2">
+                <QrCode className="text-primary h-5 w-5" />
+                <h3 className="text-foreground text-base font-bold">QR de verificación</h3>
               </div>
-              <div className="flex flex-col gap-2 sm:pt-2">
+              <p className="text-foreground/60 mb-5 text-xs">
+                Cualquier persona puede escanear este código para verificar la autenticidad del
+                certificado.
+              </p>
+              <div className="flex flex-col items-center gap-4">
+                <div className="rounded-2xl bg-white p-4 shadow-sm">
+                  {verifyUrl ? (
+                    <QRCodeCanvas value={verifyUrl} size={200} level="M" includeMargin={false} />
+                  ) : (
+                    <div className="h-50 w-50 animate-pulse rounded bg-neutral-100" />
+                  )}
+                </div>
                 {verifyUrl && (
-                  <p className="text-foreground/50 max-w-[260px] truncate font-mono text-[10px]">
+                  <p className="text-foreground/50 w-full truncate text-center font-mono text-[10px]">
                     {verifyUrl}
                   </p>
                 )}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!verifyUrl) return;
-                    const dataUrl = await qrCodePngDataUrl(verifyUrl, 1024);
-                    const a = document.createElement("a");
-                    a.href = dataUrl;
-                    a.download = `qr-certificado-${id}.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                  }}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"
-                >
-                  <Download className="h-4 w-4" /> Descargar QR
-                </button>
-                <button
-                  type="button"
-                  onClick={() => verifyUrl && navigator.clipboard.writeText(verifyUrl)}
-                  className="border-border text-foreground/80 hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium"
-                >
-                  <Link2 className="h-4 w-4" /> Copiar enlace
-                </button>
+                <div className="flex w-full flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={downloadQr}
+                    disabled={!verifyUrl}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Download className="h-4 w-4" /> Descargar QR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    disabled={!verifyUrl}
+                    className="border-border text-foreground/80 hover:bg-muted inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4 text-emerald-500" /> Copiado
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" /> Copiar enlace
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Zona de peligro */}
-          <div className="bg-card border-destructive/20 rounded-2xl border p-6">
-            <h3 className="text-foreground mb-1 text-sm font-bold">Eliminar certificado</h3>
-            <p className="text-foreground/60 mb-4 text-xs">Esta acción no se puede deshacer.</p>
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm("¿Eliminar este certificado? Esta acción es irreversible.")) {
-                  deleteMutation.mutate();
-                }
-              }}
-              disabled={deleteMutation.isPending}
-              className="border-destructive/40 text-destructive hover:bg-destructive/5 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60"
-            >
-              {deleteMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              Eliminar
-            </button>
           </div>
         </div>
       )}
     </DashboardShell>
+  );
+}
+
+function DataTile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-muted/30 border-border/50 rounded-xl border px-3 py-2.5">
+      <dt className="text-foreground/45 text-[10px] font-semibold tracking-wider uppercase">
+        {label}
+      </dt>
+      <dd className="text-foreground mt-1 text-sm font-medium">{children}</dd>
+    </div>
   );
 }

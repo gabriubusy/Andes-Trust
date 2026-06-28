@@ -720,6 +720,9 @@ export async function POST(req: Request) {
   // ═══════════════════════════════════════════════════════════════════════
   // FOOTER (last page)
   // ═══════════════════════════════════════════════════════════════════════
+  // Si el contenido llegó muy abajo, abrimos página nueva para que el footer
+  // (anclado al fondo) no se solape con la última tabla.
+  if (y < 130) newPage();
   addPageNum(page, pageNum);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fincaelprogreso.com";

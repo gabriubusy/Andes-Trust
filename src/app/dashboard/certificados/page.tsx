@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   FileCheck,
@@ -11,9 +11,12 @@ import {
   ShieldOff,
   Search,
   SlidersHorizontal,
+  Award,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import CertificateForm from "@/components/CertificateForm";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 
@@ -93,10 +96,12 @@ export default function CertificadosPage() {
   const { supabase } = useSupabase();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
+  const qc = useQueryClient();
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showModal, setShowModal] = useState(false);
 
   const certsQuery = useQuery<CertRow[]>({
     queryKey: ["certifications", farmId],
@@ -159,12 +164,13 @@ export default function CertificadosPage() {
       title="Certificados"
       subtitle="Trazabilidad"
       action={
-        <Link
-          href="/dashboard/certificados/nuevo"
-          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium"
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" /> Nuevo
-        </Link>
+        </button>
       }
     >
       {/* Stats strip */}
@@ -296,12 +302,13 @@ export default function CertificadosPage() {
             <p className="text-foreground/40 mt-1 text-xs">
               Emite el primer certificado de trazabilidad
             </p>
-            <Link
-              href="/dashboard/certificados/nuevo"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium"
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-5 inline-flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
             >
               <Plus className="h-4 w-4" /> Emitir primer certificado
-            </Link>
+            </button>
           </div>
         )}
 
@@ -439,6 +446,48 @@ export default function CertificadosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal nuevo certificado */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowModal(false)}
+          />
+          <div className="bg-card border-border relative z-10 my-8 w-full max-w-2xl rounded-2xl border shadow-2xl">
+            <div className="border-border flex items-start gap-4 border-b p-6">
+              <div className="from-primary/20 to-primary/5 border-primary/20 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-linear-to-br">
+                <Award className="text-primary h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-foreground text-lg font-bold tracking-tight">
+                  Nuevo certificado
+                </h2>
+                <p className="text-foreground/60 mt-0.5 text-sm">
+                  Registra un certificado de trazabilidad, sanidad u origen para la finca o un
+                  animal específico.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="text-foreground/40 hover:text-foreground hover:bg-muted shrink-0 cursor-pointer rounded-lg p-1.5 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <CertificateForm
+                onSuccess={() => {
+                  qc.invalidateQueries({ queryKey: ["certifications", farmId] });
+                  setShowModal(false);
+                }}
+                onCancel={() => setShowModal(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardShell>
   );
 }

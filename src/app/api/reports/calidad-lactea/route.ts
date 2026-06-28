@@ -928,6 +928,11 @@ export async function POST(req: Request) {
   // ══════════════════════════════════════════════════════════════════════════════
   // FOOTER (last page)
   // ══════════════════════════════════════════════════════════════════════════════
+  // El footer se ancla al fondo de la página (ocupa hasta ~y=125). Si el contenido
+  // llegó demasiado abajo, abrimos una página nueva para evitar el solapamiento.
+  const FOOTER_RESERVED = 150;
+  if (y < FOOTER_RESERVED) newPage();
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fincaelprogreso.com";
   const qrDataUrl = await QRCode.toDataURL(`${appUrl}/dashboard/reportes`, {
     margin: 1,

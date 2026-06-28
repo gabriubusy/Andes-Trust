@@ -12,6 +12,8 @@ import {
   CheckSquare,
   Square,
   CalendarRange,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
@@ -138,6 +140,9 @@ export default function ReportesPage() {
   const [milkTo, setMilkTo] = useState("");
   const [milkSelected, setMilkSelected] = useState<Set<string>>(new Set());
 
+  const HISTORY_PAGE_SIZE = 5;
+  const [historyPage, setHistoryPage] = useState(1);
+
   const animalsQuery = useQuery<AnimalLite[]>({
     queryKey: ["animals-lite", farmId],
     enabled: !!supabase && !!farmId,
@@ -234,6 +239,14 @@ export default function ReportesPage() {
 
   const animals = animalsQuery.data ?? [];
 
+  const reports = reportsQuery.data ?? [];
+  const historyTotalPages = Math.max(1, Math.ceil(reports.length / HISTORY_PAGE_SIZE));
+  const safeHistoryPage = Math.min(historyPage, historyTotalPages);
+  const pagedReports = reports.slice(
+    (safeHistoryPage - 1) * HISTORY_PAGE_SIZE,
+    safeHistoryPage * HISTORY_PAGE_SIZE
+  );
+
   return (
     <DashboardShell title="Reportes" subtitle="Cumplimiento · Calidad">
       <div className="space-y-6">
@@ -326,7 +339,7 @@ export default function ReportesPage() {
             )}
 
             <ul className="space-y-2">
-              {(reportsQuery.data ?? []).map((r) => (
+              {pagedReports.map((r) => (
                 <li key={r.id} className="bg-muted/20 border-border rounded-xl border p-3">
                   <div className="flex items-start gap-2">
                     <FileText className="text-primary/50 mt-0.5 h-4 w-4 shrink-0" />
@@ -357,6 +370,34 @@ export default function ReportesPage() {
                 </li>
               ))}
             </ul>
+
+            {reports.length > HISTORY_PAGE_SIZE && (
+              <div className="border-border mt-4 flex items-center justify-between border-t pt-3">
+                <span className="text-foreground/40 text-xs">
+                  Página {safeHistoryPage} de {historyTotalPages} · {reports.length} reportes
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                    disabled={safeHistoryPage <= 1}
+                    className="border-border text-foreground/60 hover:bg-muted hover:text-foreground inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryPage((p) => Math.min(historyTotalPages, p + 1))}
+                    disabled={safeHistoryPage >= historyTotalPages}
+                    className="border-border text-foreground/60 hover:bg-muted hover:text-foreground inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Página siguiente"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -54,6 +54,13 @@ export default function LoginPage() {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) return;
 
+    if (!isValidEmail(trimmed)) {
+      toast.error("Correo electrónico no válido", {
+        description: "Revisa que el formato sea correcto, por ejemplo: nombre@correo.com",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/auth/check-email", {
