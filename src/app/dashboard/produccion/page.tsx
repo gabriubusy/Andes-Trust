@@ -17,6 +17,7 @@ import {
   Award,
   ExternalLink,
   AlertTriangle,
+  RotateCw,
 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import {
@@ -792,6 +793,31 @@ export default function ProduccionPage() {
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
   const queryClient = useQueryClient();
+  const { getAccessToken } = usePrivy();
+
+  const retryAnchor = useMutation({
+    mutationFn: async (certId: string) => {
+      const token = await getAccessToken();
+      const res = await fetch(`/api/milk-quality/${certId}/anchor`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          data.error === "relayer_not_configured"
+            ? "El anclaje en blockchain no está configurado en el servidor."
+            : (data.error ?? "No se pudo anclar")
+        );
+      }
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Certificación anclada en blockchain");
+      queryClient.invalidateQueries({ queryKey: ["milk-quality-certs", farmId] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
   const [showModal, setShowModal] = useState(false);
   const [editRecord, setEditRecord] = useState<MilkRow | null>(null);
   const [days, setDays] = useState(30);
@@ -1142,9 +1168,18 @@ export default function ProduccionPage() {
                           <ShieldCheck className="h-2.5 w-2.5" /> On-chain
                         </span>
                       ) : (
-                        <span className="bg-muted text-foreground/40 text-[10px] rounded-full px-1.5 py-0.5">
-                          Pendiente
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => retryAnchor.mutate(cert.id)}
+                          disabled={retryAnchor.isPending}
+                          title="Reintentar anclaje en blockchain"
+                          className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 inline-flex cursor-pointer items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <RotateCw
+                            className={`h-2.5 w-2.5 ${retryAnchor.isPending && retryAnchor.variables === cert.id ? "animate-spin" : ""}`}
+                          />
+                          Pendiente · Reintentar
+                        </button>
                       )}
                     </div>
                     <p className="text-foreground/40 text-xs mt-0.5">

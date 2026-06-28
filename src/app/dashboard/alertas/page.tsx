@@ -8,7 +8,6 @@ import {
   Check,
   Filter,
   Loader2,
-  RotateCw,
   Syringe,
   Scale,
   ShieldAlert,
@@ -86,16 +85,6 @@ export default function AlertasPage() {
     },
   });
 
-  const regenerate = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase!.rpc("generate_alerts");
-      if (error) throw error;
-      const { error: closeErr } = await supabase!.rpc("close_stale_alerts");
-      if (closeErr) throw closeErr;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts"] }),
-  });
-
   const setStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: AlertRow["status"] }) => {
       const { error } = await supabase!
@@ -121,21 +110,7 @@ export default function AlertasPage() {
     new Date(iso).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
-    <DashboardShell
-      title="Alertas"
-      subtitle="Vacunación, retiros y pesajes pendientes"
-      action={
-        <button
-          type="button"
-          onClick={() => regenerate.mutate()}
-          disabled={regenerate.isPending}
-          className="border-border hover:border-primary/40 hover:bg-primary/5 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          <RotateCw className={`h-4 w-4 ${regenerate.isPending ? "animate-spin" : ""}`} />
-          Regenerar
-        </button>
-      }
-    >
+    <DashboardShell title="Alertas" subtitle="Vacunación, retiros y pesajes pendientes">
       <div className="flex flex-col gap-6">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
