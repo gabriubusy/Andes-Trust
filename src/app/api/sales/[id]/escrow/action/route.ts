@@ -133,7 +133,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const anchorAddress = process.env.NEXT_PUBLIC_ANCHOR_CONTRACT as `0x${string}` | undefined;
   const tokenAddress = process.env.NEXT_PUBLIC_MOCK_USDC as `0x${string}` | undefined;
 
-  if (!escrowAddress || !process.env.PRIVY_RELAYER_WALLET_ID) {
+  if (!escrowAddress || !process.env.RELAYER_PRIVATE_KEY) {
     return NextResponse.json({ error: "contracts_not_deployed" }, { status: 503 });
   }
 

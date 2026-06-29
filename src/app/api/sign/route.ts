@@ -150,7 +150,7 @@ export async function POST(req: Request) {
   if (body.anchor !== false) {
     const anchorAddress = process.env.NEXT_PUBLIC_ANCHOR_CONTRACT as `0x${string}` | undefined;
 
-    if (!anchorAddress || !process.env.PRIVY_RELAYER_WALLET_ID) {
+    if (!anchorAddress || !process.env.RELAYER_PRIVATE_KEY) {
       return NextResponse.json(
         { anchored: false, error: "relayer_not_configured", payload_hash: payloadHash },
         { status: 200 }

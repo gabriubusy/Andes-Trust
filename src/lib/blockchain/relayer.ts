@@ -49,3 +49,25 @@ export async function relayContractWrite({
   await getPublicClient().waitForTransactionReceipt({ hash });
   return hash;
 }
+
+/** Lectura on-chain (view/pure) a través del cliente público. */
+export async function relayContractRead<T = unknown>({
+  to,
+  abi,
+  functionName,
+  args,
+}: {
+  to: `0x${string}`;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  abi: any;
+  functionName: string;
+  args?: readonly unknown[];
+}): Promise<T> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return getPublicClient().readContract({
+    address: to,
+    abi,
+    functionName,
+    args,
+  } as any) as Promise<T>;
+}

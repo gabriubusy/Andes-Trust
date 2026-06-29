@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { relayContractWrite } from "@/lib/blockchain/relayer";
+import { relayContractWrite, relayContractRead, getRelayerAddress } from "@/lib/blockchain/relayer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +20,13 @@ const ERC20_TRANSFER_ABI = [
       { name: "amount", type: "uint256" },
     ],
     outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;
 
@@ -107,6 +114,32 @@ export async function POST(req: Request) {
 
   // USDC has 6 decimals
   const amountRaw = BigInt(Math.round(body.amount_usdc * 1_000_000));
+
+  // Comprobar que el relayer tiene saldo USDC suficiente antes de enviar la tx
+  // (un transfer con saldo insuficiente revierte sin razón legible on-chain).
+  try {
+    const relayer = getRelayerAddress();
+    const balance = await relayContractRead<bigint>({
+      to: usdcAddress,
+      abi: ERC20_TRANSFER_ABI,
+      functionName: "balanceOf",
+      args: [relayer],
+    });
+    if (balance < amountRaw) {
+      return NextResponse.json(
+        {
+          error: "insufficient_relayer_balance",
+          detail: `El relayer (${relayer}) tiene ${(Number(balance) / 1_000_000).toFixed(2)} USDC y se requieren ${body.amount_usdc.toFixed(2)} USDC. Acredita USDC a esa wallet.`,
+        },
+        { status: 422 }
+      );
+    }
+  } catch (err) {
+    return NextResponse.json(
+      { error: "balance_check_failed", detail: (err as Error).message },
+      { status: 502 }
+    );
+  }
 
   try {
     const tx = await relayContractWrite({

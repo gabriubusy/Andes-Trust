@@ -198,7 +198,7 @@ export async function POST(req: Request) {
   const certifierAddress = process.env.NEXT_PUBLIC_MILK_CERTIFIER as `0x${string}` | undefined;
   let txHash: string | null = null;
 
-  if (certifierAddress && process.env.PRIVY_RELAYER_WALLET_ID) {
+  if (certifierAddress && process.env.RELAYER_PRIVATE_KEY) {
     try {
       const certIdBytes32 = uuidToBytes32(cert.id);
       const farmIdBytes32 = uuidToBytes32(body.farm_id);

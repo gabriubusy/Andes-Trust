@@ -454,16 +454,16 @@ export default function CertificadosPage() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowModal(false)}
           />
-          <div className="bg-card border-border relative z-10 my-8 w-full max-w-2xl rounded-2xl border shadow-2xl">
-            <div className="border-border flex items-start gap-4 border-b p-6">
-              <div className="from-primary/20 to-primary/5 border-primary/20 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-linear-to-br">
-                <Award className="text-primary h-6 w-6" />
+          <div className="bg-card border-border relative z-10 my-4 flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col rounded-2xl border shadow-2xl sm:my-8 sm:max-h-[calc(100dvh-4rem)]">
+            <div className="border-border flex shrink-0 items-start gap-3 border-b p-4 sm:gap-4 sm:p-6">
+              <div className="from-primary/20 to-primary/5 border-primary/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border bg-linear-to-br sm:h-12 sm:w-12">
+                <Award className="text-primary h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <div className="flex-1">
-                <h2 className="text-foreground text-lg font-bold tracking-tight">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-foreground text-base font-bold tracking-tight sm:text-lg">
                   Nuevo certificado
                 </h2>
-                <p className="text-foreground/60 mt-0.5 text-sm">
+                <p className="text-foreground/60 mt-0.5 text-xs sm:text-sm">
                   Registra un certificado de trazabilidad, sanidad u origen para la finca o un
                   animal específico.
                 </p>
@@ -476,7 +476,7 @@ export default function CertificadosPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-6">
+            <div className="overflow-y-auto p-4 sm:p-6">
               <CertificateForm
                 onSuccess={() => {
                   qc.invalidateQueries({ queryKey: ["certifications", farmId] });

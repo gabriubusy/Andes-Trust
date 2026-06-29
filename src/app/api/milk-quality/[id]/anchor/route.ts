@@ -105,7 +105,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   const certifierAddress = process.env.NEXT_PUBLIC_MILK_CERTIFIER as `0x${string}` | undefined;
-  if (!certifierAddress || !process.env.PRIVY_RELAYER_WALLET_ID) {
+  if (!certifierAddress || !process.env.RELAYER_PRIVATE_KEY) {
     return NextResponse.json({ error: "relayer_not_configured" }, { status: 503 });
   }
 

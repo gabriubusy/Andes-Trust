@@ -203,24 +203,115 @@ export default function EventosPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(0);
 
+  // Normaliza la relación a-uno de animales (Supabase puede devolver objeto o array)
+  const oneAnimal = (a: unknown): EventRow["animals"] => {
+    const row = Array.isArray(a) ? a[0] : a;
+    return (row as EventRow["animals"]) ?? null;
+  };
+
+  // Los eventos viven en varias tablas: animal_events (traslados/ventas/notas)
+  // + las tablas sanitarias propias (tratamientos, vacunas, pesajes). Las
+  // combinamos aquí para que TODO aparezca en el historial.
   const eventsQuery = useQuery<EventRow[]>({
-    queryKey: ["animal-events", farmId, typeFilter, page],
+    queryKey: ["events-merged", farmId],
     enabled: !!supabase && !!farmId,
     queryFn: async () => {
-      let q = supabase!
-        .from("animal_events")
-        .select("id, type, occurred_at, notes, payload, animals(id, tag, name)")
-        .eq("farm_id", farmId!)
-        .order("occurred_at", { ascending: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      if (typeFilter !== "all") q = q.eq("type", typeFilter as never);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as EventRow[];
+      const LIMIT = 200;
+      const [ev, weigh, vac, treat] = await Promise.all([
+        supabase!
+          .from("animal_events")
+          .select("id, type, occurred_at, notes, payload, animals(id, tag, name)")
+          .eq("farm_id", farmId!)
+          .order("occurred_at", { ascending: false })
+          .limit(LIMIT),
+        supabase!
+          .from("weighings")
+          .select("id, measured_at, weight_kg, notes, animals(id, tag, name)")
+          .eq("farm_id", farmId!)
+          .order("measured_at", { ascending: false })
+          .limit(LIMIT),
+        supabase!
+          .from("vaccinations")
+          .select(
+            "id, applied_at, dose_ml, batch_number, next_due_at, notes, animals(id, tag, name), vaccines_catalog(name)"
+          )
+          .eq("farm_id", farmId!)
+          .order("applied_at", { ascending: false })
+          .limit(LIMIT),
+        supabase!
+          .from("treatments")
+          .select(
+            "id, started_at, ended_at, dose, notes, animals(id, tag, name), treatments_catalog(name)"
+          )
+          .eq("farm_id", farmId!)
+          .order("started_at", { ascending: false })
+          .limit(LIMIT),
+      ]);
+
+      if (ev.error) throw ev.error;
+
+      const rows: EventRow[] = [];
+
+      for (const e of ev.data ?? []) {
+        rows.push({
+          id: `ev:${e.id}`,
+          type: e.type as string,
+          occurred_at: e.occurred_at as string,
+          notes: (e.notes as string) ?? null,
+          payload: (e.payload as Record<string, unknown>) ?? {},
+          animals: oneAnimal(e.animals),
+        });
+      }
+      for (const w of weigh.data ?? []) {
+        rows.push({
+          id: `weigh:${w.id}`,
+          type: "weighing",
+          occurred_at: w.measured_at as string,
+          notes: (w.notes as string) ?? null,
+          payload: { weight_kg: w.weight_kg },
+          animals: oneAnimal(w.animals),
+        });
+      }
+      for (const v of vac.data ?? []) {
+        const cat = v.vaccines_catalog as { name?: string } | { name?: string }[] | null;
+        const vaccine_name = Array.isArray(cat) ? cat[0]?.name : cat?.name;
+        rows.push({
+          id: `vac:${v.id}`,
+          type: "vaccination",
+          occurred_at: v.applied_at as string,
+          notes: (v.notes as string) ?? null,
+          payload: {
+            vaccine_name,
+            dose_ml: v.dose_ml,
+            batch_number: v.batch_number,
+            next_due_at: v.next_due_at,
+          },
+          animals: oneAnimal(v.animals),
+        });
+      }
+      for (const t of treat.data ?? []) {
+        const cat = t.treatments_catalog as { name?: string } | { name?: string }[] | null;
+        const product_name = Array.isArray(cat) ? cat[0]?.name : cat?.name;
+        rows.push({
+          id: `treat:${t.id}`,
+          type: "treatment",
+          occurred_at: t.started_at as string,
+          notes: (t.notes as string) ?? null,
+          payload: { product_name, dose: t.dose, ended_at: t.ended_at },
+          animals: oneAnimal(t.animals),
+        });
+      }
+
+      rows.sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime());
+      return rows;
     },
   });
 
-  const filtered = (eventsQuery.data ?? []).filter((e) => {
+  const allEvents = eventsQuery.data ?? [];
+
+  // Filtro por tipo + búsqueda (en cliente, sobre el conjunto combinado)
+  const matched = allEvents.filter((e) => {
+    if (typeFilter !== "all" && e.type !== typeFilter) return false;
     if (!search) return true;
     const term = search.toLowerCase();
     return (
@@ -231,13 +322,14 @@ export default function EventosPage() {
     );
   });
 
-  const groups = groupByDay(filtered);
+  const pageEvents = matched.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const groups = groupByDay(pageEvents);
 
-  const total = eventsQuery.data?.length ?? 0;
-  const todayCount = (eventsQuery.data ?? []).filter(
+  const total = allEvents.length;
+  const todayCount = allEvents.filter(
     (e) => new Date(e.occurred_at).toDateString() === new Date().toDateString()
   ).length;
-  const typeCounts = (eventsQuery.data ?? []).reduce<Record<string, number>>((acc, e) => {
+  const typeCounts = allEvents.reduce<Record<string, number>>((acc, e) => {
     acc[e.type] = (acc[e.type] ?? 0) + 1;
     return acc;
   }, {});
@@ -256,7 +348,7 @@ export default function EventosPage() {
             </div>
             <div>
               <p className="text-foreground text-2xl font-bold leading-none">{total}</p>
-              <p className="text-foreground/40 text-xs mt-1">eventos esta página</p>
+              <p className="text-foreground/40 text-xs mt-1">eventos cargados</p>
             </div>
           </div>
 
@@ -497,23 +589,24 @@ export default function EventosPage() {
         )}
 
         {/* ── Pagination ── */}
-        {(eventsQuery.data?.length ?? 0) > 0 && (
+        {matched.length > PAGE_SIZE && (
           <div className="flex items-center justify-between">
             <span className="text-foreground/40 text-sm">
-              Página <span className="text-foreground font-medium">{page + 1}</span>
+              Página <span className="text-foreground font-medium">{page + 1}</span> de{" "}
+              {Math.ceil(matched.length / PAGE_SIZE)}
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
+                className="border-border hover:bg-muted inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <ChevronLeft className="h-4 w-4" /> Anterior
               </button>
               <button
                 onClick={() => setPage((p) => p + 1)}
-                disabled={(eventsQuery.data?.length ?? 0) < PAGE_SIZE}
-                className="border-border hover:bg-muted inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
+                disabled={(page + 1) * PAGE_SIZE >= matched.length}
+                className="border-border hover:bg-muted inline-flex cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-30"
               >
                 Siguiente <ChevronRight className="h-4 w-4" />
               </button>
