@@ -25,6 +25,13 @@ const valueProps: { icon: LucideIcon; label: string }[] = [
 
 type Step = "email" | "code";
 
+/** Valida el formato de un correo electrónico. */
+function isValidEmail(email: string): boolean {
+  const trimmed = email.trim();
+  if (!trimmed || trimmed.length > 254) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { ready, authenticated } = usePrivy();

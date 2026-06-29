@@ -16,6 +16,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 
@@ -172,6 +173,8 @@ export default function ReproduccionPage() {
   // ── KPIs ─────────────────────────────────────────────────────────────
   const allInsem = insemQuery.data ?? [];
   const activePregnancies = pregQuery.data ?? [];
+  const pregPg = usePagination(activePregnancies, 20);
+  const insemPg = usePagination(allInsem, 20);
   const dueSoon = activePregnancies.filter((p) => {
     const d = daysUntil(p.expected_due_at);
     return d !== null && d >= 0 && d <= 30;
@@ -331,7 +334,7 @@ export default function ReproduccionPage() {
                 </tr>
               </thead>
               <tbody>
-                {activePregnancies.map((p) => {
+                {pregPg.pageItems.map((p) => {
                   const animal = Array.isArray(p.animals) ? p.animals[0] : p.animals;
                   const days = daysUntil(p.expected_due_at);
                   const overdue = days !== null && days < 0;
@@ -385,6 +388,17 @@ export default function ReproduccionPage() {
               </tbody>
             </table>
           )}
+          {activePregnancies.length > 0 && (
+            <div className="px-5 pb-2">
+              <Pagination
+                page={pregPg.page}
+                totalPages={pregPg.totalPages}
+                total={pregPg.total}
+                onChange={pregPg.setPage}
+                noun="registro"
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -417,7 +431,7 @@ export default function ReproduccionPage() {
                 </tr>
               </thead>
               <tbody>
-                {allInsem.map((i) => {
+                {insemPg.pageItems.map((i) => {
                   const animal = Array.isArray(i.animals) ? i.animals[0] : i.animals;
                   const sire = Array.isArray(i.sire) ? i.sire[0] : i.sire;
                   const preg = i.pregnancies?.[0];
@@ -449,6 +463,17 @@ export default function ReproduccionPage() {
                 })}
               </tbody>
             </table>
+          )}
+          {allInsem.length > 0 && (
+            <div className="px-5 pb-2">
+              <Pagination
+                page={insemPg.page}
+                totalPages={insemPg.totalPages}
+                total={insemPg.total}
+                onChange={insemPg.setPage}
+                noun="registro"
+              />
+            </div>
           )}
         </div>
       )}

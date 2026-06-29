@@ -13,6 +13,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { SkeletonList } from "@/components/ui/Skeleton";
@@ -106,6 +107,14 @@ export default function AlertasPage() {
     };
   }, [alertsQuery.data]);
 
+  const {
+    pageItems: pagedAlerts,
+    page,
+    setPage,
+    totalPages,
+    total,
+  } = usePagination(alertsQuery.data ?? [], 20);
+
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" });
 
@@ -175,7 +184,7 @@ export default function AlertasPage() {
             </div>
           ) : (
             <ul className="divide-border divide-y">
-              {(alertsQuery.data ?? []).map((alert) => {
+              {pagedAlerts.map((alert) => {
                 const Icon = TYPE_ICON[alert.type];
                 const overdue = new Date(alert.due_at).getTime() < Date.now();
                 return (
@@ -248,6 +257,17 @@ export default function AlertasPage() {
                 );
               })}
             </ul>
+          )}
+          {(alertsQuery.data ?? []).length > 0 && (
+            <div className="px-6 pb-4">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                onChange={setPage}
+                noun="alerta"
+              />
+            </div>
           )}
         </div>
       </div>

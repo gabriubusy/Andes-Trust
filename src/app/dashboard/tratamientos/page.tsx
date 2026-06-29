@@ -12,8 +12,12 @@ import {
   Pill,
   Search,
   Stethoscope,
+  Beef,
+  Milk,
+  Syringe,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { SkeletonCard, SkeletonTable } from "@/components/ui/Skeleton";
@@ -61,13 +65,60 @@ const KIND_BADGE: Record<string, string> = {
   hormonal: "bg-pink-500/15 text-pink-700 dark:text-pink-400",
 };
 
+// Color de acento (barra lateral + icono) por tipo de tratamiento
+const KIND_ACCENT: Record<string, { bar: string; icon: string }> = {
+  antiparasitario: { bar: "bg-emerald-500", icon: "text-emerald-500" },
+  antibiótico: { bar: "bg-blue-500", icon: "text-blue-500" },
+  antiinflamatorio: { bar: "bg-orange-500", icon: "text-orange-500" },
+  vitamínico: { bar: "bg-violet-500", icon: "text-violet-500" },
+  mineral: { bar: "bg-sky-500", icon: "text-sky-500" },
+  hormonal: { bar: "bg-pink-500", icon: "text-pink-500" },
+};
+
 function KindBadge({ kind }: { kind: string | null }) {
   if (!kind) return null;
   const cls = KIND_BADGE[kind] ?? "bg-muted text-foreground/60";
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
+    <span
+      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${cls}`}
+    >
       {kind}
     </span>
+  );
+}
+
+// Tile de periodo de retiro (carne/leche) para el catálogo
+function WithdrawalTile({
+  icon: Icon,
+  label,
+  days,
+}: {
+  icon: typeof Beef;
+  label: string;
+  days: number | null;
+}) {
+  const hasWithdrawal = (days ?? 0) > 0;
+  return (
+    <div
+      className={`rounded-xl border px-2.5 py-2 ${
+        hasWithdrawal
+          ? "border-amber-500/20 bg-amber-500/5"
+          : "border-emerald-500/20 bg-emerald-500/5"
+      }`}
+    >
+      <div className="text-foreground/50 mb-0.5 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide">
+        <Icon className="h-3 w-3" /> {label}
+      </div>
+      <div
+        className={`text-sm font-bold ${
+          hasWithdrawal
+            ? "text-amber-600 dark:text-amber-400"
+            : "text-emerald-600 dark:text-emerald-400"
+        }`}
+      >
+        {hasWithdrawal ? `${days} días` : "Sin retiro"}
+      </div>
+    </div>
   );
 }
 
@@ -161,6 +212,7 @@ export default function TratamientosPage() {
   const farmId = farmQuery.data?.id;
   const [tab, setTab] = useState<Tab>("activos");
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [kindFilter, setKindFilter] = useState<string>("all");
 
   // tratamientos activos (withdrawal aún vigente o sin fecha de fin)
   const activeQuery = useQuery<ActiveTreatment[]>({
@@ -217,15 +269,39 @@ export default function TratamientosPage() {
     },
   });
 
-  const filteredCatalog = (catalogQuery.data ?? []).filter(
-    (c) =>
-      !catalogSearch ||
-      c.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
-      (c.active_ingredient ?? "").toLowerCase().includes(catalogSearch.toLowerCase()) ||
-      (c.kind ?? "").toLowerCase().includes(catalogSearch.toLowerCase())
-  );
+  const catalog = catalogQuery.data ?? [];
+
+  const filteredCatalog = catalog.filter((c) => {
+    if (kindFilter !== "all" && (c.kind ?? "otros") !== kindFilter) return false;
+    if (!catalogSearch) return true;
+    const q = catalogSearch.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      (c.active_ingredient ?? "").toLowerCase().includes(q) ||
+      (c.kind ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  // Tipos presentes con su conteo, para los chips de filtro
+  const kindCounts = catalog.reduce<Record<string, number>>((acc, c) => {
+    const k = c.kind ?? "otros";
+    acc[k] = (acc[k] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  // Agrupar el catálogo filtrado por tipo (para las secciones)
+  const groupedCatalog = Object.entries(
+    filteredCatalog.reduce<Record<string, CatalogItem[]>>((acc, c) => {
+      const k = c.kind ?? "otros";
+      (acc[k] ??= []).push(c);
+      return acc;
+    }, {})
+  ).sort(([a], [b]) => a.localeCompare(b));
 
   const activeCount = activeQuery.data?.length ?? 0;
+
+  const activePg = usePagination(activeQuery.data ?? [], 20);
+  const historyPg = usePagination(historyQuery.data ?? [], 20);
 
   const tabs: { id: Tab; label: string; icon: typeof FlaskConical; count?: number }[] = [
     { id: "activos", label: "En curso / retiro", icon: AlertTriangle, count: activeCount },
@@ -289,7 +365,7 @@ export default function TratamientosPage() {
               </p>
             </div>
           )}
-          {(activeQuery.data ?? []).map((t) => {
+          {activePg.pageItems.map((t) => {
             const meatDays = daysLeft(t.withdrawal_until_meat);
             const milkDays = daysLeft(t.withdrawal_until_milk);
             const inWithdrawal =
@@ -423,6 +499,15 @@ export default function TratamientosPage() {
               </div>
             );
           })}
+          {activeCount > 0 && (
+            <Pagination
+              page={activePg.page}
+              totalPages={activePg.totalPages}
+              total={activePg.total}
+              onChange={activePg.setPage}
+              noun="tratamiento"
+            />
+          )}
         </div>
       )}
 
@@ -467,7 +552,7 @@ export default function TratamientosPage() {
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
-                {(historyQuery.data ?? []).map((t) => (
+                {historyPg.pageItems.map((t) => (
                   <tr key={t.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
                       {t.animals ? (
@@ -510,84 +595,158 @@ export default function TratamientosPage() {
               </tbody>
             </table>
           </div>
+          {(historyQuery.data ?? []).length > 0 && (
+            <Pagination
+              page={historyPg.page}
+              totalPages={historyPg.totalPages}
+              total={historyPg.total}
+              onChange={historyPg.setPage}
+              noun="tratamiento"
+            />
+          )}
         </div>
       )}
 
       {/* ── CATÁLOGO ── */}
       {tab === "catalogo" && (
         <div className="space-y-4">
+          {/* Buscador */}
           <div className="relative">
             <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <input
               type="search"
               placeholder="Buscar por nombre, principio activo o tipo…"
-              className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border py-2 pr-4 pl-9 text-sm focus:ring-2 focus:outline-none"
+              className="border-border bg-background text-foreground focus:border-primary focus:ring-primary/20 w-full rounded-xl border py-2.5 pr-4 pl-9 text-sm focus:ring-2 focus:outline-none"
               value={catalogSearch}
               onChange={(e) => setCatalogSearch(e.target.value)}
             />
           </div>
 
+          {/* Chips de filtro por tipo */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setKindFilter("all")}
+              className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                kindFilter === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground/60 hover:text-foreground"
+              }`}
+            >
+              Todos <span className="opacity-60">{catalog.length}</span>
+            </button>
+            {Object.entries(kindCounts)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([k, count]) => {
+                const active = kindFilter === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setKindFilter(active ? "all" : k)}
+                    className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium capitalize transition-all ${
+                      active
+                        ? (KIND_BADGE[k] ?? "bg-muted text-foreground/60") +
+                          " ring-1 ring-current/30"
+                        : "bg-muted text-foreground/60 hover:text-foreground"
+                    }`}
+                  >
+                    {k} <span className="opacity-60">{count}</span>
+                  </button>
+                );
+              })}
+          </div>
+
           {catalogQuery.isLoading && <SkeletonTable rows={5} cols={4} />}
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredCatalog.map((c) => (
-              <div key={c.id} className="bg-card border-border rounded-2xl border p-4">
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-2">
-                    <BeakerIcon className="text-primary mt-0.5 h-4 w-4 shrink-0" />
-                    <div>
-                      <div className="text-foreground text-sm font-semibold">{c.name}</div>
-                      {c.active_ingredient && (
-                        <div className="text-muted-foreground text-xs">{c.active_ingredient}</div>
+          {/* Secciones agrupadas por tipo */}
+          {groupedCatalog.map(([kind, items]) => {
+            const accent = KIND_ACCENT[kind] ?? {
+              bar: "bg-muted-foreground",
+              icon: "text-foreground/40",
+            };
+            return (
+              <div key={kind}>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className={`h-3 w-1 rounded-full ${accent.bar}`} />
+                  <h3 className="text-foreground text-sm font-semibold capitalize">{kind}</h3>
+                  <span className="text-foreground/40 text-xs">{items.length}</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {items.map((c) => (
+                    <div
+                      key={c.id}
+                      className="bg-card border-border hover:border-primary/30 relative overflow-hidden rounded-2xl border p-4 pl-5 transition-colors hover:shadow-sm"
+                    >
+                      {/* Barra de acento por tipo */}
+                      <span className={`absolute left-0 top-0 h-full w-1 ${accent.bar}`} />
+
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2">
+                          <BeakerIcon className={`mt-0.5 h-4 w-4 shrink-0 ${accent.icon}`} />
+                          <div>
+                            <div className="text-foreground text-sm font-semibold">{c.name}</div>
+                            {c.active_ingredient && (
+                              <div className="text-muted-foreground text-xs">
+                                {c.active_ingredient}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <KindBadge kind={c.kind} />
+                      </div>
+
+                      {/* Vía y dosis */}
+                      <div className="text-foreground/70 mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        {c.route && (
+                          <span className="inline-flex items-center gap-1">
+                            <Syringe className="text-foreground/40 h-3 w-3" /> {c.route}
+                          </span>
+                        )}
+                        {c.dose_per_kg !== null && (
+                          <span className="inline-flex items-center gap-1">
+                            <FlaskConical className="text-foreground/40 h-3 w-3" /> {c.dose_per_kg}{" "}
+                            ml/kg
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Retiros */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <WithdrawalTile
+                          icon={Beef}
+                          label="Retiro carne"
+                          days={c.withdrawal_meat_days}
+                        />
+                        <WithdrawalTile
+                          icon={Milk}
+                          label="Retiro leche"
+                          days={c.withdrawal_milk_days}
+                        />
+                      </div>
+
+                      {c.notes && (
+                        <p className="text-muted-foreground border-border/50 mt-2.5 border-t pt-2 text-xs">
+                          {c.notes}
+                        </p>
                       )}
                     </div>
-                  </div>
-                  <KindBadge kind={c.kind} />
+                  ))}
                 </div>
-
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                  {c.route && (
-                    <>
-                      <dt className="text-muted-foreground">Vía</dt>
-                      <dd className="text-foreground font-medium">{c.route}</dd>
-                    </>
-                  )}
-                  {c.dose_per_kg !== null && (
-                    <>
-                      <dt className="text-muted-foreground">Dosis/kg</dt>
-                      <dd className="text-foreground font-medium">{c.dose_per_kg} ml/kg</dd>
-                    </>
-                  )}
-                  <dt className="text-muted-foreground">Retiro carne</dt>
-                  <dd
-                    className={`font-medium ${(c.withdrawal_meat_days ?? 0) > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}
-                  >
-                    {c.withdrawal_meat_days ? `${c.withdrawal_meat_days} días` : "Sin retiro"}
-                  </dd>
-                  <dt className="text-muted-foreground">Retiro leche</dt>
-                  <dd
-                    className={`font-medium ${(c.withdrawal_milk_days ?? 0) > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}
-                  >
-                    {c.withdrawal_milk_days ? `${c.withdrawal_milk_days} días` : "Sin retiro"}
-                  </dd>
-                </dl>
-
-                {c.notes && (
-                  <p className="text-muted-foreground mt-2 border-t border-border/50 pt-2 text-xs">
-                    {c.notes}
-                  </p>
-                )}
               </div>
-            ))}
+            );
+          })}
 
-            {filteredCatalog.length === 0 && !catalogQuery.isLoading && (
-              <div className="col-span-full py-10 text-center">
-                <p className="text-muted-foreground text-sm">
-                  Sin resultados para &ldquo;{catalogSearch}&rdquo;
-                </p>
-              </div>
-            )}
-          </div>
+          {filteredCatalog.length === 0 && !catalogQuery.isLoading && (
+            <div className="py-12 text-center">
+              <BookOpen className="text-foreground/20 mx-auto mb-3 h-8 w-8" />
+              <p className="text-muted-foreground text-sm">
+                {catalogSearch
+                  ? `Sin resultados para “${catalogSearch}”`
+                  : "No hay tratamientos en el catálogo"}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </DashboardShell>

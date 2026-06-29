@@ -30,6 +30,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { toast } from "sonner";
@@ -48,9 +49,9 @@ type MilkRow = {
 
 const SHIFT_LABEL: Record<string, string> = { am: "AM", pm: "PM", midday: "Mediodía" };
 const SHIFT_STYLE: Record<string, string> = {
-  am: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  midday: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  pm: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  am: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  midday: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+  pm: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
 };
 
 const inputClass =
@@ -882,6 +883,8 @@ export default function ProduccionPage() {
     );
   }, [records, search]);
 
+  const { pageItems: pagedRecords, page, setPage, totalPages, total } = usePagination(filtered, 20);
+
   const totalLiters = records.reduce((s, r) => s + Number(r.liters), 0);
   const avgPerDay = days > 0 ? totalLiters / days : 0;
   const avgFat =
@@ -947,13 +950,13 @@ export default function ProduccionPage() {
             icon: Droplets,
             label: "% Grasa promedio",
             value: records.some((r) => r.fat_pct) ? `${avgFat.toFixed(2)}%` : "—",
-            color: "bg-amber-500/10 text-amber-400",
+            color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
           },
           {
             icon: FlaskConical,
             label: "% Proteína promedio",
             value: records.some((r) => r.protein_pct) ? `${avgProtein.toFixed(2)}%` : "—",
-            color: "bg-purple-500/10 text-purple-400",
+            color: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
           },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-card border-border rounded-2xl border p-5">
@@ -1049,7 +1052,7 @@ export default function ProduccionPage() {
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
-                {filtered.map((r) => (
+                {pagedRecords.map((r) => (
                   <tr key={r.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3.5">
                       <span className="text-foreground/70 tabular-nums text-sm">
@@ -1108,6 +1111,18 @@ export default function ProduccionPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {filtered.length > 0 && (
+          <div className="px-5 pb-1">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              onChange={setPage}
+              noun="registro"
+            />
           </div>
         )}
 

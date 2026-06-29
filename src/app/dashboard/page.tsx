@@ -426,7 +426,7 @@ export default function DashboardPage() {
                     kpi.trendDir === "up"
                       ? "text-emerald-500"
                       : kpi.trendDir === "down"
-                        ? "text-red-400"
+                        ? "text-red-600 dark:text-red-400"
                         : "text-foreground/50"
                   }`}
                 >
@@ -722,7 +722,7 @@ export default function DashboardPage() {
                     </div>
                     {daysUntil !== null && (
                       <div
-                        className={`text-[10px] font-semibold mt-0.5 ${daysUntil <= 2 ? "text-red-400" : daysUntil <= 4 ? "text-amber-400" : "text-emerald-500"}`}
+                        className={`text-[10px] font-semibold mt-0.5 ${daysUntil <= 2 ? "text-red-600 dark:text-red-400" : daysUntil <= 4 ? "text-amber-600 dark:text-amber-400" : "text-emerald-500"}`}
                       >
                         {daysUntil === 0
                           ? "Hoy"

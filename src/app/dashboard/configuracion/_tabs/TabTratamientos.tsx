@@ -10,11 +10,11 @@ import { DeleteDialog } from "./DeleteDialog";
 import { toast } from "sonner";
 
 const KIND_STYLES: Record<string, string> = {
-  antibiótico: "bg-red-500/10 text-red-400 border-red-500/20",
-  antiparasitario: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  antiinflamatorio: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  vitamina: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  hormona: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  antibiótico: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+  antiparasitario: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  antiinflamatorio: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  vitamina: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  hormona: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
   otro: "bg-muted text-foreground/50 border-border",
 };
 
@@ -372,7 +372,7 @@ export function TabTratamientos() {
                         <button
                           type="button"
                           onClick={() => setDeleteId(t.id)}
-                          className="text-foreground/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                          className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
                           title="Eliminar"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

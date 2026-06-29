@@ -139,7 +139,7 @@ export function TabFinca() {
             <div className="space-y-3">
               <div>
                 <label className="text-foreground/60 mb-1.5 block text-xs font-medium">
-                  Nombre de la finca <span className="text-red-400">*</span>
+                  Nombre de la finca <span className="text-red-600 dark:text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <FieldIcon>
@@ -234,7 +234,7 @@ export function TabFinca() {
         {/* Footer */}
         <div className="border-border bg-muted/20 border-t px-6 py-4 flex items-center justify-between gap-3">
           <p className="text-foreground/30 text-xs flex items-center gap-1">
-            <span className="text-red-400">*</span> Campo requerido
+            <span className="text-red-600 dark:text-red-400">*</span> Campo requerido
           </p>
           <button
             type="button"

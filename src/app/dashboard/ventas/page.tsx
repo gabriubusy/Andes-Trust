@@ -23,6 +23,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -78,9 +79,9 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_CLS: Record<string, string> = {
   draft: "bg-muted text-foreground/60",
-  confirmed: "bg-blue-500/15 text-blue-400",
-  paid: "bg-emerald-500/15 text-emerald-400",
-  cancelled: "bg-red-500/15 text-red-400",
+  confirmed: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  paid: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  cancelled: "bg-red-500/15 text-red-600 dark:text-red-400",
 };
 
 const PAYMENT_LABEL: Record<string, string> = {
@@ -603,9 +604,11 @@ function PurchaseModal({
           <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
             {cryptoTx ? (
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-emerald-400">Pago enviado en blockchain</p>
+                  <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    Pago enviado en blockchain
+                  </p>
                   <p className="text-xs text-foreground/50 break-all mt-0.5">TX: {cryptoTx}</p>
                   <button
                     type="button"
@@ -676,7 +679,7 @@ function PurchaseModal({
                             >
                               {c.description}
                             </span>
-                            <span className="text-xs text-red-400 shrink-0">
+                            <span className="text-xs text-red-600 dark:text-red-400 shrink-0">
                               −${discount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                             </span>
                           </label>
@@ -685,7 +688,7 @@ function PurchaseModal({
                     {conditionDiscount > 0 && (
                       <div className="border-t border-border pt-2 flex justify-between text-xs">
                         <span className="text-foreground/50">Descuento aplicado</span>
-                        <span className="text-red-400 font-medium">
+                        <span className="text-red-600 dark:text-red-400 font-medium">
                           −$
                           {conditionDiscount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                         </span>
@@ -888,9 +891,11 @@ function CryptoPayModal({
 
         {cryptoTx ? (
           <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-emerald-400">Pago enviado en blockchain</p>
+              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                Pago enviado en blockchain
+              </p>
               <p className="text-xs text-foreground/50 break-all mt-1">TX: {cryptoTx}</p>
               <button
                 onClick={onDone}
@@ -929,7 +934,7 @@ function CryptoPayModal({
                         >
                           {c.description}
                         </span>
-                        <span className="text-xs text-red-400 shrink-0">
+                        <span className="text-xs text-red-600 dark:text-red-400 shrink-0">
                           −${discount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                         </span>
                       </label>
@@ -938,7 +943,7 @@ function CryptoPayModal({
                 {conditionDiscount > 0 && (
                   <div className="border-t border-border pt-2 flex justify-between text-xs">
                     <span className="text-foreground/50">Descuento aplicado</span>
-                    <span className="text-red-400 font-medium">
+                    <span className="text-red-600 dark:text-red-400 font-medium">
                       −${conditionDiscount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -1122,6 +1127,9 @@ function VentasPageInner() {
   const visibleSales =
     filter === "all" ? allSales : allSales.filter((s) => s.status === (filter as string));
 
+  const salesPg = usePagination(visibleSales, 20);
+  const purchasesPg = usePagination(allPurchases, 20);
+
   const saleFilters: { id: SaleFilter; label: string }[] = [
     { id: "all", label: "Todas" },
     { id: "confirmed", label: "Confirmadas" },
@@ -1283,7 +1291,7 @@ function VentasPageInner() {
                 ))}
               </div>
               <ul className="divide-border divide-y">
-                {visibleSales.map((sale) => (
+                {salesPg.pageItems.map((sale) => (
                   <li key={sale.id}>
                     <Link
                       href={`/dashboard/ventas/${sale.id}`}
@@ -1343,6 +1351,13 @@ function VentasPageInner() {
                   </li>
                 ))}
               </ul>
+              <Pagination
+                page={salesPg.page}
+                totalPages={salesPg.totalPages}
+                total={salesPg.total}
+                onChange={salesPg.setPage}
+                noun="venta"
+              />
             </div>
           )}
         </>
@@ -1365,7 +1380,7 @@ function VentasPageInner() {
               label="Total gastado"
               value={fmt(totalSpent)}
               sub={`${allPurchases.filter((p) => p.status === "paid").length} operaciones pagadas`}
-              color="text-red-400"
+              color="text-red-600 dark:text-red-400"
               bg="bg-red-500/10"
             />
             <StatCard
@@ -1411,7 +1426,7 @@ function VentasPageInner() {
                 ))}
               </div>
               <ul className="divide-border divide-y">
-                {allPurchases.map((p) => (
+                {purchasesPg.pageItems.map((p) => (
                   <li
                     key={p.id}
                     className="hover:bg-muted/30 grid items-center gap-4 px-5 py-4 transition-colors md:grid-cols-[1fr_120px_130px_110px_180px]"
@@ -1473,6 +1488,13 @@ function VentasPageInner() {
                   </li>
                 ))}
               </ul>
+              <Pagination
+                page={purchasesPg.page}
+                totalPages={purchasesPg.totalPages}
+                total={purchasesPg.total}
+                onChange={purchasesPg.setPage}
+                noun="compra"
+              />
             </div>
           )}
         </>

@@ -42,7 +42,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 const dateInputClass =
-  "border-border bg-muted/40 text-foreground focus:border-primary w-full rounded-xl border px-3 py-2 text-sm outline-none transition-colors focus:bg-background";
+  "border-border bg-muted/40 text-foreground hover:border-foreground/20 focus:border-primary focus:ring-primary/20 w-full cursor-pointer rounded-xl border px-3 py-2 text-sm outline-none transition focus:bg-background focus:ring-2";
 
 function AnimalSelector({
   animals,
@@ -253,9 +253,9 @@ export default function ReportesPage() {
         {/* ── Row 1: INSAI + History ── */}
         <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           {/* INSAI generator */}
-          <div className="bg-card border-border rounded-2xl border p-6 space-y-5">
+          <div className="bg-card border-border rounded-2xl border p-6 space-y-5 shadow-sm">
             <div className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+              <div className="from-primary/20 to-primary/5 border-primary/20 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border bg-linear-to-br">
                 <FileText className="h-5 w-5" />
               </div>
               <div>
@@ -318,9 +318,11 @@ export default function ReportesPage() {
           </div>
 
           {/* History */}
-          <div className="bg-card border-border rounded-2xl border p-6">
+          <div className="bg-card border-border rounded-2xl border p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
-              <History className="text-foreground/40 h-4 w-4" />
+              <div className="bg-muted/60 text-foreground/50 flex h-7 w-7 items-center justify-center rounded-lg">
+                <History className="h-4 w-4" />
+              </div>
               <h3 className="text-foreground text-base font-bold">Historial INSAI</h3>
             </div>
 
@@ -340,7 +342,10 @@ export default function ReportesPage() {
 
             <ul className="space-y-2">
               {pagedReports.map((r) => (
-                <li key={r.id} className="bg-muted/20 border-border rounded-xl border p-3">
+                <li
+                  key={r.id}
+                  className="bg-muted/20 border-border hover:border-primary/30 hover:bg-muted/40 rounded-xl border p-3 transition-colors"
+                >
                   <div className="flex items-start gap-2">
                     <FileText className="text-primary/50 mt-0.5 h-4 w-4 shrink-0" />
                     <div className="min-w-0 flex-1">
@@ -402,9 +407,9 @@ export default function ReportesPage() {
         </div>
 
         {/* ── Row 2: Milk Quality ── */}
-        <div className="bg-card border-border rounded-2xl border p-6 space-y-5">
+        <div className="bg-card border-border rounded-2xl border p-6 space-y-5 shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="bg-blue-500/10 text-blue-400 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-linear-to-br from-blue-500/20 to-blue-500/5 text-blue-400">
               <Droplets className="h-5 w-5" />
             </div>
             <div>

@@ -17,18 +17,18 @@ const SPECIES_LABELS: Record<string, string> = {
 };
 
 const SPECIES_STYLES: Record<string, string> = {
-  bovine: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  equine: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  porcine: "bg-pink-500/10 text-pink-400 border-pink-500/20",
-  ovine: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  caprine: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  bovine: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  equine: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  porcine: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20",
+  ovine: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  caprine: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
 };
 
 const PURPOSE_STYLES: Record<string, string> = {
-  dairy: "bg-blue-500/10 text-blue-400",
-  beef: "bg-red-500/10 text-red-400",
-  dual: "bg-violet-500/10 text-violet-400",
-  breeding: "bg-green-500/10 text-green-400",
+  dairy: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  beef: "bg-red-500/10 text-red-600 dark:text-red-400",
+  dual: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  breeding: "bg-green-500/10 text-green-600 dark:text-green-400",
 };
 
 function BreedModal({
@@ -320,7 +320,7 @@ export function TabRazas() {
                           {SPECIES_LABELS[b.species] ?? b.species}
                         </span>
                       ) : (
-                        <span className="bg-amber-500/10 text-amber-400 border-amber-500/20 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium">
+                        <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium">
                           Bovina
                         </span>
                       )}
@@ -353,7 +353,7 @@ export function TabRazas() {
                         <button
                           type="button"
                           onClick={() => setDeleteId(b.id)}
-                          className="text-foreground/50 hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                          className="text-foreground/50 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
                           title="Eliminar"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

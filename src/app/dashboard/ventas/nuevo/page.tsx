@@ -333,7 +333,7 @@ export default function NuevaVentaPage() {
           )}
 
           {sanitaryBlocked.length > 0 && (
-            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-400">
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>
                 <strong>

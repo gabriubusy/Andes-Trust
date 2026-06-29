@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import Pagination, { usePagination } from "@/components/Pagination";
 import CertificateForm from "@/components/CertificateForm";
 import SignAnchorButton from "@/components/SignAnchorButton";
 import { useSupabase } from "@/hooks/use-supabase";
@@ -31,11 +32,11 @@ const CERT_TYPE_LABELS: Record<string, string> = {
 };
 
 const CERT_TYPE_STYLES: Record<string, string> = {
-  origin: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  health: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  organic: "bg-green-500/10 text-green-400 border-green-500/20",
-  welfare: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  export: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  origin: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  health: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  organic: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
+  welfare: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20",
+  export: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
   other: "bg-muted text-foreground/50 border-border",
 };
 
@@ -72,17 +73,17 @@ const getStatus = (v: string | null) => {
 
 const STATUS_BADGE: Record<string, React.ReactNode> = {
   active: (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
       <ShieldCheck className="h-3 w-3" /> Vigente
     </span>
   ),
   near: (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
       <ShieldAlert className="h-3 w-3" /> Por vencer
     </span>
   ),
   expired: (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-400">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
       <ShieldOff className="h-3 w-3" /> Vencido
     </span>
   ),
@@ -180,6 +181,8 @@ export default function CertificadosPage() {
 
   const hasFilter = search || typeFilter !== "all" || statusFilter !== "all";
 
+  const { pageItems: pagedCerts, page, setPage, totalPages, total } = usePagination(filtered, 20);
+
   return (
     <DashboardShell
       title="Certificados"
@@ -206,19 +209,19 @@ export default function CertificadosPage() {
           {
             label: "Vigentes",
             value: stats.active,
-            color: "text-emerald-400 bg-emerald-500/10",
+            color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
             icon: ShieldCheck,
           },
           {
             label: "Por vencer",
             value: stats.near,
-            color: "text-amber-400 bg-amber-500/10",
+            color: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
             icon: ShieldAlert,
           },
           {
             label: "Vencidos",
             value: stats.expired,
-            color: "text-red-400 bg-red-500/10",
+            color: "text-red-600 dark:text-red-400 bg-red-500/10",
             icon: ShieldOff,
           },
         ].map((s) => (
@@ -383,7 +386,7 @@ export default function CertificadosPage() {
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
-                {filtered.map((c) => {
+                {pagedCerts.map((c) => {
                   const st = getStatus(c.valid_until);
                   return (
                     <tr key={c.id} className="hover:bg-muted/30 group transition-colors">
@@ -422,9 +425,9 @@ export default function CertificadosPage() {
                         <span
                           className={
                             st === "expired"
-                              ? "text-red-400"
+                              ? "text-red-600 dark:text-red-400"
                               : st === "near"
-                                ? "text-amber-400"
+                                ? "text-amber-600 dark:text-amber-400"
                                 : "text-foreground/60"
                           }
                         >
@@ -453,6 +456,18 @@ export default function CertificadosPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {filtered.length > 0 && (
+          <div className="px-5 pb-1">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              onChange={setPage}
+              noun="certificado"
+            />
           </div>
         )}
 

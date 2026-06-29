@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { ANIMAL_PHOTOS_BUCKET } from "@/lib/supabase/storage";
@@ -55,10 +56,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+  active: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
   inactive: "bg-slate-500/15 text-slate-400 border-slate-500/20",
-  sold: "bg-blue-500/15 text-blue-400 border-blue-500/20",
-  deceased: "bg-red-500/15 text-red-400 border-red-500/20",
+  sold: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  deceased: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
 };
 
 function AnimalAvatar({
@@ -190,6 +191,8 @@ export default function AnimalesListPage() {
     return list;
   }, [animals, search, statusFilter, sexFilter, sortKey, sortDir]);
 
+  const { pageItems: pagedAnimals, page, setPage, totalPages, total } = usePagination(filtered, 20);
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
@@ -231,19 +234,19 @@ export default function AnimalesListPage() {
             icon: Beef,
             label: "Activos",
             value: stats.active,
-            color: "text-emerald-400 bg-emerald-500/10",
+            color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
           },
           {
             icon: Venus,
             label: "Hembras",
             value: stats.females,
-            color: "text-pink-400 bg-pink-500/10",
+            color: "text-pink-600 dark:text-pink-400 bg-pink-500/10",
           },
           {
             icon: Mars,
             label: "Machos",
             value: stats.males,
-            color: "text-blue-400 bg-blue-500/10",
+            color: "text-blue-600 dark:text-blue-400 bg-blue-500/10",
           },
         ].map((s) => (
           <div
@@ -433,7 +436,7 @@ export default function AnimalesListPage() {
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
-                {filtered.map((a) => (
+                {pagedAnimals.map((a) => (
                   <tr key={a.id} className="hover:bg-muted/30 group transition-colors">
                     {/* Avatar */}
                     <td className="pl-5 py-3.5">
@@ -472,8 +475,8 @@ export default function AnimalesListPage() {
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           a.sex === "female"
-                            ? "bg-pink-500/10 text-pink-400"
-                            : "bg-blue-500/10 text-blue-400"
+                            ? "bg-pink-500/10 text-pink-600 dark:text-pink-400"
+                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                         }`}
                       >
                         {a.sex === "female" ? (
@@ -534,6 +537,19 @@ export default function AnimalesListPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Paginación */}
+        {filtered.length > 0 && (
+          <div className="px-5 pb-1">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              onChange={setPage}
+              noun="animal"
+            />
           </div>
         )}
 
