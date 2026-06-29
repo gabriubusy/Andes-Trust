@@ -67,9 +67,9 @@ function AnimalSelector({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-foreground/60 text-xs font-medium">
+        <span className="text-foreground/55 text-xs font-semibold uppercase tracking-wide">
           Animales{" "}
-          <span className="text-foreground/40">
+          <span className="text-foreground/35 normal-case">
             (
             {selected.size === 0
               ? "todos"
@@ -267,11 +267,11 @@ export default function ReportesPage() {
             </div>
 
             {/* Date range */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
+            <div className="border-border bg-muted/20 rounded-xl border p-4">
+              <div className="mb-2.5 flex items-center gap-2">
                 <CalendarRange className="text-foreground/40 h-3.5 w-3.5" />
-                <span className="text-foreground/60 text-xs font-medium">
-                  Rango de fechas (opcional)
+                <span className="text-foreground/55 text-xs font-semibold uppercase tracking-wide">
+                  Rango de fechas <span className="text-foreground/35 normal-case">(opcional)</span>
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -306,7 +306,7 @@ export default function ReportesPage() {
             <button
               onClick={() => generateInsai.mutate()}
               disabled={generateInsai.isPending}
-              className="bg-primary hover:bg-primary/90 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-colors"
+              className="bg-primary hover:bg-primary/90 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-primary/20 disabled:opacity-50 transition-colors"
             >
               {generateInsai.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -315,6 +315,10 @@ export default function ReportesPage() {
               )}
               {generateInsai.isPending ? "Generando PDF…" : "Descargar PDF"}
             </button>
+
+            <p className="text-foreground/40 text-xs">
+              Sin animales seleccionados: incluye todo el inventario activo de la finca.
+            </p>
           </div>
 
           {/* History */}
@@ -424,11 +428,12 @@ export default function ReportesPage() {
           <div className="grid gap-6 sm:grid-cols-2">
             {/* Dates */}
             <div className="space-y-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
+              <div className="border-border bg-muted/20 rounded-xl border p-4">
+                <div className="mb-2.5 flex items-center gap-2">
                   <CalendarRange className="text-foreground/40 h-3.5 w-3.5" />
-                  <span className="text-foreground/60 text-xs font-medium">
-                    Rango de fechas (opcional)
+                  <span className="text-foreground/55 text-xs font-semibold uppercase tracking-wide">
+                    Rango de fechas{" "}
+                    <span className="text-foreground/35 normal-case">(opcional)</span>
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -456,7 +461,7 @@ export default function ReportesPage() {
               <button
                 onClick={() => generateMilk.mutate()}
                 disabled={generateMilk.isPending}
-                className="bg-blue-500 hover:bg-blue-500/90 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-colors"
+                className="bg-blue-500 hover:bg-blue-500/90 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-blue-500/20 disabled:opacity-50 transition-colors"
               >
                 {generateMilk.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
