@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Loader2,
   UploadCloud,
@@ -80,22 +79,6 @@ export default function CertificateForm({ onSuccess, onCancel }: Props) {
 
   const docUrl = watch("document_url");
   const certType = watch("type");
-
-  const animalsQuery = useQuery<{ id: string; tag: string; name: string | null }[]>({
-    queryKey: ["animals-select", farmId],
-    enabled: !!supabase && !!farmId,
-    queryFn: async () => {
-      if (!supabase || !farmId) return [];
-      const { data, error } = await supabase
-        .from("animals")
-        .select("id, tag, name")
-        .eq("farm_id", farmId)
-        .eq("status", "active")
-        .order("tag");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -185,25 +168,8 @@ export default function CertificateForm({ onSuccess, onCancel }: Props) {
         {errors.type && <p className={errorCls}>{errors.type.message}</p>}
       </div>
 
-      {/* Bloque: alcance y emisor */}
+      {/* Bloque: emisor */}
       <div className="border-border bg-muted/20 grid gap-5 rounded-2xl border p-5 sm:grid-cols-2">
-        {/* Animal */}
-        <div className="sm:col-span-2">
-          <label className={labelCls}>Alcance</label>
-          <select {...register("animal_id")} className={`${inputCls} cursor-pointer`}>
-            <option value="">— Finca en general —</option>
-            {(animalsQuery.data ?? []).map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.tag}
-                {a.name ? ` · ${a.name}` : ""}
-              </option>
-            ))}
-          </select>
-          <p className="text-foreground/50 mt-1.5 text-xs">
-            Deja vacío si el certificado aplica a toda la finca.
-          </p>
-        </div>
-
         {/* Emisor */}
         <div className="sm:col-span-2">
           <label className={labelCls}>

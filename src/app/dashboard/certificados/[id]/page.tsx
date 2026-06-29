@@ -179,9 +179,48 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
       </Link>
 
       {certQuery.isLoading && (
-        <div className="flex items-center gap-3 py-8">
-          <Loader2 className="text-primary h-5 w-5 animate-spin" />
-          <span className="text-foreground/60 text-sm">Cargando…</span>
+        <div className="grid animate-pulse gap-6 lg:grid-cols-[1fr_360px]">
+          {/* Columna principal */}
+          <div className="space-y-6">
+            {/* Cabecera */}
+            <div className="bg-card border-border rounded-2xl border p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="bg-muted/50 h-14 w-14 shrink-0 rounded-2xl" />
+                <div className="flex-1 space-y-2">
+                  <div className="bg-muted/40 h-4 w-20 rounded-full" />
+                  <div className="bg-muted/60 h-5 w-48 rounded-full" />
+                  <div className="bg-muted/40 h-3 w-32 rounded-full" />
+                </div>
+                <div className="bg-muted/40 h-6 w-20 rounded-full" />
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-muted/30 border-border/50 space-y-2 rounded-xl border px-3 py-2.5"
+                  >
+                    <div className="bg-muted/40 h-2.5 w-12 rounded-full" />
+                    <div className="bg-muted/60 h-3.5 w-16 rounded-full" />
+                  </div>
+                ))}
+              </div>
+              <div className="bg-muted/50 mt-6 h-9 w-36 rounded-xl" />
+            </div>
+            {/* Firma */}
+            <div className="bg-card border-border space-y-3 rounded-2xl border p-6 shadow-sm">
+              <div className="bg-muted/60 h-4 w-56 rounded-full" />
+              <div className="bg-muted/40 h-3 w-full max-w-md rounded-full" />
+              <div className="bg-muted/50 h-7 w-24 rounded-lg" />
+            </div>
+          </div>
+          {/* Columna QR */}
+          <div className="bg-card border-border h-fit space-y-4 rounded-2xl border p-6 shadow-sm">
+            <div className="bg-muted/60 h-4 w-40 rounded-full" />
+            <div className="bg-muted/40 h-3 w-full rounded-full" />
+            <div className="bg-muted/40 mx-auto h-52 w-52 rounded-2xl" />
+            <div className="bg-muted/50 h-9 w-full rounded-lg" />
+            <div className="bg-muted/40 h-9 w-full rounded-lg" />
+          </div>
         </div>
       )}
 

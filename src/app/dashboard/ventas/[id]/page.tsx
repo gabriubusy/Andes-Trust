@@ -202,9 +202,45 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   if (saleQuery.isLoading || !sale) {
     return (
       <DashboardShell title="Cargando venta…">
-        <div className="flex items-center gap-3 py-16">
-          <Loader2 className="text-primary h-5 w-5 animate-spin" />
-          <span className="text-muted-foreground text-sm">Cargando…</span>
+        <div className="grid animate-pulse gap-6 lg:grid-cols-[1fr_380px]">
+          {/* Columna izquierda */}
+          <div className="space-y-5">
+            {/* Cabecera */}
+            <div className="bg-card border-border rounded-2xl border p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="bg-muted/50 h-6 w-24 rounded-full" />
+                  <div className="bg-muted/40 h-3 w-40 rounded-full" />
+                </div>
+                <div className="space-y-2 text-right">
+                  <div className="bg-muted/60 ml-auto h-7 w-32 rounded-full" />
+                  <div className="bg-muted/40 ml-auto h-3 w-20 rounded-full" />
+                </div>
+              </div>
+            </div>
+            {/* Lista de animales */}
+            <div className="bg-card border-border space-y-4 rounded-2xl border p-6">
+              <div className="bg-muted/60 h-4 w-32 rounded-full" />
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="bg-muted/50 h-10 w-10 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <div className="bg-muted/50 h-3.5 w-40 rounded-full" />
+                    <div className="bg-muted/40 h-3 w-24 rounded-full" />
+                  </div>
+                  <div className="bg-muted/40 h-4 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Columna derecha */}
+          <div className="bg-card border-border h-fit space-y-4 rounded-2xl border p-6">
+            <div className="bg-muted/60 h-4 w-40 rounded-full" />
+            <div className="bg-muted/40 h-3 w-full rounded-full" />
+            <div className="bg-muted/40 h-3 w-2/3 rounded-full" />
+            <div className="bg-muted/50 h-10 w-full rounded-xl" />
+            <div className="bg-muted/40 h-10 w-full rounded-xl" />
+          </div>
         </div>
       </DashboardShell>
     );

@@ -679,7 +679,7 @@ export async function POST(req: Request) {
       thickness: 0.6,
       color: C.mid,
     });
-    y -= chartH + 28;
+    y -= chartH + 18;
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -753,7 +753,7 @@ export async function POST(req: Request) {
     y -= tRowH;
     alt = !alt;
   }
-  y -= 16;
+  y -= 10;
 
   // ══════════════════════════════════════════════════════════════════════════════
   // PER-ANIMAL TABLE (only if multiple animals)
@@ -820,7 +820,7 @@ export async function POST(req: Request) {
       y -= tRowH;
       alt = !alt;
     }
-    y -= 16;
+    y -= 10;
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -923,14 +923,14 @@ export async function POST(req: Request) {
     });
     y -= tRowH;
   }
-  y -= 20;
+  y -= 8;
 
   // ══════════════════════════════════════════════════════════════════════════════
   // FOOTER (last page)
   // ══════════════════════════════════════════════════════════════════════════════
   // El footer se ancla al fondo de la página (ocupa hasta ~y=125). Si el contenido
   // llegó demasiado abajo, abrimos una página nueva para evitar el solapamiento.
-  const FOOTER_RESERVED = 150;
+  const FOOTER_RESERVED = 132;
   if (y < FOOTER_RESERVED) newPage();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fincaelprogreso.com";

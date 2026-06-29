@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import CertificateForm from "@/components/CertificateForm";
+import SignAnchorButton from "@/components/SignAnchorButton";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 
@@ -115,6 +116,26 @@ export default function CertificadosPage() {
         .order("issued_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as CertRow[];
+    },
+  });
+
+  // Mapa de anclajes en blockchain por certificado (id -> tx_hash)
+  const anchorsQuery = useQuery<Record<string, string>>({
+    queryKey: ["cert-anchors", farmId],
+    enabled: !!supabase && !!farmId,
+    queryFn: async () => {
+      if (!supabase || !farmId) return {};
+      const { data, error } = await supabase
+        .from("blockchain_records")
+        .select("entity_id, tx_hash")
+        .eq("entity_type", "certifications")
+        .eq("farm_id", farmId);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      for (const r of data ?? []) {
+        if (r.entity_id && r.tx_hash) map[r.entity_id as string] = r.tx_hash as string;
+      }
+      return map;
     },
   });
 
@@ -357,6 +378,7 @@ export default function CertificadosPage() {
                   <th className="px-5 py-3 text-left font-medium">Emitido</th>
                   <th className="px-5 py-3 text-left font-medium">Vence</th>
                   <th className="px-5 py-3 text-left font-medium">Estado</th>
+                  <th className="px-5 py-3 text-left font-medium">Cadena</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -410,6 +432,14 @@ export default function CertificadosPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">{STATUS_BADGE[st]}</td>
+                      <td className="px-5 py-3.5">
+                        <SignAnchorButton
+                          entityType="certifications"
+                          entityId={c.id}
+                          txHash={anchorsQuery.data?.[c.id] ?? null}
+                          onDone={() => anchorsQuery.refetch()}
+                        />
+                      </td>
                       <td className="pr-5 py-3.5 text-right">
                         <Link
                           href={`/dashboard/certificados/${c.id}`}
