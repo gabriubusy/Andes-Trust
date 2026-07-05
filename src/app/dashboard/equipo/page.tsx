@@ -196,17 +196,21 @@ export default function EquipoPage() {
       });
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error ?? "fail");
-      return json as { verified: boolean; reason?: string };
+      return json as { verified: boolean; reason?: string; created_account?: boolean };
     },
     onSuccess: (data) => {
-      if (data.verified) {
+      if (data.verified && data.created_account) {
+        toast.success("Cuenta creada y miembro añadido. Ya puede iniciar sesión con ese correo.");
+        qc.invalidateQueries({ queryKey: ["farm-invitations", farmId] });
+        qc.invalidateQueries({ queryKey: ["farm-members", farmId] });
+      } else if (data.verified) {
         toast.success("Invitación verificada: el miembro ya tiene acceso.");
         qc.invalidateQueries({ queryKey: ["farm-invitations", farmId] });
         qc.invalidateQueries({ queryKey: ["farm-members", farmId] });
-      } else if (data.reason === "no_account") {
-        toast.info("El invitado todavía no ha creado su cuenta.");
-      } else {
+      } else if (data.reason === "not_pending") {
         toast.info("Esta invitación ya no está pendiente.");
+      } else {
+        toast.error("No se pudo crear la cuenta del invitado.");
       }
     },
     onError: () => toast.error("No se pudo verificar la invitación."),

@@ -167,13 +167,40 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ verified: false, reason: "not_pending" });
   }
 
-  const { data: profile } = await sb
+  let { data: profile } = await sb
     .from("profiles")
     .select("id")
     .eq("email", inv.email)
     .maybeSingle();
+  let createdAccount = false;
+
   if (!profile) {
-    return NextResponse.json({ verified: false, reason: "no_account" });
+    // El invitado aún no inició sesión nunca: crea su cuenta en Privy y su perfil.
+    let privyUser;
+    try {
+      privyUser = await getPrivy().importUser({
+        linkedAccounts: [{ type: "email", address: inv.email }],
+      });
+    } catch (err) {
+      return NextResponse.json(
+        { verified: false, reason: "account_creation_failed", detail: String(err) },
+        { status: 500 }
+      );
+    }
+
+    const { data: created, error: insertError } = await sb
+      .from("profiles")
+      .insert({ privy_did: privyUser.id, email: inv.email })
+      .select("id")
+      .single();
+    if (insertError || !created) {
+      return NextResponse.json(
+        { verified: false, reason: "profile_creation_failed", detail: insertError?.message },
+        { status: 500 }
+      );
+    }
+    profile = created;
+    createdAccount = true;
   }
 
   await sb
@@ -187,7 +214,7 @@ export async function PATCH(req: Request) {
     .update({ status: "accepted", accepted_by: profile.id, accepted_at: new Date().toISOString() })
     .eq("id", inv.id);
 
-  return NextResponse.json({ verified: true });
+  return NextResponse.json({ verified: true, created_account: createdAccount });
 }
 
 export async function DELETE(req: Request) {
