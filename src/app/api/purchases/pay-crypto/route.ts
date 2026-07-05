@@ -151,7 +151,7 @@ export async function POST(req: Request) {
 
     await sb
       .from("purchases")
-      .update({ status: "paid", payment_method: "crypto" })
+      .update({ status: "paid", payment_method: "crypto", crypto_tx: tx })
       .eq("id", body.purchase_id);
 
     return NextResponse.json({ tx });

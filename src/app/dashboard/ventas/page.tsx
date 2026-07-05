@@ -21,6 +21,7 @@ import {
   QrCode,
   Wallet,
   CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
@@ -63,6 +64,7 @@ type PurchaseRow = {
   invoice_number: string | null;
   notes: string | null;
   conditions: PurchaseCondition[] | null;
+  crypto_tx: string | null;
   _item_count: number;
 };
 
@@ -83,6 +85,8 @@ const STATUS_CLS: Record<string, string> = {
   paid: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
   cancelled: "bg-red-500/15 text-red-600 dark:text-red-400",
 };
+
+const EXPLORER_URL = process.env.NEXT_PUBLIC_EXPLORER_URL ?? "https://amoy.polygonscan.com";
 
 const PAYMENT_LABEL: Record<string, string> = {
   cash: "Efectivo",
@@ -1094,7 +1098,7 @@ function VentasPageInner() {
       )
         .from("purchases")
         .select(
-          "id, seller_name, purchased_at, total_amount, currency, status, payment_method, invoice_number, notes, conditions, purchase_items(id)"
+          "id, seller_name, purchased_at, total_amount, currency, status, payment_method, invoice_number, notes, conditions, crypto_tx, purchase_items(id)"
         )
         .eq("farm_id", farmId!)
         .order("purchased_at", { ascending: false })
@@ -1483,6 +1487,17 @@ function VentasPageInner() {
                         >
                           <Wallet className="h-3 w-3" /> Pagar
                         </button>
+                      )}
+                      {p.payment_method === "crypto" && p.crypto_tx && (
+                        <a
+                          href={`${EXPLORER_URL}/tx/${p.crypto_tx}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Ver transacción en blockchain"
+                          className="text-foreground/40 hover:text-primary shrink-0"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
                       )}
                     </div>
                   </li>

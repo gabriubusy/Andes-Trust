@@ -7,10 +7,9 @@ import { usePrivy } from "@privy-io/react-auth";
 import {
   ArrowLeft,
   CheckCircle,
-  AlertCircle,
-  ExternalLink,
   Loader2,
   Receipt,
+  Download,
   User,
   Beef,
   BadgeCheck,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
+import { toast } from "sonner";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -42,16 +42,6 @@ type Sale = {
   payment_method: string | null;
   invoice_number: string | null;
   notes: string | null;
-  escrow_status: "none" | "created" | "funded" | "released" | "refunded" | "failed";
-  escrow_token: string | null;
-  escrow_amount: string | null;
-  escrow_buyer: string | null;
-  escrow_seller: string | null;
-  conditions_hash: string | null;
-  escrow_deadline: string | null;
-  escrow_create_tx: string | null;
-  escrow_release_tx: string | null;
-  escrow_refund_tx: string | null;
   buyers: {
     id: string;
     name: string;
@@ -63,8 +53,6 @@ type Sale = {
 };
 
 // ─── constants ────────────────────────────────────────────────────────────────
-
-const EXPLORER = process.env.NEXT_PUBLIC_EXPLORER_URL ?? "https://amoy.polygonscan.com";
 
 const STATUS_CLS: Record<string, string> = {
   draft: "bg-muted text-foreground/60",
@@ -88,52 +76,6 @@ const PAYMENT_LABEL: Record<string, string> = {
   escrow: "Contrato inteligente",
 };
 
-const ESCROW_CLS: Record<string, string> = {
-  none: "bg-muted text-foreground/50",
-  created: "bg-amber-500/15 text-amber-600",
-  funded: "bg-blue-500/15 text-blue-600",
-  released: "bg-emerald-500/15 text-emerald-600",
-  refunded: "bg-orange-500/15 text-orange-600",
-  failed: "bg-red-500/15 text-red-500",
-};
-
-const ESCROW_LABEL: Record<string, string> = {
-  none: "Sin contrato",
-  created: "Contrato creado",
-  funded: "Fondos depositados",
-  released: "Pago liberado automáticamente",
-  refunded: "Reembolsado",
-  failed: "Error",
-};
-
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-function txLink(hash: string | null) {
-  if (!hash) return null;
-  return `${EXPLORER}/tx/${hash}`;
-}
-
-function HashRow({ label, value, link }: { label: string; value: string; link?: string | null }) {
-  const short = value.length > 20 ? `${value.slice(0, 10)}…${value.slice(-6)}` : value;
-  return (
-    <div className="flex items-center justify-between gap-3 py-1.5 text-xs">
-      <span className="text-muted-foreground shrink-0">{label}</span>
-      {link ? (
-        <a
-          href={link}
-          target="_blank"
-          rel="noreferrer"
-          className="text-primary inline-flex items-center gap-1 font-mono hover:underline"
-        >
-          {short} <ExternalLink className="h-3 w-3" />
-        </a>
-      ) : (
-        <span className="text-foreground font-mono">{short}</span>
-      )}
-    </div>
-  );
-}
-
 // ─── component ───────────────────────────────────────────────────────────────
 
 export default function VentaDetallePage({ params }: { params: Promise<{ id: string }> }) {
@@ -142,10 +84,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   const { getAccessToken } = usePrivy();
   const qc = useQueryClient();
 
-  const [buyer, setBuyer] = useState("");
-  const [seller, setSeller] = useState("");
-  const [amount, setAmount] = useState("");
-  const [days, setDays] = useState(7);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   const saleQuery = useQuery<Sale>({
     queryKey: ["sale", id],
@@ -157,9 +96,6 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           `
           id, farm_id, sold_at, total_amount, currency, status, payment_method,
           invoice_number, notes,
-          escrow_status, escrow_token, escrow_amount, escrow_buyer, escrow_seller,
-          conditions_hash, escrow_deadline,
-          escrow_create_tx, escrow_release_tx, escrow_refund_tx,
           buyers(id, name, legal_id, phone, email),
           sale_items(id, description, quantity, unit_price, weight_kg, animals(id, tag, name))
         `
@@ -182,20 +118,31 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sale", id] }),
   });
 
-  const escrowAction = useMutation({
-    mutationFn: async (body: Record<string, unknown>) => {
+  async function downloadInvoice() {
+    setDownloadingInvoice(true);
+    try {
       const token = await getAccessToken();
-      const res = await fetch(`/api/sales/${id}/escrow/action`, {
+      const res = await fetch("/api/reports/factura", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ sale_id: id }),
       });
-      const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.error ?? "Error en escrow");
-      return json;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sale", id] }),
-  });
+      if (!res.ok) throw new Error("Error generando la factura");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `factura-${id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  }
 
   const sale = saleQuery.data;
 
@@ -247,7 +194,6 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   }
 
   const totalWeight = sale.sale_items.reduce((s, i) => s + (i.weight_kg ?? 0), 0);
-  const escrow = sale.escrow_status;
 
   return (
     <DashboardShell
@@ -498,172 +444,29 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             </dl>
           </div>
 
-          {/* Escrow */}
+          {/* Facturas */}
           <div className="bg-card border-border rounded-2xl border p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-foreground flex items-center gap-2 text-base font-bold">
-                  <Receipt className="text-primary h-4 w-4" /> Pago automatizado
-                </h3>
-                <p className="text-foreground/40 text-xs mt-0.5">Contrato inteligente · Polygon</p>
-              </div>
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${ESCROW_CLS[escrow] ?? "bg-muted"}`}
-              >
-                {ESCROW_LABEL[escrow] ?? escrow}
-              </span>
-            </div>
-
-            {escrow === "none" && (
-              <div className="space-y-3">
-                <div className="bg-muted/30 border-border rounded-xl border p-3 space-y-1.5 text-xs">
-                  <p className="text-foreground/70 font-medium">¿Cómo funciona?</p>
-                  <ol className="text-foreground/50 space-y-1 list-decimal list-inside leading-relaxed">
-                    <li>
-                      El <strong className="text-foreground/70">comprador</strong> deposita el monto
-                      en el contrato
-                    </li>
-                    <li>El contrato verifica el historial sanitario del animal on-chain</li>
-                    <li>
-                      El pago se{" "}
-                      <strong className="text-foreground/70">libera automáticamente</strong> al
-                      vendedor cuando las condiciones se cumplen
-                    </li>
-                  </ol>
-                </div>
-                <input
-                  value={buyer}
-                  onChange={(e) => setBuyer(e.target.value)}
-                  placeholder="0x… wallet del comprador"
-                  className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-xs"
-                />
-                <input
-                  value={seller}
-                  onChange={(e) => setSeller(e.target.value)}
-                  placeholder="0x… wallet del vendedor (finca)"
-                  className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-xs"
-                />
-                <div className="flex gap-2">
-                  <input
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Monto (USDC 6 dec)"
-                    className="border-border bg-background text-foreground flex-1 rounded-lg border px-3 py-2 text-xs"
-                  />
-                  <input
-                    type="number"
-                    value={days}
-                    onChange={(e) => setDays(Number(e.target.value))}
-                    className="border-border bg-background text-foreground w-16 rounded-lg border px-2 py-2 text-xs"
-                  />
-                  <span className="text-muted-foreground self-center text-xs">días</span>
-                </div>
-                <button
-                  type="button"
-                  disabled={!buyer || !seller || !amount || escrowAction.isPending}
-                  onClick={() =>
-                    escrowAction.mutate({
-                      action: "create",
-                      buyer,
-                      seller,
-                      amount,
-                      deadline_seconds: days * 86400,
-                    })
-                  }
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50"
-                >
-                  {escrowAction.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Crear contrato de pago"
-                  )}
-                </button>
-              </div>
-            )}
-
-            {escrow !== "none" && (
-              <div className="divide-border divide-y">
-                {sale.escrow_buyer && <HashRow label="Comprador" value={sale.escrow_buyer} />}
-                {sale.escrow_seller && <HashRow label="Vendedor" value={sale.escrow_seller} />}
-                {sale.escrow_amount && (
-                  <HashRow label="Monto" value={`${sale.escrow_amount} (raw)`} />
-                )}
-                {sale.conditions_hash && (
-                  <HashRow label="Hash condiciones" value={sale.conditions_hash} />
-                )}
-                {sale.escrow_deadline && (
-                  <div className="flex justify-between py-1.5 text-xs">
-                    <span className="text-muted-foreground">Deadline</span>
-                    <span className="text-foreground">
-                      {new Date(sale.escrow_deadline).toLocaleString("es-VE")}
-                    </span>
-                  </div>
-                )}
-                {sale.escrow_create_tx && (
-                  <HashRow
-                    label="Tx create"
-                    value={sale.escrow_create_tx}
-                    link={txLink(sale.escrow_create_tx)}
-                  />
-                )}
-                {sale.escrow_release_tx && (
-                  <HashRow
-                    label="Tx release"
-                    value={sale.escrow_release_tx}
-                    link={txLink(sale.escrow_release_tx)}
-                  />
-                )}
-                {sale.escrow_refund_tx && (
-                  <HashRow
-                    label="Tx refund"
-                    value={sale.escrow_refund_tx}
-                    link={txLink(sale.escrow_refund_tx)}
-                  />
-                )}
-              </div>
-            )}
-
-            {escrow === "created" && (
-              <div className="border-amber-500/30 bg-amber-500/5 mt-3 rounded-xl border border-dashed p-3 text-xs space-y-1">
-                <p className="text-amber-600 font-medium flex items-center gap-1">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Esperando depósito del comprador
-                </p>
-                <p className="text-foreground/50">
-                  El comprador debe depositar los fondos en el contrato desde su wallet para activar
-                  la custodia automática.
-                </p>
-              </div>
-            )}
-
-            {(escrow === "created" || escrow === "funded") && (
-              <div className="mt-3 space-y-2">
-                <button
-                  type="button"
-                  disabled={escrowAction.isPending}
-                  onClick={() => escrowAction.mutate({ action: "release" })}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-600/90 disabled:opacity-50"
-                >
-                  {escrowAction.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4" />
-                  )}
-                  Verificar condiciones y liberar pago
-                </button>
-                <button
-                  type="button"
-                  disabled={escrowAction.isPending}
-                  onClick={() => escrowAction.mutate({ action: "refund" })}
-                  className="border-destructive/30 text-destructive hover:bg-destructive/5 inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
-                >
-                  Reembolsar al comprador (tras vencimiento)
-                </button>
-              </div>
-            )}
-
-            {escrowAction.isError && (
-              <p className="mt-2 text-xs text-red-500">{(escrowAction.error as Error).message}</p>
-            )}
+            <h3 className="text-foreground mb-1 flex items-center gap-2 text-base font-bold">
+              <Receipt className="text-primary h-4 w-4" /> Factura
+            </h3>
+            <p className="text-foreground/40 text-xs mb-4">
+              {sale.invoice_number
+                ? `N° ${sale.invoice_number}`
+                : "Genera un PDF con el detalle de esta venta"}
+            </p>
+            <button
+              type="button"
+              disabled={downloadingInvoice}
+              onClick={downloadInvoice}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50"
+            >
+              {downloadingInvoice ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Descargar factura (PDF)
+            </button>
           </div>
         </div>
       </div>

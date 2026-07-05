@@ -26,10 +26,10 @@ import {
   HeartPulse,
   Check,
   ExternalLink,
-  Menu,
   X,
   ChevronLeft,
   ChevronRight,
+  MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -136,6 +136,13 @@ const navItems: {
 ];
 
 const comingSoonItems: { icon: LucideIcon; label: string }[] = [];
+
+const BOTTOM_NAV_HREFS = [
+  "/dashboard",
+  "/dashboard/animales",
+  "/dashboard/produccion",
+  "/dashboard/alertas",
+];
 
 type Props = {
   title: string;
@@ -421,14 +428,6 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
         className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${sidebarCollapsed ? "lg:pl-20" : "lg:pl-64"}`}
       >
         <header className="border-border bg-background/80 sticky top-0 z-50 flex h-16 items-center gap-4 border-b px-4 backdrop-blur-xl md:px-8">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen((prev) => !prev)}
-            aria-label={sidebarOpen ? "Cerrar menú" : "Abrir menú"}
-            className="text-foreground/70 hover:text-foreground -ml-2 rounded-lg p-2 transition-colors lg:hidden"
-          >
-            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
           <Link href="/" className="inline-flex items-center gap-2 lg:hidden">
             <Image
               src="/logo.png"
@@ -554,10 +553,41 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             </button>
           </div>
         </header>
-        <main className="flex-1 p-3 md:p-4">
+        <main className="flex-1 p-3 pb-24 md:p-4 lg:pb-4">
           <div className="space-y-8">{children}</div>
         </main>
       </div>
+
+      {/* Navegación inferior móvil */}
+      <nav
+        className="border-border bg-background/95 fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t backdrop-blur-xl lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {BOTTOM_NAV_HREFS.map((href) => {
+          const item = navItems.find((n) => n.href === href)!;
+          const active = isActive(item);
+          return (
+            <Link
+              key={href}
+              href={item.href}
+              className={`flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium ${
+                active ? "text-primary" : "text-foreground/60"
+              }`}
+            >
+              <item.icon className="h-5 w-5" />
+              {item.label}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          className="text-foreground/60 flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium"
+        >
+          <MoreHorizontal className="h-5 w-5" />
+          Más
+        </button>
+      </nav>
     </div>
   );
 }
