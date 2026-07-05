@@ -173,7 +173,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const searchParams =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const tabParam = searchParams?.get("tab") ?? null;
-  const { ready, authenticated, user, logout } = usePrivy();
+  const { ready, authenticated, user, logout, getAccessToken } = usePrivy();
   const farmQuery = useCurrentFarm();
   const { supabase } = useSupabase();
   const farmId = farmQuery.data?.id;
@@ -230,6 +230,29 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   useEffect(() => {
     if (ready && !authenticated) router.replace("/login");
   }, [ready, authenticated, router]);
+
+  // Acepta automáticamente invitaciones pendientes del email del usuario
+  useEffect(() => {
+    if (!ready || !authenticated) return;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        const res = await fetch("/api/team/accept", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: "{}",
+        });
+        const json = await res.json();
+        if (json?.accepted > 0) {
+          queryClient.invalidateQueries({ queryKey: ["current-farm"] });
+          queryClient.invalidateQueries({ queryKey: ["farm-members"] });
+          queryClient.invalidateQueries({ queryKey: ["farm-invitations"] });
+        }
+      } catch {
+        // silencioso: no bloquea el dashboard si falla
+      }
+    })();
+  }, [ready, authenticated, getAccessToken, queryClient]);
 
   if (!ready || !authenticated) {
     return (
