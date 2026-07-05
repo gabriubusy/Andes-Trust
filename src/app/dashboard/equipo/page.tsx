@@ -14,7 +14,9 @@ import {
   ChevronDown,
   CheckCircle2,
   SendHorizonal,
+  BadgeCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -183,6 +185,31 @@ export default function EquipoPage() {
       if (!res.ok) throw new Error("fail");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["farm-invitations", farmId] }),
+  });
+
+  const verifyInvite = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch("/api/team/invite", {
+        method: "PATCH",
+        headers: await authHeaders(),
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error ?? "fail");
+      return json as { verified: boolean; reason?: string };
+    },
+    onSuccess: (data) => {
+      if (data.verified) {
+        toast.success("Invitación verificada: el miembro ya tiene acceso.");
+        qc.invalidateQueries({ queryKey: ["farm-invitations", farmId] });
+        qc.invalidateQueries({ queryKey: ["farm-members", farmId] });
+      } else if (data.reason === "no_account") {
+        toast.info("El invitado todavía no ha creado su cuenta.");
+      } else {
+        toast.info("Esta invitación ya no está pendiente.");
+      }
+    },
+    onError: () => toast.error("No se pudo verificar la invitación."),
   });
 
   const pendingCount = invitesQuery.data?.length ?? 0;
@@ -437,6 +464,18 @@ export default function EquipoPage() {
                         </span>
                       </div>
                     </div>
+                    <button
+                      onClick={() => verifyInvite.mutate(i.id)}
+                      disabled={verifyInvite.isPending}
+                      title="Verificar invitación"
+                      className="shrink-0 rounded-lg p-1.5 text-foreground/30 hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+                    >
+                      {verifyInvite.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <BadgeCheck className="h-4 w-4" />
+                      )}
+                    </button>
                     <button
                       onClick={() => revokeInvite.mutate(i.id)}
                       disabled={revokeInvite.isPending}

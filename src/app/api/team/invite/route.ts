@@ -143,6 +143,53 @@ export async function POST(req: Request) {
   return NextResponse.json({ invitation: invite, email_sent: true });
 }
 
+// PATCH /api/team/invite  body: { id }
+//   Verifica manualmente si el invitado ya tiene cuenta y, de ser así,
+//   lo suma a farm_members y marca la invitación como aceptada.
+export async function PATCH(req: Request) {
+  const me = await actor(req);
+  if (!me) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const body = (await req.json().catch(() => ({}))) as { id?: string };
+  if (!body.id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+
+  const sb = getAdmin();
+  const { data: inv } = await sb
+    .from("farm_invitations")
+    .select("id, farm_id, email, role, status")
+    .eq("id", body.id)
+    .single();
+  if (!inv) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!(await requireAdmin(me.id, inv.farm_id))) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  if (inv.status !== "pending") {
+    return NextResponse.json({ verified: false, reason: "not_pending" });
+  }
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("id")
+    .eq("email", inv.email)
+    .maybeSingle();
+  if (!profile) {
+    return NextResponse.json({ verified: false, reason: "no_account" });
+  }
+
+  await sb
+    .from("farm_members")
+    .upsert(
+      { farm_id: inv.farm_id, profile_id: profile.id, role: inv.role },
+      { onConflict: "farm_id,profile_id" }
+    );
+  await sb
+    .from("farm_invitations")
+    .update({ status: "accepted", accepted_by: profile.id, accepted_at: new Date().toISOString() })
+    .eq("id", inv.id);
+
+  return NextResponse.json({ verified: true });
+}
+
 export async function DELETE(req: Request) {
   const me = await actor(req);
   if (!me) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
