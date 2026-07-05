@@ -139,6 +139,7 @@ export default function EquipoPage() {
       });
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error ?? "fail");
+      if (json.email_error) throw new Error(`No se pudo enviar el correo: ${json.email_error}`);
       return json;
     },
     onSuccess: () => {
