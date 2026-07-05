@@ -96,9 +96,28 @@ export default async function VerifyPage({
           <p className="text-neutral-500 text-xs font-medium uppercase tracking-widest mb-1">
             Verificación de trazabilidad
           </p>
-          <h1 className="text-white text-xl font-bold">{label}</h1>
-          <p className="text-neutral-600 text-xs font-mono mt-1">{id}</p>
+          <h1 className="text-white text-xl font-bold">{data.summary.title}</h1>
+          {data.summary.subtitle && (
+            <p className="text-neutral-400 text-sm mt-0.5">{data.summary.subtitle}</p>
+          )}
+          <p className="text-neutral-700 text-[10px] font-mono mt-1.5">
+            {label} · {id}
+          </p>
         </div>
+
+        {/* Resumen legible */}
+        {data.summary.fields.length > 0 && (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 grid grid-cols-3 gap-3 text-center">
+            {data.summary.fields.map((f, i) => (
+              <div key={i}>
+                <p className="text-neutral-600 text-[10px] uppercase tracking-wide mb-1">
+                  {f.label}
+                </p>
+                <p className="text-neutral-200 text-xs font-semibold">{f.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Status card */}
         <div className={`rounded-2xl border p-6 ${statusBg} text-center`}>

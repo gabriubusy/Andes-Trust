@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { usePrivy, useLoginWithEmail } from "@privy-io/react-auth";
+import { usePrivy, useLoginWithEmail, useLoginWithPasskey } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import {
   ArrowRight,
@@ -14,6 +14,7 @@ import {
   Database,
   Globe,
   RotateCcw,
+  Fingerprint,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,11 +37,13 @@ export default function LoginPage() {
   const router = useRouter();
   const { ready, authenticated } = usePrivy();
   const { sendCode, loginWithCode, state: privyState } = useLoginWithEmail();
+  const { loginWithPasskey } = useLoginWithPasskey();
 
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   useEffect(() => {
     if (ready && authenticated) {
@@ -107,6 +110,17 @@ export default function LoginPage() {
       setCode("");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePasskeyLogin() {
+    setPasskeyLoading(true);
+    try {
+      await loginWithPasskey();
+    } catch {
+      toast.error("No se pudo iniciar sesión con passkey. Verifica que ya tengas uno registrado.");
+    } finally {
+      setPasskeyLoading(false);
     }
   }
 
@@ -244,6 +258,26 @@ export default function LoginPage() {
                           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </>
                       )}
+                    </button>
+
+                    <div className="flex items-center gap-3 py-1">
+                      <div className="bg-border h-px flex-1" />
+                      <span className="text-foreground/40 text-xs">o</span>
+                      <div className="bg-border h-px flex-1" />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handlePasskeyLogin}
+                      disabled={passkeyLoading}
+                      className="border-border bg-muted/20 text-foreground hover:bg-muted/40 flex w-full items-center justify-center gap-2 rounded-xl border px-6 py-3.5 text-sm font-semibold transition-colors disabled:opacity-60"
+                    >
+                      {passkeyLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Fingerprint className="h-4 w-4" />
+                      )}
+                      Iniciar sesión con Passkey
                     </button>
                   </form>
                 ) : (

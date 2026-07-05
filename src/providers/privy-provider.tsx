@@ -19,7 +19,7 @@ export function PrivyProvider({ children }: { readonly children: React.ReactNode
     <PrivyAuthProvider
       appId={appId}
       config={{
-        loginMethods: ["email", "google", "wallet"],
+        loginMethods: ["email", "google", "wallet", "passkey"],
         appearance: {
           theme: "light",
           accentColor: "#3b82f6",

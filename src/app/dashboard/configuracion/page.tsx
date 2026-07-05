@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Dna, Syringe, FlaskConical, Building2 } from "lucide-react";
+import { Dna, Syringe, FlaskConical, Building2, Fingerprint } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { TabFinca } from "./_tabs/TabFinca";
 import { TabRazas } from "./_tabs/TabRazas";
 import { TabVacunas } from "./_tabs/TabVacunas";
 import { TabTratamientos } from "./_tabs/TabTratamientos";
+import { TabSeguridad } from "./_tabs/TabSeguridad";
 
-type Tab = "finca" | "razas" | "vacunas" | "tratamientos";
+type Tab = "finca" | "razas" | "vacunas" | "tratamientos" | "seguridad";
 
 const tabs: {
   id: Tab;
@@ -54,6 +55,15 @@ const tabs: {
     color: "text-amber-500",
     bg: "bg-amber-500/10",
     activeBg: "bg-amber-500/15 border-amber-500/30",
+  },
+  {
+    id: "seguridad",
+    label: "Seguridad",
+    icon: Fingerprint,
+    description: "Passkey y acceso",
+    color: "text-rose-500",
+    bg: "bg-rose-500/10",
+    activeBg: "bg-rose-500/15 border-rose-500/30",
   },
 ];
 
@@ -151,6 +161,7 @@ export default function ConfiguracionPage() {
           {activeTab === "razas" && <TabRazas />}
           {activeTab === "vacunas" && <TabVacunas />}
           {activeTab === "tratamientos" && <TabTratamientos />}
+          {activeTab === "seguridad" && <TabSeguridad />}
         </div>
       </div>
     </DashboardShell>
