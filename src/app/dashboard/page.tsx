@@ -287,15 +287,24 @@ export default function DashboardPage() {
     gcTime: 60 * 60 * 1000,
     queryFn: async () => {
       if (!supabase || !farmId) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("animals")
-        .select("breeds(name)")
+        .select("animal_breeds(breeds(name))")
         .eq("farm_id", farmId)
         .eq("status", "active");
+      if (error) throw error;
       const counts: Record<string, number> = {};
       for (const a of data ?? []) {
-        const s = (a.breeds as { name?: string } | null)?.name ?? "Sin raza";
-        counts[s] = (counts[s] ?? 0) + 1;
+        const breeds = ((a.animal_breeds ?? []) as { breeds: { name?: string } | null }[])
+          .map((ab) => ab.breeds?.name)
+          .filter((n): n is string => Boolean(n));
+        if (breeds.length === 0) {
+          counts["Sin raza"] = (counts["Sin raza"] ?? 0) + 1;
+        } else {
+          for (const name of breeds) {
+            counts[name] = (counts[name] ?? 0) + 1;
+          }
+        }
       }
       return Object.entries(counts).map(([name, value]) => ({ name, value }));
     },
@@ -336,6 +345,7 @@ export default function DashboardPage() {
     icon: LucideIcon;
     label: string;
     value: string;
+    href: string;
     trend?: string;
     trendDir?: "up" | "down" | "flat";
     variant: Variant;
@@ -344,12 +354,14 @@ export default function DashboardPage() {
       icon: Beef,
       label: "Animales activos",
       value: String(summary.data?.activeAnimals ?? "—"),
+      href: "/dashboard/animales",
       variant: "primary",
     },
     {
       icon: Milk,
       label: "Producción hoy",
       value: summary.data ? `${summary.data.litersToday.toFixed(1)} L` : "—",
+      href: "/dashboard/produccion",
       trend:
         milkDelta !== null
           ? `${milkDelta >= 0 ? "+" : ""}${milkDelta.toFixed(1)}% vs ayer`
@@ -362,6 +374,7 @@ export default function DashboardPage() {
       icon: Syringe,
       label: "Vacunas próximas",
       value: String(summary.data?.upcomingVacs ?? "—"),
+      href: "/dashboard/eventos",
       trend: "Siguientes 7 días",
       variant: "accent",
     },
@@ -369,6 +382,7 @@ export default function DashboardPage() {
       icon: FileCheck,
       label: "Certificados",
       value: String(summary.data?.certifications ?? "—"),
+      href: "/dashboard/certificados",
       variant: "primary",
     },
   ];
@@ -403,9 +417,10 @@ export default function DashboardPage() {
       {/* KPI cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
-          <div
+          <Link
             key={kpi.label}
-            className="bg-card border-border hover:border-primary/40 rounded-2xl border p-5 transition-colors"
+            href={kpi.href}
+            className="group bg-card border-border hover:border-primary/40 rounded-2xl border p-5 transition-colors"
           >
             <div className="flex items-start justify-between">
               <div
@@ -413,7 +428,7 @@ export default function DashboardPage() {
               >
                 <kpi.icon className="h-5 w-5" />
               </div>
-              <ArrowUpRight className="text-foreground/30 h-4 w-4" />
+              <ArrowUpRight className="text-foreground/30 group-hover:text-primary h-4 w-4 transition-colors" />
             </div>
             <div className="mt-4">
               <div className="text-foreground text-2xl font-bold tracking-tight md:text-3xl">
@@ -437,7 +452,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 

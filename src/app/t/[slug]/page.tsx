@@ -52,7 +52,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
       supabase
         .from("animals")
         .select(
-          "id, tag, name, sex, birth_date, current_weight_kg, photo_url, color, origin, breeds(name)"
+          "id, tag, name, sex, birth_date, current_weight_kg, photo_url, color, origin, animal_breeds(breeds(name))"
         )
         .eq("id", token.entity_id)
         .maybeSingle(),
@@ -86,7 +86,14 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
     ]);
 
   if (!animalRes.data) notFound();
-  const animal = animalRes.data as typeof animalRes.data & { breeds: { name: string } | null };
+  const animal = animalRes.data as unknown as Omit<typeof animalRes.data, "animal_breeds"> & {
+    animal_breeds: { breeds: { name: string } | null }[] | null;
+  };
+  const breedLabel =
+    (animal.animal_breeds ?? [])
+      .map((ab) => ab.breeds?.name)
+      .filter(Boolean)
+      .join(", ") || "Sin registro";
 
   let photoUrl: string | null = null;
   if (animal.photo_url) {
@@ -221,7 +228,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
             />
             <StatCard
               label="Raza"
-              value={(animal.breeds as { name: string } | null)?.name ?? "Sin registro"}
+              value={breedLabel}
               icon={Hash}
               color="text-violet-500"
               bg="bg-violet-500/10"
