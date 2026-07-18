@@ -56,12 +56,23 @@ export default function AnimalForm() {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: "onChange",
     defaultValues: { sex: "female" },
   });
+
+  const sex = watch("sex");
+  const purpose = watch("purpose");
+
+  useEffect(() => {
+    if (sex === "male" && purpose === "dairy") {
+      setValue("purpose", "");
+    }
+  }, [sex, purpose, setValue]);
 
   const breedsQuery = useQuery({
     queryKey: ["breeds"],
@@ -235,7 +246,7 @@ export default function AnimalForm() {
           <label className={labelClass}>Propósito</label>
           <select className={inputClass} {...register("purpose")}>
             <option value="">—</option>
-            <option value="dairy">Lechero</option>
+            {sex !== "male" && <option value="dairy">Lechero</option>}
             <option value="beef">Carne</option>
             <option value="dual">Doble propósito</option>
             <option value="breeding">Reproducción</option>

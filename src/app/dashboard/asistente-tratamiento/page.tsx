@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Stethoscope,
   Search,
@@ -121,11 +121,16 @@ export default function AsistenteTratamientoPage() {
     },
   });
 
-  const suggest = useMutation<Suggestion[]>({
-    mutationFn: async () => {
+  const selectedIds = useMemo(() => Array.from(selected).sort(), [selected]);
+
+  const suggest = useQuery<Suggestion[]>({
+    queryKey: ["suggest-treatment", selectedIds],
+    enabled: !!supabase && selectedIds.length > 0,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc("suggest_treatment", {
-        symptom_ids: Array.from(selected),
+        symptom_ids: selectedIds,
       });
       if (error) throw error;
       return (data ?? []) as Suggestion[];
@@ -260,47 +265,47 @@ export default function AsistenteTratamientoPage() {
             </div>
           </div>
 
-          {/* CTA */}
-          <button
-            disabled={selected.size === 0 || suggest.isPending}
-            onClick={() => suggest.mutate()}
-            className="bg-primary hover:bg-primary/90 inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition disabled:opacity-40"
-          >
-            {suggest.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Stethoscope className="h-4 w-4" />
-            )}
-            {suggest.isPending ? "Analizando…" : "Sugerir diagnóstico y tratamiento"}
-          </button>
+          {/* Estado en tiempo real */}
           {selected.size > 0 && (
-            <button
-              onClick={() => {
-                setSelected(new Set());
-                suggest.reset();
-              }}
-              className="text-muted-foreground text-xs hover:text-foreground text-center transition"
-            >
-              Limpiar selección
-            </button>
+            <div className="flex items-center justify-between px-1">
+              <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
+                {suggest.isFetching ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Analizando…
+                  </>
+                ) : (
+                  <>
+                    <Stethoscope className="h-3.5 w-3.5" />
+                    Actualizado en tiempo real
+                  </>
+                )}
+              </span>
+              <button
+                onClick={() => setSelected(new Set())}
+                className="text-muted-foreground text-xs hover:text-foreground transition"
+              >
+                Limpiar selección
+              </button>
+            </div>
           )}
         </div>
 
         {/* ── Resultados ── */}
         <div className="space-y-3">
-          {suggest.isIdle && (
+          {selected.size === 0 && (
             <div className="hidden lg:flex bg-card border-border flex-col items-center justify-center gap-3 rounded-2xl border py-20 text-center">
               <div className="bg-muted flex h-14 w-14 items-center justify-center rounded-2xl">
                 <Stethoscope className="text-muted-foreground/40 h-7 w-7" />
               </div>
               <p className="text-muted-foreground max-w-xs text-sm">
-                Selecciona los síntomas observados en el animal y pulsa el botón para obtener
-                sugerencias.
+                Selecciona los síntomas observados en el animal y las sugerencias aparecerán
+                automáticamente.
               </p>
             </div>
           )}
 
-          {suggest.isSuccess && (suggest.data?.length ?? 0) === 0 && (
+          {selected.size > 0 && suggest.isSuccess && (suggest.data?.length ?? 0) === 0 && (
             <div className="bg-card border-border rounded-2xl border p-8 text-center text-sm">
               <FlaskConical className="text-muted-foreground/30 mx-auto mb-3 h-8 w-8" />
               <p className="text-muted-foreground">
@@ -310,7 +315,7 @@ export default function AsistenteTratamientoPage() {
             </div>
           )}
 
-          {(suggest.data ?? []).map((s, idx) => {
+          {(selected.size > 0 ? (suggest.data ?? []) : []).map((s, idx) => {
             const scoreColor =
               s.score >= 70
                 ? "text-emerald-600 dark:text-emerald-400"

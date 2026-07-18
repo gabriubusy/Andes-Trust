@@ -143,7 +143,7 @@ export default function ReproduccionPage() {
       const { data, error } = await (supabase as any)
         .from("inseminations")
         .select(
-          "id, animal_id, sire_id, sire_external, method, performed_at, notes, animals(tag, name), sire:animals!inseminations_sire_id_fkey(tag, name), pregnancies(id, insemination_id, animal_id, confirmed_at, expected_due_at, result, notes)"
+          "id, animal_id, sire_id, sire_external, method, performed_at, notes, animals:animals!inseminations_animal_id_fkey(tag, name), sire:animals!inseminations_sire_id_fkey(tag, name), pregnancies(id, insemination_id, animal_id, confirmed_at, expected_due_at, result, notes)"
         )
         .eq("farm_id", farmId!)
         .order("performed_at", { ascending: false });
