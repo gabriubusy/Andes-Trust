@@ -114,8 +114,28 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
         .update({ status: newStatus as "draft" | "confirmed" | "paid" | "cancelled" })
         .eq("id", id);
       if (error) throw error;
+
+      // Al cancelar la venta, los animales vuelven a estar disponibles (activos).
+      if (newStatus === "cancelled") {
+        const animalIds = (saleQuery.data?.sale_items ?? [])
+          .map((it) => (Array.isArray(it.animals) ? it.animals[0]?.id : it.animals?.id))
+          .filter((x): x is string => !!x);
+        if (animalIds.length > 0) {
+          const { error: revertError } = await supabase!
+            .from("animals")
+            .update({ status: "active" })
+            .in("id", animalIds)
+            .eq("status", "sold");
+          if (revertError) throw revertError;
+        }
+      }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sale", id] }),
+    onSuccess: (_data, newStatus) => {
+      qc.invalidateQueries({ queryKey: ["sale", id] });
+      if (newStatus === "cancelled") {
+        qc.invalidateQueries({ queryKey: ["animals"] });
+      }
+    },
   });
 
   async function downloadInvoice() {

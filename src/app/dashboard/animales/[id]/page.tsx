@@ -1492,8 +1492,8 @@ function MovementForm({
       <div className="md:col-span-2">
         <button
           type="submit"
-          disabled={isSaving}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+          disabled={isSaving || !to.trim()}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
           Registrar traslado

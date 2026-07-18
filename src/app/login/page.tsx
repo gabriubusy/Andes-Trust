@@ -228,7 +228,7 @@ export default function LoginPage() {
                   <form onSubmit={handleEmailSubmit} className="space-y-3">
                     <div>
                       <label htmlFor="email" className="text-foreground/70 mb-1.5 block text-sm">
-                        Correo electrónico
+                        Correo electrónico <span className="text-primary">*</span>
                       </label>
                       <input
                         id="email"
@@ -284,7 +284,7 @@ export default function LoginPage() {
                   <form onSubmit={handleCodeSubmit} className="space-y-3">
                     <div>
                       <label htmlFor="code" className="text-foreground/70 mb-1.5 block text-sm">
-                        Código de verificación
+                        Código de verificación <span className="text-primary">*</span>
                       </label>
                       <input
                         id="code"

@@ -1,8 +1,9 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PageHero from "@/components/PageHero";
+import ContactForm from "@/components/ContactForm";
 import { variantStyles, type Variant } from "@/lib/variants";
-import { Mail, Phone, MapPin, Send, Clock, MessageSquare, type LucideIcon } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, MessageSquare, type LucideIcon } from "lucide-react";
 
 interface ContactItem {
   icon: LucideIcon;
@@ -109,78 +110,7 @@ export default function ContactoPage() {
               <h2 className="text-foreground mb-6 text-2xl font-bold tracking-tight">
                 Envíanos un mensaje
               </h2>
-              <form className="space-y-5">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="contact-name"
-                      className="text-card-foreground mb-2 block text-sm font-medium"
-                    >
-                      Nombre
-                    </label>
-                    <input
-                      id="contact-name"
-                      type="text"
-                      required
-                      placeholder="Tu nombre"
-                      className="border-border bg-background text-foreground focus:ring-primary/40 focus:border-primary w-full rounded-lg border px-4 py-2.5 text-sm transition focus:ring-2 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="contact-email"
-                      className="text-card-foreground mb-2 block text-sm font-medium"
-                    >
-                      Email
-                    </label>
-                    <input
-                      id="contact-email"
-                      type="email"
-                      required
-                      placeholder="tu@email.com"
-                      className="border-border bg-background text-foreground focus:ring-primary/40 focus:border-primary w-full rounded-lg border px-4 py-2.5 text-sm transition focus:ring-2 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="contact-subject"
-                    className="text-card-foreground mb-2 block text-sm font-medium"
-                  >
-                    Asunto
-                  </label>
-                  <input
-                    id="contact-subject"
-                    type="text"
-                    placeholder="Asunto de tu mensaje"
-                    className="border-border bg-background text-foreground focus:ring-primary/40 focus:border-primary w-full rounded-lg border px-4 py-2.5 text-sm transition focus:ring-2 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="contact-message"
-                    className="text-card-foreground mb-2 block text-sm font-medium"
-                  >
-                    Mensaje
-                  </label>
-                  <textarea
-                    id="contact-message"
-                    required
-                    placeholder="Escribe tu mensaje aquí..."
-                    className="border-border bg-background text-foreground focus:ring-primary/40 focus:border-primary min-h-[150px] w-full rounded-lg border px-4 py-2.5 text-sm transition focus:ring-2 focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="text-primary-foreground bg-primary hover:bg-primary/90 inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-colors"
-                >
-                  <Send className="h-4 w-4" />
-                  Enviar mensaje
-                </button>
-              </form>
+              <ContactForm />
             </div>
           </div>
         </section>

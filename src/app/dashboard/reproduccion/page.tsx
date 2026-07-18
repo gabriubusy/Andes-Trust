@@ -663,13 +663,14 @@ function InseminationModal({
         <div className="space-y-4">
           <div>
             <label className="text-foreground/60 mb-1 block text-xs font-medium">
-              Animal (hembra)
+              Animal (hembra) <span className="text-red-500">*</span>
             </label>
             <select
               value={animalId}
               onChange={(e) => setAnimalId(e.target.value)}
               className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none"
             >
+              {females.length === 0 && <option value="">— No hay hembras registradas —</option>}
               {females.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.tag}
@@ -852,13 +853,14 @@ function PregnancyModal({
         <div className="space-y-4">
           <div>
             <label className="text-foreground/60 mb-1 block text-xs font-medium">
-              Animal (hembra)
+              Animal (hembra) <span className="text-red-500">*</span>
             </label>
             <select
               value={animalId}
               onChange={(e) => setAnimalId(e.target.value)}
               className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none"
             >
+              {females.length === 0 && <option value="">— No hay hembras registradas —</option>}
               {females.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.tag}

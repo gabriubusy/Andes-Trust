@@ -265,36 +265,54 @@ export default function EquipoPage() {
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && email && invite.mutate()}
-                placeholder="correo@ejemplo.com"
-                className="border-border bg-background/60 w-full rounded-xl border pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 transition placeholder:text-foreground/30"
-              />
-            </div>
-            <div className="relative">
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as Member["role"])}
-                className="border-border bg-background/60 appearance-none rounded-xl border pl-4 pr-9 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 transition w-full sm:w-auto"
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label
+                htmlFor="invite-email"
+                className="mb-1.5 block text-xs font-medium text-foreground/70"
               >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABEL[r]}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/40" />
+                Correo del invitado <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30" />
+                <input
+                  id="invite-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && email.trim() && invite.mutate()}
+                  placeholder="correo@ejemplo.com"
+                  className="border-border bg-background/60 w-full rounded-xl border pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 transition placeholder:text-foreground/30"
+                />
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="invite-role"
+                className="mb-1.5 block text-xs font-medium text-foreground/70"
+              >
+                Rol <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  id="invite-role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as Member["role"])}
+                  className="border-border bg-background/60 appearance-none rounded-xl border pl-4 pr-9 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 transition w-full sm:w-auto"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABEL[r]}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/40" />
+              </div>
             </div>
             <button
               onClick={() => invite.mutate()}
-              disabled={!email || invite.isPending}
-              className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50 transition-colors"
+              disabled={!email.trim() || invite.isPending}
+              className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             >
               {invite.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

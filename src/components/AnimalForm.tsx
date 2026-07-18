@@ -56,9 +56,10 @@ export default function AnimalForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    mode: "onChange",
     defaultValues: { sex: "female" },
   });
 
@@ -177,6 +178,7 @@ export default function AnimalForm() {
   });
 
   const disabled = create.isPending || !farmQuery.data;
+  const submitDisabled = disabled || !isValid;
 
   return (
     <form onSubmit={handleSubmit((v) => create.mutate(v))} className="space-y-6">
@@ -312,8 +314,8 @@ export default function AnimalForm() {
         </button>
         <button
           type="submit"
-          disabled={disabled}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+          disabled={submitDisabled}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
         >
           {create.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           Crear animal

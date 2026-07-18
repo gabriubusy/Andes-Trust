@@ -107,9 +107,10 @@ export default function VaccinationForm({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<Values>({
     resolver: zodResolver(schema),
+    mode: "onChange",
     defaultValues: { vet_approved: false },
   });
 
@@ -332,7 +333,7 @@ export default function VaccinationForm({
           />
           <span className="text-foreground text-sm">
             Confirmo que soy el veterinario responsable, he verificado el protocolo sanitario y
-            autorizo la aplicación de esta vacuna.
+            autorizo la aplicación de esta vacuna. <span className="text-accent">*</span>
           </span>
         </label>
         {errors.vet_approved && (
@@ -342,8 +343,8 @@ export default function VaccinationForm({
 
       <button
         type="submit"
-        disabled={mutation.isPending}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+        disabled={mutation.isPending || !isValid}
+        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
       >
         {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
         Registrar vacuna

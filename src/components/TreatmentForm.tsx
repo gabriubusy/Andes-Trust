@@ -87,9 +87,10 @@ export default function TreatmentForm({
     watch,
     reset,
     setValue,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<Values>({
     resolver: zodResolver(schema),
+    mode: "onChange",
     defaultValues: { vet_approved: false },
   });
 
@@ -283,7 +284,7 @@ export default function TreatmentForm({
           />
           <span className="text-foreground text-sm">
             Confirmo que soy el profesional veterinario responsable y apruebo este tratamiento con
-            la dosis indicada.
+            la dosis indicada. <span className="text-accent">*</span>
           </span>
         </label>
         {errors.vet_approved && (
@@ -293,8 +294,8 @@ export default function TreatmentForm({
 
       <button
         type="submit"
-        disabled={mutation.isPending}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+        disabled={mutation.isPending || !isValid}
+        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
       >
         {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
         Registrar tratamiento
