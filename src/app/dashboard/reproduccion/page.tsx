@@ -277,7 +277,7 @@ export default function ReproduccionPage() {
               onClick={() => setTab(t)}
               className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
                 tab === t
-                  ? "bg-card text-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-foreground/60 hover:text-foreground"
               }`}
             >

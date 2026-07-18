@@ -58,6 +58,21 @@ const STATUS_LABEL: Record<AlertRow["status"], string> = {
   resolved: "Resuelta",
 };
 
+// Color por tipo de alerta (chip del ícono en la lista)
+const TYPE_COLOR: Record<AlertRow["type"], { bg: string; text: string }> = {
+  vaccination_due: { bg: "bg-purple-500/10", text: "text-purple-500" },
+  treatment_withdrawal: { bg: "bg-orange-500/10", text: "text-orange-500" },
+  weighing_due: { bg: "bg-blue-500/10", text: "text-blue-500" },
+  custom: { bg: "bg-muted", text: "text-foreground/60" },
+};
+
+const STATUS_BADGE: Record<AlertRow["status"], string> = {
+  open: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  acknowledged: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  dismissed: "bg-muted text-foreground/50",
+  resolved: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+};
+
 export default function AlertasPage() {
   const { supabase } = useSupabase();
   const farmQuery = useCurrentFarm();
@@ -125,20 +140,36 @@ export default function AlertasPage() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {(
             [
-              ["Abiertas", counts.open, BellRing, "text-amber-500"],
-              ["Vacunación", counts.vaccination_due, Syringe, "text-purple-500"],
-              ["Retiro", counts.treatment_withdrawal, ShieldAlert, "text-orange-500"],
-              ["Pesaje", counts.weighing_due, Scale, "text-blue-500"],
+              ["Abiertas", counts.open, BellRing, "text-amber-500", "bg-amber-500/10"],
+              [
+                "Vacunación",
+                counts.vaccination_due,
+                Syringe,
+                "text-purple-500",
+                "bg-purple-500/10",
+              ],
+              [
+                "Retiro",
+                counts.treatment_withdrawal,
+                ShieldAlert,
+                "text-orange-500",
+                "bg-orange-500/10",
+              ],
+              ["Pesaje", counts.weighing_due, Scale, "text-blue-500", "bg-blue-500/10"],
             ] as const
-          ).map(([label, value, Icon, color]) => (
+          ).map(([label, value, Icon, color, bg]) => (
             <div
               key={label}
-              className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4"
+              className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4 transition-colors hover:border-foreground/20"
             >
-              <Icon className={`h-5 w-5 ${color}`} />
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${bg}`}
+              >
+                <Icon className={`h-5 w-5 ${color}`} />
+              </div>
               <div>
                 <div className="text-foreground/60 text-xs">{label}</div>
-                <div className="text-foreground text-xl font-semibold">{value}</div>
+                <div className="text-foreground text-2xl font-bold tabular-nums">{value}</div>
               </div>
             </div>
           ))}
@@ -187,35 +218,48 @@ export default function AlertasPage() {
               {pagedAlerts.map((alert) => {
                 const Icon = TYPE_ICON[alert.type];
                 const overdue = new Date(alert.due_at).getTime() < Date.now();
+                const isActive = alert.status === "open" || alert.status === "acknowledged";
+                const chip =
+                  overdue && isActive
+                    ? { bg: "bg-red-500/10", text: "text-red-500" }
+                    : TYPE_COLOR[alert.type];
+                const rowBusy = setStatus.isPending && setStatus.variables?.id === alert.id;
                 return (
-                  <li key={alert.id} className="flex items-start gap-4 px-6 py-4">
-                    <Icon
-                      className={`mt-0.5 h-5 w-5 shrink-0 ${overdue ? "text-red-500" : "text-foreground/60"}`}
-                    />
+                  <li
+                    key={alert.id}
+                    className={`relative flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/30 ${
+                      overdue && isActive
+                        ? "before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-red-500"
+                        : ""
+                    }`}
+                  >
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${chip.bg}`}
+                    >
+                      <Icon className={`h-5 w-5 ${chip.text}`} />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-foreground text-sm font-medium">
+                        <span className="text-foreground text-sm font-semibold">
                           {TYPE_LABEL[alert.type]}
                         </span>
                         {alert.animals && (
-                          <span className="bg-muted text-foreground/70 rounded-full px-2 py-0.5 text-xs">
-                            {alert.animals.name ?? alert.animals.tag} ({alert.animals.tag})
+                          <span className="text-foreground/60 text-xs">
+                            {alert.animals.name ?? alert.animals.tag}
+                            <span className="text-foreground/40"> · {alert.animals.tag}</span>
                           </span>
                         )}
                         <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${
-                            alert.status === "open"
-                              ? overdue
-                                ? "bg-red-500/10 text-red-500"
-                                : "bg-amber-500/10 text-amber-500"
-                              : "bg-muted text-foreground/60"
-                          }`}
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_BADGE[alert.status]}`}
                         >
                           {STATUS_LABEL[alert.status]}
                         </span>
                       </div>
-                      <p className="text-foreground/50 mt-0.5 text-xs">
-                        Vence: <strong>{formatDate(alert.due_at)}</strong>
+                      <p className="text-foreground/50 mt-1 text-xs">
+                        <span className={overdue && isActive ? "text-red-500 font-medium" : ""}>
+                          {overdue && isActive ? "Vencida" : "Vence"}:{" "}
+                          <strong className="font-semibold">{formatDate(alert.due_at)}</strong>
+                        </span>
                         {alert.payload?.last_weighing_at && (
                           <> · Último pesaje {formatDate(String(alert.payload.last_weighing_at))}</>
                         )}
@@ -233,9 +277,9 @@ export default function AlertasPage() {
                           onClick={() => setStatus.mutate({ id: alert.id, status: "acknowledged" })}
                           disabled={setStatus.isPending}
                           title="Reconocer"
-                          className="border-border hover:bg-muted inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-xs disabled:opacity-50"
+                          className="border-border hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:text-emerald-600 text-foreground/70 inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50"
                         >
-                          {setStatus.isPending && setStatus.variables?.id === alert.id ? (
+                          {rowBusy ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
                             <Check className="h-3.5 w-3.5" />
@@ -244,11 +288,10 @@ export default function AlertasPage() {
                         <button
                           onClick={() => setStatus.mutate({ id: alert.id, status: "dismissed" })}
                           disabled={setStatus.isPending}
-                          className="border-border hover:bg-muted inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs disabled:opacity-50"
+                          title="Descartar"
+                          className="border-border hover:bg-muted text-foreground/70 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50"
                         >
-                          {setStatus.isPending && setStatus.variables?.id === alert.id && (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          )}
+                          {rowBusy && <Loader2 className="h-3 w-3 animate-spin" />}
                           Descartar
                         </button>
                       </div>
