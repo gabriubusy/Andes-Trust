@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Syringe, RefreshCw, Clock } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { Skeleton } from "@/components/ui/Skeleton";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { inputClass, labelClass, type Vaccine } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
 import { toast } from "sonner";
@@ -209,6 +210,7 @@ export function TabVacunas() {
   });
 
   const vaccines = vaccinesQuery.data ?? [];
+  const { pageItems, page, setPage, totalPages, total } = usePagination(vaccines, 10);
 
   return (
     <>
@@ -292,7 +294,7 @@ export function TabVacunas() {
                 </tr>
               </thead>
               <tbody>
-                {vaccines.map((v) => (
+                {pageItems.map((v) => (
                   <tr
                     key={v.id}
                     className="border-border hover:bg-muted/30 border-t transition-colors"
@@ -352,6 +354,15 @@ export function TabVacunas() {
                 ))}
               </tbody>
             </table>
+            <div className="px-5 pb-3">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                onChange={setPage}
+                noun="vacuna"
+              />
+            </div>
           </div>
         )}
       </div>

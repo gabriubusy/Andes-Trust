@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Dna, X } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { inputClass, labelClass, PURPOSE_LABELS, type Breed } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
 import { toast } from "sonner";
@@ -227,6 +228,7 @@ export function TabRazas() {
   });
 
   const breeds = breedsQuery.data ?? [];
+  const { pageItems, page, setPage, totalPages, total } = usePagination(breeds, 10);
 
   return (
     <>
@@ -299,7 +301,7 @@ export function TabRazas() {
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
-                {breeds.map((b) => (
+                {pageItems.map((b) => (
                   <tr key={b.id} className="hover:bg-muted/30 group transition-colors">
                     {/* Name */}
                     <td className="px-5 py-3.5">
@@ -368,8 +370,21 @@ export function TabRazas() {
         )}
 
         {breeds.length > 0 && (
-          <div className="border-border text-foreground/40 border-t px-5 py-3 text-xs">
-            {breeds.length} raza{breeds.length !== 1 ? "s" : ""} en el catálogo
+          <div className="border-border border-t px-5 pt-1 pb-3">
+            {totalPages > 1 ? (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                onChange={setPage}
+                noun="raza"
+                className="mt-2 border-t-0 pt-1"
+              />
+            ) : (
+              <p className="text-foreground/40 pt-2 text-xs">
+                {breeds.length} raza{breeds.length !== 1 ? "s" : ""} en el catálogo
+              </p>
+            )}
           </div>
         )}
       </div>

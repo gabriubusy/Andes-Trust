@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, FlaskConical, Beef, Droplets } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { Skeleton } from "@/components/ui/Skeleton";
+import Pagination, { usePagination } from "@/components/Pagination";
 import { inputClass, labelClass, type Treatment } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
 import { toast } from "sonner";
@@ -226,6 +227,7 @@ export function TabTratamientos() {
   });
 
   const items = query.data ?? [];
+  const { pageItems, page, setPage, totalPages, total } = usePagination(items, 10);
 
   return (
     <>
@@ -318,7 +320,7 @@ export function TabTratamientos() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((t) => (
+                {pageItems.map((t) => (
                   <tr
                     key={t.id}
                     className="border-border hover:bg-muted/30 border-t transition-colors"
@@ -383,6 +385,15 @@ export function TabTratamientos() {
                 ))}
               </tbody>
             </table>
+            <div className="px-5 pb-3">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                onChange={setPage}
+                noun="tratamiento"
+              />
+            </div>
           </div>
         )}
       </div>
