@@ -9,9 +9,12 @@ import {
   AlertTriangle,
   FlaskConical,
   CheckCircle2,
+  Plus,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import RegisterTreatmentModal from "@/components/RegisterTreatmentModal";
 import { useSupabase } from "@/hooks/use-supabase";
+import { useCurrentFarm } from "@/hooks/use-current-farm";
 
 type Symptom = { id: string; name: string; body_system: string | null; severity_default: number };
 type SuggestionTx = {
@@ -102,9 +105,12 @@ function ScoreMeter({ score }: { score: number }) {
 }
 
 export default function AsistenteTratamientoPage() {
-  const { supabase } = useSupabase();
+  const { supabase, profileId } = useSupabase();
+  const farmQuery = useCurrentFarm();
+  const farmId = farmQuery.data?.id;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [applyTx, setApplyTx] = useState<string | null>(null);
 
   const symptomsQuery = useQuery<Symptom[]>({
     queryKey: ["symptoms-catalog"],
@@ -408,6 +414,13 @@ export default function AsistenteTratamientoPage() {
                                   {t.kind}
                                 </span>
                               )}
+                              <button
+                                type="button"
+                                onClick={() => setApplyTx(t.treatment_id)}
+                                className="border-primary/30 text-primary hover:bg-primary/10 ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors"
+                              >
+                                <Plus className="h-3 w-3" /> Aplicar a animal
+                              </button>
                             </div>
 
                             {(t.dose_hint || t.route) && (
@@ -451,6 +464,16 @@ export default function AsistenteTratamientoPage() {
           })}
         </div>
       </div>
+
+      {applyTx && (
+        <RegisterTreatmentModal
+          farmId={farmId}
+          profileId={profileId ?? undefined}
+          presetTreatmentId={applyTx}
+          onClose={() => setApplyTx(null)}
+          onDone={() => setApplyTx(null)}
+        />
+      )}
     </DashboardShell>
   );
 }

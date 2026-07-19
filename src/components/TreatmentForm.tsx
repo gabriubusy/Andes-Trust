@@ -33,11 +33,11 @@ const schema = z
         path: ["started_at"],
         message: "La fecha de inicio no puede ser futura.",
       });
-    if (started && ended && ended <= started)
+    if (started && ended && ended < started)
       ctx.addIssue({
         code: "custom",
         path: ["ended_at"],
-        message: "La fecha de fin debe ser posterior al inicio.",
+        message: "La fecha de fin no puede ser anterior al inicio.",
       });
   });
 
@@ -53,6 +53,8 @@ type Props = {
   profileId: string | undefined;
   animalWeightKg?: number | null;
   animalBirthDate?: string | null;
+  /** Pre-selecciona un tratamiento del catálogo (p. ej. sugerido por el asistente clínico). */
+  presetTreatmentId?: string;
   onDone?: () => void;
 };
 
@@ -71,14 +73,15 @@ export default function TreatmentForm({
   profileId,
   animalWeightKg,
   animalBirthDate,
+  presetTreatmentId,
   onDone,
 }: Props) {
   const { supabase } = useSupabase();
   const queryClient = useQueryClient();
   const [photo, setPhoto] = useState<File | null>(null);
-  const todayStr = new Date().toISOString().slice(0, 16);
+  const todayStr = new Date().toISOString().slice(0, 10);
   const birthDateStr = animalBirthDate
-    ? new Date(animalBirthDate).toISOString().slice(0, 16)
+    ? new Date(animalBirthDate).toISOString().slice(0, 10)
     : undefined;
 
   const {
@@ -91,7 +94,7 @@ export default function TreatmentForm({
   } = useForm<Values>({
     resolver: zodResolver(schema),
     mode: "onChange",
-    defaultValues: { vet_approved: false },
+    defaultValues: { vet_approved: false, treatment_id: presetTreatmentId ?? "" },
   });
 
   const catalogQuery = useQuery<CatalogRow[]>({
@@ -130,6 +133,16 @@ export default function TreatmentForm({
     selected?.dose_per_kg && animalWeightKg
       ? `${(selected.dose_per_kg * animalWeightKg).toFixed(2)} ml`
       : null;
+
+  // Al cargar el catálogo con un tratamiento pre-seleccionado, calcula la dosis sugerida.
+  useEffect(() => {
+    if (!presetTreatmentId || !catalogQuery.data) return;
+    const t = catalogQuery.data.find((x) => x.id === presetTreatmentId);
+    if (t?.dose_per_kg && animalWeightKg) {
+      setValue("dose", `${(t.dose_per_kg * animalWeightKg).toFixed(2)} ml`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalogQuery.data, presetTreatmentId, animalWeightKg]);
 
   const mutation = useMutation({
     mutationFn: async (v: Values) => {
@@ -227,7 +240,7 @@ export default function TreatmentForm({
           </div>
         )}
 
-        {selected && (selected.withdrawal_meat_days || selected.withdrawal_milk_days) && (
+        {selected && (selected.withdrawal_meat_days || selected.withdrawal_milk_days) ? (
           <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 md:col-span-2 dark:text-yellow-400">
             Retiro estimado:{" "}
             {selected.withdrawal_meat_days ? `carne ${selected.withdrawal_meat_days} días` : ""}
@@ -235,12 +248,12 @@ export default function TreatmentForm({
             {selected.withdrawal_milk_days ? `leche ${selected.withdrawal_milk_days} días` : ""}
             {watchStarted ? ` desde ${new Date(watchStarted).toLocaleDateString()}` : ""}
           </div>
-        )}
+        ) : null}
 
         <div>
           <label className={labelClass}>Inicio</label>
           <input
-            type="datetime-local"
+            type="date"
             className={inputClass}
             max={todayStr}
             min={birthDateStr}
@@ -252,12 +265,7 @@ export default function TreatmentForm({
         </div>
         <div>
           <label className={labelClass}>Fin</label>
-          <input
-            type="datetime-local"
-            className={inputClass}
-            min={birthDateStr}
-            {...register("ended_at")}
-          />
+          <input type="date" className={inputClass} min={birthDateStr} {...register("ended_at")} />
           {errors.ended_at && <p className="text-accent mt-1 text-xs">{errors.ended_at.message}</p>}
         </div>
         <div>

@@ -9,8 +9,7 @@ import {
   Loader2,
   Droplets,
   History,
-  CheckSquare,
-  Square,
+  Check,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
@@ -68,31 +67,37 @@ function AnimalSelector({
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-foreground/55 text-xs font-semibold uppercase tracking-wide">
-          Animales{" "}
-          <span className="text-foreground/35 normal-case">
-            (
-            {selected.size === 0
-              ? "todos"
-              : `${selected.size} seleccionado${selected.size > 1 ? "s" : ""}`}
-            )
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-foreground/55 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide">
+          Animales
+          <span
+            className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold normal-case tabular-nums ${
+              selected.size === 0 ? "bg-muted text-foreground/50" : "bg-primary/10 text-primary"
+            }`}
+          >
+            {selected.size === 0 ? "Todos" : selected.size}
           </span>
         </span>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1.5">
           {animals.length > 0 && (
-            <button onClick={toggleAll} className="text-primary text-xs hover:underline">
-              {allSelected ? "Deseleccionar todo" : "Seleccionar todo"}
+            <button
+              onClick={toggleAll}
+              className="text-primary hover:bg-primary/10 rounded-md px-2 py-1 text-xs font-medium transition-colors"
+            >
+              {allSelected ? "Quitar todo" : "Seleccionar todo"}
             </button>
           )}
           {selected.size > 0 && (
-            <button onClick={onClear} className="text-foreground/40 text-xs hover:underline">
+            <button
+              onClick={onClear}
+              className="text-foreground/40 hover:bg-muted hover:text-foreground rounded-md px-2 py-1 text-xs transition-colors"
+            >
               Limpiar
             </button>
           )}
         </div>
       </div>
-      <div className="border-border bg-muted/20 max-h-52 overflow-y-auto rounded-xl border">
+      <div className="border-border bg-muted/20 max-h-52 space-y-0.5 overflow-y-auto rounded-xl border p-1.5">
         {animals.length === 0 && (
           <div className="text-foreground/40 px-4 py-6 text-center text-sm">
             Sin animales registrados
@@ -103,23 +108,33 @@ function AnimalSelector({
           return (
             <label
               key={a.id}
-              className={`flex cursor-pointer items-center gap-3 border-b px-4 py-2.5 text-sm last:border-0 transition-colors ${
-                checked ? "bg-primary/5" : "hover:bg-muted/50"
+              className={`group flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${
+                checked ? "bg-primary/10" : "hover:bg-muted/60"
               }`}
             >
-              {checked ? (
-                <CheckSquare className="text-primary h-4 w-4 shrink-0" />
-              ) : (
-                <Square className="text-foreground/30 h-4 w-4 shrink-0" />
-              )}
+              <span
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                  checked
+                    ? "border-primary bg-primary"
+                    : "border-foreground/25 group-hover:border-primary/50"
+                }`}
+              >
+                {checked && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+              </span>
               <input
                 type="checkbox"
                 className="sr-only"
                 checked={checked}
                 onChange={() => onToggle(a.id)}
               />
-              <span className="text-foreground font-mono text-xs font-semibold">{a.tag}</span>
-              {a.name && <span className="text-foreground/50 truncate text-xs">{a.name}</span>}
+              <span
+                className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold ${
+                  checked ? "bg-primary/15 text-primary" : "bg-muted/70 text-foreground/70"
+                }`}
+              >
+                {a.tag}
+              </span>
+              {a.name && <span className="text-foreground/60 truncate text-xs">{a.name}</span>}
             </label>
           );
         })}
@@ -308,7 +323,7 @@ export default function ReportesPage() {
             <button
               onClick={() => generateInsai.mutate()}
               disabled={generateInsai.isPending}
-              className="bg-primary hover:bg-primary/90 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-primary/20 disabled:opacity-50 transition-colors"
+              className="from-primary to-primary/85 hover:to-primary inline-flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:shadow-primary/40 disabled:opacity-50 disabled:shadow-none"
             >
               {generateInsai.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -318,8 +333,9 @@ export default function ReportesPage() {
               {generateInsai.isPending ? "Generando PDF…" : "Descargar PDF"}
             </button>
 
-            <p className="text-foreground/40 text-xs">
-              Sin animales seleccionados: incluye todo el inventario activo de la finca.
+            <p className="text-foreground/45 bg-muted/30 flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs">
+              <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-60" />
+              Sin animales seleccionados se incluye todo el inventario activo de la finca.
             </p>
           </div>
 
@@ -479,7 +495,7 @@ export default function ReportesPage() {
               <button
                 onClick={() => generateMilk.mutate()}
                 disabled={generateMilk.isPending}
-                className="bg-blue-500 hover:bg-blue-500/90 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-blue-500/20 disabled:opacity-50 transition-colors"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-blue-500 to-blue-500/85 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:to-blue-500 hover:shadow-blue-500/40 disabled:opacity-50 disabled:shadow-none"
               >
                 {generateMilk.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -489,8 +505,9 @@ export default function ReportesPage() {
                 {generateMilk.isPending ? "Generando PDF…" : "Descargar PDF"}
               </button>
 
-              <p className="text-foreground/40 text-xs">
-                Sin animales seleccionados: incluye toda la producción de la finca.
+              <p className="text-foreground/45 bg-muted/30 flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs">
+                <Droplets className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-60" />
+                Sin animales seleccionados se incluye toda la producción de la finca.
               </p>
             </div>
 

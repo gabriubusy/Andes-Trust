@@ -246,7 +246,7 @@ export default function EventosPage() {
         supabase!
           .from("treatments")
           .select(
-            "id, started_at, ended_at, dose, notes, animals(id, tag, name), treatments_catalog(name)"
+            "id, started_at, ended_at, dose, notes, animals(id, tag, name), treatments_catalog(name, kind)"
           )
           .eq("farm_id", farmId!)
           .order("started_at", { ascending: false })
@@ -331,11 +331,15 @@ export default function EventosPage() {
         });
       }
       for (const t of treat.data ?? []) {
-        const cat = t.treatments_catalog as { name?: string } | { name?: string }[] | null;
-        const product_name = Array.isArray(cat) ? cat[0]?.name : cat?.name;
+        type Cat = { name?: string; kind?: string };
+        const cat = t.treatments_catalog as Cat | Cat[] | null;
+        const one = Array.isArray(cat) ? cat[0] : cat;
+        const product_name = one?.name;
+        // Un tratamiento con producto antiparasitario es una desparasitación.
+        const isDeworming = one?.kind === "antiparasitario";
         rows.push({
           id: `treat:${t.id}`,
-          type: "treatment",
+          type: isDeworming ? "deworming" : "treatment",
           occurred_at: t.started_at as string,
           notes: (t.notes as string) ?? null,
           payload: { product_name, dose: t.dose, ended_at: t.ended_at },

@@ -387,12 +387,20 @@ export default function EquipoPage() {
                   >
                     <AvatarCircle name={p?.full_name ?? null} email={p?.email ?? null} />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-foreground">
-                        {p?.full_name ?? "Sin nombre"}
-                      </div>
-                      <div className="truncate text-xs text-foreground/50">
-                        {p?.email ?? "Sin email"}
-                      </div>
+                      {p?.full_name ? (
+                        <>
+                          <div className="truncate text-sm font-medium text-foreground">
+                            {p.full_name}
+                          </div>
+                          <div className="truncate text-xs text-foreground/50">
+                            {p?.email ?? "Sin email"}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="truncate text-sm font-medium text-foreground">
+                          {p?.email ?? "Sin email"}
+                        </div>
+                      )}
                     </div>
                     <div className="relative shrink-0">
                       <select

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   BeakerIcon,
@@ -10,6 +10,7 @@ import {
   Clock,
   FlaskConical,
   Pill,
+  Plus,
   Search,
   Stethoscope,
   Beef,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
+import RegisterTreatmentModal from "@/components/RegisterTreatmentModal";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { SkeletonCard, SkeletonTable } from "@/components/ui/Skeleton";
@@ -207,12 +209,14 @@ function WithdrawalBar({
 type Tab = "activos" | "historial" | "catalogo";
 
 export default function TratamientosPage() {
-  const { supabase } = useSupabase();
+  const { supabase, profileId } = useSupabase();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
+  const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("activos");
   const [catalogSearch, setCatalogSearch] = useState("");
   const [kindFilter, setKindFilter] = useState<string>("all");
+  const [showRegister, setShowRegister] = useState(false);
 
   // tratamientos activos (withdrawal aún vigente o sin fecha de fin)
   const activeQuery = useQuery<ActiveTreatment[]>({
@@ -314,13 +318,23 @@ export default function TratamientosPage() {
       title="Tratamientos"
       subtitle="Seguimiento sanitario y farmacopea"
       action={
-        <Link
-          href="/dashboard/asistente-tratamiento"
-          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
-        >
-          <Stethoscope className="h-4 w-4" />
-          Asistente clínico
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/asistente-tratamiento"
+            className="border-border text-foreground/70 hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium"
+          >
+            <Stethoscope className="h-4 w-4" />
+            <span className="hidden sm:inline">Asistente clínico</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShowRegister(true)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            Registrar tratamiento
+          </button>
+        </div>
       }
     >
       {/* Tabs */}
@@ -748,6 +762,19 @@ export default function TratamientosPage() {
             </div>
           )}
         </div>
+      )}
+
+      {showRegister && (
+        <RegisterTreatmentModal
+          farmId={farmId}
+          profileId={profileId ?? undefined}
+          onClose={() => setShowRegister(false)}
+          onDone={() => {
+            setShowRegister(false);
+            qc.invalidateQueries({ queryKey: ["treatments-active", farmId] });
+            qc.invalidateQueries({ queryKey: ["treatments-history", farmId] });
+          }}
+        />
       )}
     </DashboardShell>
   );
