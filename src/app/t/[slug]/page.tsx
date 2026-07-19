@@ -144,7 +144,6 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
   const milkTotal = milkRows.reduce((acc, r) => acc + Number(r.liters ?? 0), 0);
   const latestWeight = weighings[0]?.weight_kg ?? animal.current_weight_kg;
 
-  const fmt = new Intl.DateTimeFormat("es-VE", { day: "2-digit", month: "long", year: "numeric" });
   const fmtShort = new Intl.DateTimeFormat("es-VE", {
     day: "2-digit",
     month: "short",
@@ -202,9 +201,9 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
           </div>
 
           {/* Nombre sobre la imagen */}
-          <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-lg px-6 pb-8">
+          <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-5xl px-6 pb-8">
             <p className="text-white/50 text-[10px] font-bold tracking-widest uppercase mb-1">
-              Ficha pública · trazabilidad verificada
+              Ficha pública de trazabilidad
             </p>
             <h1 className="text-white text-4xl font-bold leading-tight drop-shadow-lg">
               {animal.name ?? animal.tag}
@@ -216,7 +215,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
         // Sin foto: encabezado compacto centrado (sin espacio vacío)
         <div className="border-border relative w-full overflow-hidden border-b">
           <div className="from-primary/8 via-background to-background absolute inset-0 bg-linear-to-b" />
-          <div className="relative mx-auto flex max-w-lg flex-col items-center px-6 pt-5 pb-9 text-center">
+          <div className="relative mx-auto flex max-w-2xl flex-col items-center px-6 pt-5 pb-9 text-center">
             {/* Logo + finca */}
             <div className="bg-card/60 border-border mb-8 flex items-center gap-2 rounded-full border px-4 py-1.5">
               <Image src="/logo.png" alt="Logo" width={80} height={32} className="h-5 w-auto" />
@@ -234,7 +233,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
             </div>
 
             <p className="text-foreground/50 mb-1.5 text-[10px] font-bold tracking-widest uppercase">
-              Ficha pública · trazabilidad verificada
+              Ficha pública de trazabilidad
             </p>
             <h1 className="text-foreground text-4xl font-bold leading-tight">
               {animal.name ?? animal.tag}
@@ -246,18 +245,18 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
         </div>
       )}
 
-      {/* ── VERIFIED BADGE ───────────────────────────────── */}
+      {/* ── PUBLISHED BADGE ──────────────────────────────── */}
       <div className="bg-primary/10 border-primary/20 border-b border-t flex items-center justify-center gap-2 px-4 py-2.5">
         <ShieldCheck className="text-primary h-4 w-4 shrink-0" />
         <p className="text-primary text-xs font-medium">
-          Verificado por {farm?.name ?? "Finca El Progreso"} · {fmt.format(new Date())}
+          Ficha publicada por {farm?.name ?? "Finca El Progreso"}
         </p>
       </div>
 
-      <div className="mx-auto max-w-lg">
-        <div className="space-y-4 p-4">
-          {/* ── STATS GRID ───────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-3">
+      <div className="mx-auto max-w-5xl p-4">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-6 lg:items-start">
+          {/* ── STATS GRID (panel lateral en escritorio) ─────── */}
+          <div className="grid grid-cols-2 gap-3 lg:sticky lg:top-4">
             <StatCard
               label="Sexo"
               value={animal.sex === "female" ? "Hembra" : "Macho"}
@@ -311,191 +310,194 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
             )}
           </div>
 
-          {/* ── PESAJES ──────────────────────────────────────── */}
-          {weighings.length > 0 && (
-            <Section
-              icon={Scale}
-              title="Historial de pesajes"
-              color="text-violet-500"
-              count={weighings.length}
-            >
-              <ul className="divide-border divide-y">
-                {weighings.map((w, i) => {
-                  const prev = weighings[i + 1];
-                  const delta = prev ? w.weight_kg - prev.weight_kg : null;
-                  return (
-                    <li key={i} className="flex items-center justify-between px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-violet-500/10 flex h-8 w-8 items-center justify-center rounded-lg">
-                          <Scale className="text-violet-500 h-3.5 w-3.5" />
-                        </div>
-                        <span className="text-foreground text-sm font-semibold tabular-nums">
-                          {w.weight_kg} kg
-                        </span>
-                        {delta !== null && (
-                          <span
-                            className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${delta >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"}`}
-                          >
-                            {delta >= 0 ? "+" : ""}
-                            {delta.toFixed(1)} kg
+          {/* ── HISTORIAL (columna derecha en escritorio) ────── */}
+          <div className="space-y-4">
+            {/* ── PESAJES ──────────────────────────────────────── */}
+            {weighings.length > 0 && (
+              <Section
+                icon={Scale}
+                title="Historial de pesajes"
+                color="text-violet-500"
+                count={weighings.length}
+              >
+                <ul className="divide-border divide-y">
+                  {weighings.map((w, i) => {
+                    const prev = weighings[i + 1];
+                    const delta = prev ? w.weight_kg - prev.weight_kg : null;
+                    return (
+                      <li key={i} className="flex items-center justify-between px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-violet-500/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                            <Scale className="text-violet-500 h-3.5 w-3.5" />
+                          </div>
+                          <span className="text-foreground text-sm font-semibold tabular-nums">
+                            {w.weight_kg} kg
                           </span>
-                        )}
-                      </div>
-                      <span className="text-foreground/40 text-xs">
-                        {fmtShort.format(new Date(w.measured_at as string))}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Section>
-          )}
+                          {delta !== null && (
+                            <span
+                              className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${delta >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"}`}
+                            >
+                              {delta >= 0 ? "+" : ""}
+                              {delta.toFixed(1)} kg
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-foreground/40 text-xs">
+                          {fmtShort.format(new Date(w.measured_at as string))}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Section>
+            )}
 
-          {/* ── VACUNAS ──────────────────────────────────────── */}
-          {vaccinations.length > 0 && (
-            <Section
-              icon={Syringe}
-              title="Registro de vacunación"
-              color="text-emerald-500"
-              count={vaccinations.length}
-            >
-              <div className="divide-border divide-y">
-                {vaccinations.map((v, i) => {
-                  const cat = v.vaccines_catalog as { name?: string; disease?: string } | null;
-                  const isDue = v.next_due_at && new Date(v.next_due_at).getTime() < now;
-                  const photoUrl = vacPhotos[v.id as string];
-                  return (
-                    <div key={i} className="p-4 space-y-3">
-                      {/* Evidence photo */}
-                      {photoUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={photoUrl}
-                          alt={`Evidencia ${cat?.name ?? "vacuna"}`}
-                          className="w-full h-36 object-cover rounded-xl"
-                        />
-                      )}
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl mt-0.5 ${isDue ? "bg-red-500/10" : "bg-emerald-500/10"}`}
-                        >
-                          <Syringe
-                            className={`h-4 w-4 ${isDue ? "text-red-500" : "text-emerald-500"}`}
+            {/* ── VACUNAS ──────────────────────────────────────── */}
+            {vaccinations.length > 0 && (
+              <Section
+                icon={Syringe}
+                title="Registro de vacunación"
+                color="text-emerald-500"
+                count={vaccinations.length}
+              >
+                <div className="divide-border divide-y">
+                  {vaccinations.map((v, i) => {
+                    const cat = v.vaccines_catalog as { name?: string; disease?: string } | null;
+                    const isDue = v.next_due_at && new Date(v.next_due_at).getTime() < now;
+                    const photoUrl = vacPhotos[v.id as string];
+                    return (
+                      <div key={i} className="p-4 space-y-3">
+                        {/* Evidence photo */}
+                        {photoUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={photoUrl}
+                            alt={`Evidencia ${cat?.name ?? "vacuna"}`}
+                            className="w-full h-36 object-cover rounded-xl"
                           />
+                        )}
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl mt-0.5 ${isDue ? "bg-red-500/10" : "bg-emerald-500/10"}`}
+                          >
+                            <Syringe
+                              className={`h-4 w-4 ${isDue ? "text-red-500" : "text-emerald-500"}`}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-foreground text-sm font-semibold">
+                                {cat?.name ?? "Vacuna"}
+                              </span>
+                              {isDue ? (
+                                <span className="bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1">
+                                  <AlertTriangle className="h-2.5 w-2.5" />
+                                  Refuerzo pendiente
+                                </span>
+                              ) : (
+                                <span className="bg-emerald-500/10 text-emerald-600 text-[10px] font-bold rounded-full px-2 py-0.5">
+                                  Al día
+                                </span>
+                              )}
+                            </div>
+                            {cat?.disease && (
+                              <p className="text-foreground/40 text-xs mt-0.5">
+                                Contra: {cat.disease}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                              <span className="text-foreground/50 text-xs bg-muted/40 rounded-lg px-2 py-0.5">
+                                {fmtShort.format(new Date(v.applied_at as string))}
+                              </span>
+                              {v.next_due_at && (
+                                <span
+                                  className={`text-xs flex items-center gap-1 ${isDue ? "text-red-400" : "text-foreground/40"}`}
+                                >
+                                  <Clock className="h-3 w-3" />
+                                  Próxima: {fmtShort.format(new Date(v.next_due_at))}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Section>
+            )}
+
+            {/* ── CERTIFICADOS ─────────────────────────────────── */}
+            {certifications.length > 0 && (
+              <Section
+                icon={FileCheck}
+                title="Certificaciones"
+                color="text-blue-500"
+                count={certifications.length}
+              >
+                <ul className="divide-border divide-y">
+                  {certifications.map((c) => {
+                    const expired = isExpired(c.valid_until);
+                    const nearExpiry = !expired && isNearExpiry(c.valid_until);
+                    return (
+                      <li key={c.id} className="flex items-center gap-3 px-4 py-3">
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${expired ? "bg-red-500/10" : "bg-emerald-500/10"}`}
+                        >
+                          {expired ? (
+                            <XCircle className="text-red-500 h-3.5 w-3.5" />
+                          ) : (
+                            <CheckCircle2 className="text-emerald-500 h-3.5 w-3.5" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-foreground text-sm font-semibold">
-                              {cat?.name ?? "Vacuna"}
+                            <span className="text-foreground text-sm font-medium">
+                              {CERT_TYPE_LABELS[c.type] ?? c.type}
                             </span>
-                            {isDue ? (
-                              <span className="bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1">
-                                <AlertTriangle className="h-2.5 w-2.5" />
-                                Refuerzo pendiente
+                            {expired ? (
+                              <span className="bg-red-500/10 text-red-500 text-[10px] font-semibold rounded-full px-1.5 py-0.5 flex items-center gap-1">
+                                <AlertTriangle className="h-2.5 w-2.5" /> Vencido
+                              </span>
+                            ) : nearExpiry ? (
+                              <span className="bg-amber-500/10 text-amber-600 text-[10px] font-semibold rounded-full px-1.5 py-0.5 flex items-center gap-1">
+                                <AlertTriangle className="h-2.5 w-2.5" /> Por vencer
                               </span>
                             ) : (
-                              <span className="bg-emerald-500/10 text-emerald-600 text-[10px] font-bold rounded-full px-2 py-0.5">
-                                Al día
+                              <span className="bg-emerald-500/10 text-emerald-600 text-[10px] font-semibold rounded-full px-1.5 py-0.5">
+                                Vigente
                               </span>
                             )}
                           </div>
-                          {cat?.disease && (
-                            <p className="text-foreground/40 text-xs mt-0.5">
-                              Contra: {cat.disease}
-                            </p>
+                          {c.issuer && (
+                            <p className="text-foreground/40 text-xs mt-0.5">{c.issuer}</p>
                           )}
-                          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                            <span className="text-foreground/50 text-xs bg-muted/40 rounded-lg px-2 py-0.5">
-                              {fmtShort.format(new Date(v.applied_at as string))}
-                            </span>
-                            {v.next_due_at && (
-                              <span
-                                className={`text-xs flex items-center gap-1 ${isDue ? "text-red-400" : "text-foreground/40"}`}
-                              >
-                                <Clock className="h-3 w-3" />
-                                Próxima: {fmtShort.format(new Date(v.next_due_at))}
-                              </span>
-                            )}
-                          </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                        {c.issued_at && (
+                          <span className="text-foreground/35 text-xs shrink-0">
+                            {fmtShort.format(new Date(c.issued_at))}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Section>
+            )}
+
+            {/* ── QR ───────────────────────────────────────────── */}
+            <Section icon={QrCode} title="Verificar trazabilidad" color="text-primary">
+              <div className="px-4 pb-4">
+                <PublicQRBlock slug={slug} animalId={token.entity_id} />
               </div>
             </Section>
-          )}
-
-          {/* ── CERTIFICADOS ─────────────────────────────────── */}
-          {certifications.length > 0 && (
-            <Section
-              icon={FileCheck}
-              title="Certificaciones"
-              color="text-blue-500"
-              count={certifications.length}
-            >
-              <ul className="divide-border divide-y">
-                {certifications.map((c) => {
-                  const expired = isExpired(c.valid_until);
-                  const nearExpiry = !expired && isNearExpiry(c.valid_until);
-                  return (
-                    <li key={c.id} className="flex items-center gap-3 px-4 py-3">
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${expired ? "bg-red-500/10" : "bg-emerald-500/10"}`}
-                      >
-                        {expired ? (
-                          <XCircle className="text-red-500 h-3.5 w-3.5" />
-                        ) : (
-                          <CheckCircle2 className="text-emerald-500 h-3.5 w-3.5" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-foreground text-sm font-medium">
-                            {CERT_TYPE_LABELS[c.type] ?? c.type}
-                          </span>
-                          {expired ? (
-                            <span className="bg-red-500/10 text-red-500 text-[10px] font-semibold rounded-full px-1.5 py-0.5 flex items-center gap-1">
-                              <AlertTriangle className="h-2.5 w-2.5" /> Vencido
-                            </span>
-                          ) : nearExpiry ? (
-                            <span className="bg-amber-500/10 text-amber-600 text-[10px] font-semibold rounded-full px-1.5 py-0.5 flex items-center gap-1">
-                              <AlertTriangle className="h-2.5 w-2.5" /> Por vencer
-                            </span>
-                          ) : (
-                            <span className="bg-emerald-500/10 text-emerald-600 text-[10px] font-semibold rounded-full px-1.5 py-0.5">
-                              Vigente
-                            </span>
-                          )}
-                        </div>
-                        {c.issuer && (
-                          <p className="text-foreground/40 text-xs mt-0.5">{c.issuer}</p>
-                        )}
-                      </div>
-                      {c.issued_at && (
-                        <span className="text-foreground/35 text-xs shrink-0">
-                          {fmtShort.format(new Date(c.issued_at))}
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </Section>
-          )}
-
-          {/* ── QR ───────────────────────────────────────────── */}
-          <Section icon={QrCode} title="Verificar trazabilidad" color="text-primary">
-            <div className="px-4 pb-4">
-              <PublicQRBlock slug={slug} animalId={token.entity_id} />
-            </div>
-          </Section>
-
-          {/* ── FOOTER ───────────────────────────────────────── */}
-          <p className="text-foreground/25 pb-6 text-center text-xs">
-            Ficha pública generada automáticamente · {farm?.name ?? "Finca El Progreso"}
-          </p>
+          </div>
         </div>
+
+        {/* ── FOOTER ───────────────────────────────────────── */}
+        <p className="text-foreground/25 pt-6 pb-6 text-center text-xs">
+          Ficha pública generada automáticamente · {farm?.name ?? "Finca El Progreso"}
+        </p>
       </div>
     </main>
   );

@@ -364,7 +364,9 @@ export default function EventosPage() {
           id: `preg:${p.id}`,
           // Un registro con resultado "calved" representa un parto; el resto, una revisión.
           type: p.result === "calved" ? "calving" : "pregnancy_check",
-          occurred_at: (p.confirmed_at ?? p.expected_due_at ?? p.created_at) as string,
+          // La fecha del evento es cuándo se registró/confirmó, NUNCA la fecha
+          // estimada de parto (que es futura y desordenaría el timeline).
+          occurred_at: (p.confirmed_at ?? p.created_at) as string,
           notes: (p.notes as string) ?? null,
           payload: {
             result: p.result ? (PREG_RESULT[p.result] ?? p.result) : null,
