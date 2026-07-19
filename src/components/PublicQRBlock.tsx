@@ -75,32 +75,6 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
   const fichaUrl = origin ? `${origin}/t/${slug}` : `/t/${slug}`;
   const verifyUrl = origin ? `${origin}/verify/animals/${animalId}` : `/verify/animals/${animalId}`;
 
-  const QrCard = ({
-    url,
-    label,
-    sublabel,
-    accent,
-  }: {
-    url: string;
-    label: string;
-    sublabel: string;
-    accent: string;
-  }) => (
-    <div className="bg-background border-border flex flex-col items-center gap-3 rounded-2xl border p-4 flex-1">
-      <div className="bg-white rounded-xl p-3 shadow-sm">
-        {url ? (
-          <QRCodeCanvas value={url} size={120} bgColor="#ffffff" fgColor="#0f172a" level="M" />
-        ) : (
-          <div className="h-30 w-30 animate-pulse rounded-lg bg-neutral-100" />
-        )}
-      </div>
-      <div className="text-center">
-        <p className={`text-xs font-semibold ${accent}`}>{label}</p>
-        <p className="text-foreground/40 text-[10px] mt-0.5">{sublabel}</p>
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       {/* QR codes side by side */}
