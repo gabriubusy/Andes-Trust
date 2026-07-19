@@ -14,6 +14,8 @@ import {
   CalendarRange,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
@@ -328,6 +330,11 @@ export default function ReportesPage() {
                 <History className="h-4 w-4" />
               </div>
               <h3 className="text-foreground text-base font-bold">Historial INSAI</h3>
+              {reports.length > 0 && (
+                <span className="bg-primary/10 text-primary ml-auto rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums">
+                  {reports.length}
+                </span>
+              )}
             </div>
 
             {reportsQuery.isLoading && (
@@ -348,34 +355,45 @@ export default function ReportesPage() {
               {pagedReports.map((r) => (
                 <li
                   key={r.id}
-                  className="bg-muted/20 border-border hover:border-primary/30 hover:bg-muted/40 rounded-xl border p-3 transition-colors"
+                  className="bg-muted/20 border-border hover:border-primary/30 hover:bg-muted/40 group rounded-xl border p-3 transition-colors"
                 >
-                  <div className="flex items-start gap-2">
-                    <FileText className="text-primary/50 mt-0.5 h-4 w-4 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-foreground text-xs font-semibold">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
+                        <FileText className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-foreground text-xs font-semibold">
                         {new Date(r.created_at).toLocaleDateString("es-CO", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
                         })}
-                      </div>
-                      <div className="text-foreground/50 mt-0.5 text-xs">
-                        {r.animal_ids.length} animal{r.animal_ids.length !== 1 ? "es" : ""}
-                        {(r.date_from || r.date_to) && (
-                          <span>
-                            {" "}
-                            · {r.date_from ?? "—"} → {r.date_to ?? "—"}
-                          </span>
-                        )}
-                      </div>
-                      {r.payload_hash && (
-                        <code className="text-foreground/30 mt-0.5 block truncate text-[10px]">
-                          {r.payload_hash.slice(0, 24)}…
-                        </code>
-                      )}
+                      </span>
                     </div>
+                    <span className="bg-muted text-foreground/60 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums">
+                      <Users className="h-3 w-3" />
+                      {r.animal_ids.length}
+                    </span>
                   </div>
+
+                  {(r.date_from || r.date_to) && (
+                    <div className="text-foreground/50 mt-2 flex items-center gap-1.5 text-[11px]">
+                      <CalendarRange className="text-foreground/30 h-3 w-3 shrink-0" />
+                      {r.date_from ?? "—"} → {r.date_to ?? "—"}
+                    </div>
+                  )}
+
+                  {r.payload_hash && (
+                    <div
+                      className="mt-2 flex items-center gap-1.5 text-emerald-600/80 dark:text-emerald-400/80"
+                      title={`Hash de integridad: ${r.payload_hash}`}
+                    >
+                      <ShieldCheck className="h-3 w-3 shrink-0" />
+                      <code className="truncate font-mono text-[10px]">
+                        {r.payload_hash.slice(0, 20)}…
+                      </code>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

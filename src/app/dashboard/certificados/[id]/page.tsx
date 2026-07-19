@@ -341,6 +341,8 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
                 entityId={id}
                 anchor
                 txHash={anchorQuery.data}
+                disabled={isExpired(cert.valid_until)}
+                disabledTitle="No se puede anclar un certificado vencido"
                 onDone={() => {
                   qc.invalidateQueries({ queryKey: ["certification", id] });
                   qc.invalidateQueries({ queryKey: ["anchor", "certifications", id] });

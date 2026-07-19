@@ -12,6 +12,9 @@ type Props = {
   entityId: string;
   anchor?: boolean;
   txHash?: string | null;
+  /** Bloquea el anclaje (p. ej. certificado vencido). No afecta a registros ya anclados. */
+  disabled?: boolean;
+  disabledTitle?: string;
   onDone?: (result: { payload_hash: string; anchor_tx: string | null }) => void;
 };
 
@@ -22,6 +25,8 @@ export default function SignAnchorButton({
   entityId,
   anchor = true,
   txHash,
+  disabled = false,
+  disabledTitle,
   onDone,
 }: Props) {
   const { getAccessToken } = usePrivy();
@@ -74,6 +79,18 @@ export default function SignAnchorButton({
         Anclado
         <ExternalLink className="h-2.5 w-2.5" />
       </a>
+    );
+  }
+
+  if (disabled) {
+    return (
+      <span
+        title={disabledTitle ?? "No disponible"}
+        className="border-border text-foreground/30 inline-flex cursor-not-allowed items-center gap-1 rounded-lg border px-2 py-1 text-xs"
+      >
+        <ShieldAlert className="h-3.5 w-3.5" />
+        Anclar
+      </span>
     );
   }
 

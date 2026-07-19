@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ShieldCheck, ShieldAlert, ShieldX, ExternalLink, Hash, Clock, User } from "lucide-react";
 import { verifyEntity } from "@/lib/verify/verifyEntity";
 
@@ -20,6 +21,10 @@ function shortHash(h: string) {
 
 function shortAddr(a: string) {
   return a.slice(0, 6) + "…" + a.slice(-4);
+}
+
+function shortId(id: string) {
+  return id.length > 16 ? id.slice(0, 8) + "…" + id.slice(-6) : id;
 }
 
 function fmtDate(d: string) {
@@ -88,47 +93,73 @@ export default async function VerifyPage({
       ? "El registro tiene firmas pero los hashes no coinciden completamente o falta el ancla blockchain."
       : "Este registro aún no tiene firma digital ni registro en blockchain.";
 
+  const statusGlow = data.integrity_ok
+    ? "bg-emerald-500/20"
+    : hasSignatures || hasAnchors
+      ? "bg-amber-500/20"
+      : "bg-neutral-500/10";
+
   return (
-    <main className="min-h-screen bg-neutral-950 p-4 md:p-8">
+    <main className="min-h-screen bg-neutral-950 text-white p-4 md:p-8">
       <div className="max-w-xl mx-auto space-y-4">
+        {/* Brand */}
+        <div className="flex items-center justify-center gap-2 pt-2 pb-1 opacity-80">
+          <Image src="/logo.png" alt="Logo" width={96} height={28} className="h-5 w-auto" />
+        </div>
+
         {/* Header */}
-        <div className="text-center pt-4 pb-2">
-          <p className="text-neutral-500 text-xs font-medium uppercase tracking-widest mb-1">
+        <div className="text-center pb-1">
+          <p className="text-neutral-500 text-[11px] font-medium uppercase tracking-[0.2em] mb-1.5">
             Verificación de trazabilidad
           </p>
-          <h1 className="text-white text-xl font-bold">{data.summary.title}</h1>
+          <h1 className="text-white text-2xl font-bold tracking-tight">{data.summary.title}</h1>
           {data.summary.subtitle && (
-            <p className="text-neutral-400 text-sm mt-0.5">{data.summary.subtitle}</p>
+            <p className="text-neutral-400 text-sm mt-1">{data.summary.subtitle}</p>
           )}
-          <p className="text-neutral-700 text-[10px] font-mono mt-1.5">
-            {label} · {id}
-          </p>
+          <div className="inline-flex items-center gap-1.5 mt-2.5 bg-neutral-900 border border-neutral-800 rounded-full px-2.5 py-1">
+            <span className="text-neutral-400 text-[10px] font-medium">{label}</span>
+            <span className="text-neutral-700">·</span>
+            <code className="text-neutral-500 text-[10px] font-mono">{shortId(id)}</code>
+          </div>
+        </div>
+
+        {/* Status card — la prueba de confianza, arriba y prominente */}
+        <div className={`relative overflow-hidden rounded-2xl border p-7 ${statusBg} text-center`}>
+          <div
+            className={`pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 h-40 w-40 rounded-full blur-3xl ${statusGlow}`}
+          />
+          <div className="relative">
+            <div
+              className={`flex h-16 w-16 items-center justify-center rounded-full mx-auto mb-3 bg-neutral-950/50 ring-1 ring-inset ${
+                data.integrity_ok
+                  ? "ring-emerald-500/40"
+                  : hasSignatures || hasAnchors
+                    ? "ring-amber-500/40"
+                    : "ring-neutral-700"
+              }`}
+            >
+              <StatusIcon className={`h-8 w-8 ${statusColor}`} />
+            </div>
+            <h2 className={`text-lg font-bold mb-1.5 ${statusColor}`}>{statusText}</h2>
+            <p className="text-neutral-400 text-xs leading-relaxed max-w-xs mx-auto">
+              {statusDesc}
+            </p>
+          </div>
         </div>
 
         {/* Resumen legible */}
         {data.summary.fields.length > 0 && (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 grid grid-cols-3 gap-3 text-center">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 grid grid-cols-3 gap-3 text-center divide-x divide-neutral-800">
             {data.summary.fields.map((f, i) => (
-              <div key={i}>
+              <div key={i} className="px-1">
                 <p className="text-neutral-600 text-[10px] uppercase tracking-wide mb-1">
                   {f.label}
                 </p>
-                <p className="text-neutral-200 text-xs font-semibold">{f.value}</p>
+                <p className="text-neutral-100 text-sm font-semibold">{f.value}</p>
               </div>
             ))}
           </div>
         )}
-
-        {/* Status card */}
-        <div className={`rounded-2xl border p-6 ${statusBg} text-center`}>
-          <div
-            className={`flex h-16 w-16 items-center justify-center rounded-full mx-auto mb-3 ${statusBg}`}
-          >
-            <StatusIcon className={`h-8 w-8 ${statusColor}`} />
-          </div>
-          <h2 className={`text-base font-bold mb-1 ${statusColor}`}>{statusText}</h2>
-          <p className="text-neutral-400 text-xs leading-relaxed max-w-xs mx-auto">{statusDesc}</p>
-        </div>
 
         {/* Current hash */}
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4">
@@ -153,7 +184,8 @@ export default async function VerifyPage({
             </span>
           </div>
           {!hasSignatures ? (
-            <div className="px-4 py-8 text-center">
+            <div className="px-4 py-7 flex flex-col items-center gap-1.5">
+              <User className="h-4 w-4 text-neutral-700" />
               <p className="text-neutral-600 text-xs">Sin firmas registradas</p>
             </div>
           ) : (
@@ -207,7 +239,8 @@ export default async function VerifyPage({
             </span>
           </div>
           {!hasAnchors ? (
-            <div className="px-4 py-8 text-center">
+            <div className="px-4 py-7 flex flex-col items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-neutral-700" />
               <p className="text-neutral-600 text-xs">Sin registros en blockchain</p>
             </div>
           ) : (

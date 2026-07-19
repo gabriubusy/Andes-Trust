@@ -440,6 +440,8 @@ export default function CertificadosPage() {
                           entityType="certifications"
                           entityId={c.id}
                           txHash={anchorsQuery.data?.[c.id] ?? null}
+                          disabled={st === "expired"}
+                          disabledTitle="No se puede anclar un certificado vencido"
                           onDone={() => anchorsQuery.refetch()}
                         />
                       </td>

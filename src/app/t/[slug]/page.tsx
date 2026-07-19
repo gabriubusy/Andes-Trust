@@ -244,43 +244,71 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
 
   return (
     <main className="bg-background text-foreground min-h-screen">
-      {/* ── HERO full-width ───────────────────────────────── */}
-      <div className="relative h-[60vh] min-h-72 w-full">
-        {photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+      {/* ── HERO ──────────────────────────────────────────── */}
+      {photoUrl ? (
+        // Con foto: hero a pantalla completa con la imagen
+        <div className="relative h-[58vh] min-h-72 w-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photoUrl} alt={animal.tag} className="h-full w-full object-cover" />
-        ) : (
-          <div className="bg-muted/20 flex h-full w-full items-center justify-center">
-            <Beef className="text-foreground/10 h-32 w-32" />
-          </div>
-        )}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-transparent" />
 
-        {/* Logo + farm top */}
-        <div className="absolute top-4 left-0 right-0 flex items-center justify-center">
-          <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-1.5 flex items-center gap-2">
-            <Image src="/logo.png" alt="Logo" width={80} height={32} className="h-5 w-auto" />
-            {farm && (
-              <span className="text-white/70 text-xs flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {[farm.name, farm.region].filter(Boolean).join(" · ")}
-              </span>
+          {/* Logo + finca */}
+          <div className="absolute top-4 left-0 right-0 flex items-center justify-center">
+            <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-1.5 flex items-center gap-2">
+              <Image src="/logo.png" alt="Logo" width={80} height={32} className="h-5 w-auto" />
+              {farm && (
+                <span className="text-white/70 text-xs flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {[farm.name, farm.region].filter(Boolean).join(" · ")}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Nombre sobre la imagen */}
+          <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-lg px-6 pb-8">
+            <p className="text-white/50 text-[10px] font-bold tracking-widest uppercase mb-1">
+              Ficha pública · trazabilidad verificada
+            </p>
+            <h1 className="text-white text-4xl font-bold leading-tight drop-shadow-lg">
+              {animal.name ?? animal.tag}
+            </h1>
+            {animal.name && <p className="text-white/60 font-mono text-sm mt-0.5">{animal.tag}</p>}
+          </div>
+        </div>
+      ) : (
+        // Sin foto: encabezado compacto centrado (sin espacio vacío)
+        <div className="border-border relative w-full overflow-hidden border-b">
+          <div className="from-primary/8 via-background to-background absolute inset-0 bg-linear-to-b" />
+          <div className="relative mx-auto flex max-w-lg flex-col items-center px-6 pt-5 pb-9 text-center">
+            {/* Logo + finca */}
+            <div className="bg-card/60 border-border mb-8 flex items-center gap-2 rounded-full border px-4 py-1.5">
+              <Image src="/logo.png" alt="Logo" width={80} height={32} className="h-5 w-auto" />
+              {farm && (
+                <span className="text-foreground/60 flex items-center gap-1 text-xs">
+                  <MapPin className="h-3 w-3" />
+                  {[farm.name, farm.region].filter(Boolean).join(" · ")}
+                </span>
+              )}
+            </div>
+
+            {/* Badge de icono */}
+            <div className="bg-primary/10 border-primary/20 shadow-primary/5 mb-5 flex h-24 w-24 items-center justify-center rounded-3xl border shadow-lg">
+              <Beef className="text-primary/70 h-11 w-11" />
+            </div>
+
+            <p className="text-foreground/50 mb-1.5 text-[10px] font-bold tracking-widest uppercase">
+              Ficha pública · trazabilidad verificada
+            </p>
+            <h1 className="text-foreground text-4xl font-bold leading-tight">
+              {animal.name ?? animal.tag}
+            </h1>
+            {animal.name && (
+              <p className="text-foreground/50 mt-1 font-mono text-sm">{animal.tag}</p>
             )}
           </div>
         </div>
-
-        {/* Animal name sobre la imagen */}
-        <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-lg px-6 pb-8">
-          <p className="text-white/50 text-[10px] font-bold tracking-widest uppercase mb-1">
-            Ficha pública · trazabilidad verificada
-          </p>
-          <h1 className="text-white text-4xl font-bold leading-tight drop-shadow-lg">
-            {animal.name ?? animal.tag}
-          </h1>
-          {animal.name && <p className="text-white/60 font-mono text-sm mt-0.5">{animal.tag}</p>}
-        </div>
-      </div>
+      )}
 
       {/* ── VERIFIED BADGE ───────────────────────────────── */}
       <div className="bg-primary/10 border-primary/20 border-b border-t flex items-center justify-center gap-2 px-4 py-2.5">

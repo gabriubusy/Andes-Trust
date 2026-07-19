@@ -51,6 +51,14 @@ function admin() {
 
 type Admin = ReturnType<typeof admin>;
 
+const ANIMAL_STATUS_LABELS: Record<string, string> = {
+  active: "Activo",
+  sold: "Vendido",
+  dead: "Muerto",
+  lost: "Perdido",
+  slaughtered: "Sacrificado",
+};
+
 function fmtDate(d: string | null | undefined) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("es-VE", {
@@ -79,7 +87,7 @@ async function buildSummary(sb: Admin, entity: string, row: any): Promise<Verify
             label: "Sexo",
             value: row.sex === "male" ? "Macho" : row.sex === "female" ? "Hembra" : "—",
           },
-          { label: "Estado", value: row.status ?? "—" },
+          { label: "Estado", value: ANIMAL_STATUS_LABELS[row.status] ?? row.status ?? "—" },
           {
             label: "Peso actual",
             value: row.current_weight_kg ? `${row.current_weight_kg} kg` : "—",
@@ -228,7 +236,12 @@ export async function verifyEntity(entity: string, id: string): Promise<VerifyRe
     matches_current: a.payload_hash === currentHash,
   }));
 
+  // Un registro solo puede considerarse "verificado" si existe al menos una
+  // prueba criptográfica (firma o ancla). Sin pruebas no está verificado,
+  // solo "sin firmar" — [].every() daría true y sería engañoso.
+  const hasProof = signatureChecks.length > 0 || anchorMatches.length > 0;
   const integrityOk =
+    hasProof &&
     signatureChecks.every((s) => s.signature_valid && s.hash_matches_current) &&
     anchorMatches.every((a) => a.matches_current);
 

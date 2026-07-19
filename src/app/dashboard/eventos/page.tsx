@@ -146,6 +146,11 @@ const PAYLOAD_LABELS: Record<string, string> = {
   vaccine_name: "Vacuna",
   product_name: "Producto",
   diagnosis: "Diagnóstico",
+  method: "Método",
+  sire: "Semental",
+  result: "Resultado",
+  expected_due_at: "Parto est.",
+  animales: "Animales",
 };
 
 const ALL_TYPES = Object.keys(EVENT_META);
@@ -217,7 +222,7 @@ export default function EventosPage() {
     enabled: !!supabase && !!farmId,
     queryFn: async () => {
       const LIMIT = 200;
-      const [ev, weigh, vac, treat] = await Promise.all([
+      const [ev, weigh, vac, treat, insem, preg, sales] = await Promise.all([
         supabase!
           .from("animal_events")
           .select("id, type, occurred_at, notes, payload, animals(id, tag, name)")
@@ -245,6 +250,33 @@ export default function EventosPage() {
           )
           .eq("farm_id", farmId!)
           .order("started_at", { ascending: false })
+          .limit(LIMIT),
+        // Reproducción y ventas viven en tablas propias; se combinan igual que
+        // pesajes/vacunas/tratamientos para que aparezcan en el timeline.
+        (supabase as any)
+          .from("inseminations")
+          .select(
+            "id, performed_at, method, sire_external, notes, animals:animals!inseminations_animal_id_fkey(id, tag, name), sire:animals!inseminations_sire_id_fkey(tag, name)"
+          )
+          .eq("farm_id", farmId!)
+          .order("performed_at", { ascending: false })
+          .limit(LIMIT),
+        (supabase as any)
+          .from("pregnancies")
+          .select(
+            "id, confirmed_at, expected_due_at, result, notes, created_at, animals(id, tag, name)"
+          )
+          .eq("farm_id", farmId!)
+          .order("confirmed_at", { ascending: false })
+          .limit(LIMIT),
+        (supabase as any)
+          .from("sales")
+          .select(
+            "id, sold_at, total_amount, currency, status, notes, buyers(name), sale_items(animal_id, animals(id, tag, name))"
+          )
+          .eq("farm_id", farmId!)
+          .neq("status", "draft")
+          .order("sold_at", { ascending: false })
           .limit(LIMIT),
       ]);
 
@@ -299,6 +331,55 @@ export default function EventosPage() {
           notes: (t.notes as string) ?? null,
           payload: { product_name, dose: t.dose, ended_at: t.ended_at },
           animals: oneAnimal(t.animals),
+        });
+      }
+      for (const i of (insem?.data ?? []) as any[]) {
+        const sire = Array.isArray(i.sire) ? i.sire[0] : i.sire;
+        rows.push({
+          id: `insem:${i.id}`,
+          type: "insemination",
+          occurred_at: i.performed_at as string,
+          notes: (i.notes as string) ?? null,
+          payload: { method: i.method, sire: sire?.tag ?? i.sire_external ?? null },
+          animals: oneAnimal(i.animals),
+        });
+      }
+      const PREG_RESULT: Record<string, string> = {
+        pregnant: "Preñada",
+        empty: "Vacía",
+        aborted: "Aborto",
+        calved: "Parió",
+      };
+      for (const p of (preg?.data ?? []) as any[]) {
+        rows.push({
+          id: `preg:${p.id}`,
+          // Un registro con resultado "calved" representa un parto; el resto, una revisión.
+          type: p.result === "calved" ? "calving" : "pregnancy_check",
+          occurred_at: (p.confirmed_at ?? p.expected_due_at ?? p.created_at) as string,
+          notes: (p.notes as string) ?? null,
+          payload: {
+            result: p.result ? (PREG_RESULT[p.result] ?? p.result) : null,
+            expected_due_at: p.expected_due_at,
+          },
+          animals: oneAnimal(p.animals),
+        });
+      }
+      for (const s of (sales?.data ?? []) as any[]) {
+        const buyer = Array.isArray(s.buyers) ? s.buyers[0] : s.buyers;
+        const items = (s.sale_items ?? []) as { animals: unknown }[];
+        const withAnimal = items.filter((it) => it.animals);
+        rows.push({
+          id: `sale:${s.id}`,
+          type: "sale",
+          occurred_at: s.sold_at as string,
+          notes: (s.notes as string) ?? null,
+          payload: {
+            buyer: buyer?.name ?? null,
+            price: s.total_amount != null ? `${s.total_amount} ${s.currency ?? ""}`.trim() : null,
+            animales: withAnimal.length > 1 ? withAnimal.length : null,
+          },
+          // Con un único animal vinculado lo mostramos; con varios, el chip de conteo.
+          animals: withAnimal.length === 1 ? oneAnimal(withAnimal[0].animals) : null,
         });
       }
 
