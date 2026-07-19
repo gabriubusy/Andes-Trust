@@ -14,9 +14,11 @@ import {
   Baby,
   XCircle,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
+import { DeleteDialog } from "@/app/dashboard/configuracion/_tabs/DeleteDialog";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 
@@ -111,6 +113,7 @@ export default function ReproduccionPage() {
   const [showInsemForm, setShowInsemForm] = useState(false);
   const [showPregForm, setShowPregForm] = useState(false);
   const [selectedInsemId, setSelectedInsemId] = useState<string | null>(null);
+  const [deleteInsemId, setDeleteInsemId] = useState<string | null>(null);
   const [tab, setTab] = useState<"active" | "history">("active");
 
   // ── Datos animales (hembras) ─────────────────────────────────────────
@@ -168,6 +171,27 @@ export default function ReproduccionPage() {
       if (error) throw error;
       return (data ?? []) as unknown as Pregnancy[];
     },
+  });
+
+  // ── Eliminar inseminación ────────────────────────────────────────────
+  const deleteInsem = useMutation({
+    mutationFn: async (id: string) => {
+      // Borrar primero las gestaciones vinculadas para no dejar registros huérfanos
+      const { error: pe } = await (supabase as any)
+        .from("pregnancies")
+        .delete()
+        .eq("insemination_id", id);
+      if (pe) throw pe;
+      const { error } = await (supabase as any).from("inseminations").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Inseminación eliminada");
+      qc.invalidateQueries({ queryKey: ["inseminations", farmId] });
+      qc.invalidateQueries({ queryKey: ["pregnancies", farmId] });
+      setDeleteInsemId(null);
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   // ── KPIs ─────────────────────────────────────────────────────────────
@@ -428,6 +452,7 @@ export default function ReproduccionPage() {
                   <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
                     Resultado
                   </th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -457,6 +482,15 @@ export default function ReproduccionPage() {
                       </td>
                       <td className="px-4 py-3">
                         <PregnancyResultBadge result={preg?.result ?? null} pending={!preg} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => setDeleteInsemId(i.id)}
+                          title="Eliminar inseminación"
+                          className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -507,6 +541,17 @@ export default function ReproduccionPage() {
             qc.invalidateQueries({ queryKey: ["inseminations", farmId] });
             setShowPregForm(false);
           }}
+        />
+      )}
+
+      {/* ── Confirmar eliminación de inseminación ───────────────────────── */}
+      {deleteInsemId && (
+        <DeleteDialog
+          title="¿Eliminar inseminación?"
+          body="Se eliminará el registro de inseminación y la gestación vinculada (si existe). Esta acción no se puede deshacer."
+          onCancel={() => setDeleteInsemId(null)}
+          onConfirm={() => deleteInsem.mutate(deleteInsemId)}
+          pending={deleteInsem.isPending}
         />
       )}
     </DashboardShell>

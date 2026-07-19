@@ -22,6 +22,10 @@ import {
   Wallet,
   CheckCircle2,
   ExternalLink,
+  Eye,
+  Ban,
+  FileText,
+  Calendar,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
@@ -1023,6 +1027,259 @@ function CryptoPayModal({
   );
 }
 
+// ─── Purchase detail modal ────────────────────────────────────────────────────
+
+type PurchaseItemRow = {
+  id: string;
+  animal_id: string | null;
+  description: string | null;
+  quantity: number;
+  price_per_unit: number;
+  animals: { tag: string; name: string | null } | null;
+};
+
+function PurchaseDetailModal({
+  purchase,
+  supabase,
+  onClose,
+  onCancelPurchase,
+}: {
+  purchase: PurchaseRow;
+  supabase: ReturnType<typeof useSupabase>["supabase"];
+  onClose: () => void;
+  onCancelPurchase: () => void;
+}) {
+  const itemsQuery = useQuery<PurchaseItemRow[]>({
+    queryKey: ["purchase-items", purchase.id],
+    enabled: !!supabase,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("purchase_items")
+        .select("id, animal_id, description, quantity, price_per_unit, animals(tag, name)")
+        .eq("purchase_id", purchase.id)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as PurchaseItemRow[];
+    },
+  });
+
+  const items = itemsQuery.data ?? [];
+  const conditions = purchase.conditions ?? [];
+  const canCancel = purchase.status === "draft" || purchase.status === "confirmed";
+
+  const money = (n: number) =>
+    `$${n.toLocaleString("es-VE", { minimumFractionDigits: 2 })} ${purchase.currency}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="bg-card border-border w-full max-w-lg rounded-2xl border p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-500/10 flex h-10 w-10 items-center justify-center rounded-xl">
+              <User className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <h2 className="text-foreground text-base font-bold leading-tight">
+                {purchase.seller_name}
+              </h2>
+              <span
+                className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_CLS[purchase.status] ?? "bg-muted text-foreground/60"}`}
+              >
+                {STATUS_LABEL[purchase.status] ?? purchase.status}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-foreground/40 hover:text-foreground rounded-lg p-1"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Meta */}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="flex items-center gap-2 text-foreground/70">
+            <Calendar className="h-4 w-4 text-foreground/40" />
+            {new Date(purchase.purchased_at).toLocaleDateString("es-VE", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
+          </div>
+          <div className="flex items-center gap-2 text-foreground/70">
+            <Wallet className="h-4 w-4 text-foreground/40" />
+            {purchase.payment_method
+              ? (PAYMENT_LABEL[purchase.payment_method] ?? purchase.payment_method)
+              : "—"}
+          </div>
+          {purchase.invoice_number && (
+            <div className="flex items-center gap-2 text-foreground/70">
+              <Receipt className="h-4 w-4 text-foreground/40" />
+              {purchase.invoice_number}
+            </div>
+          )}
+        </div>
+
+        {/* Items */}
+        <div>
+          <p className="text-foreground/60 mb-2 text-xs font-semibold uppercase tracking-wider">
+            Ítems comprados
+          </p>
+          {itemsQuery.isLoading ? (
+            <p className="text-foreground/40 text-sm">Cargando…</p>
+          ) : items.length === 0 ? (
+            <p className="text-foreground/40 text-sm">Sin ítems detallados.</p>
+          ) : (
+            <div className="border-border divide-border divide-y rounded-xl border">
+              {items.map((it) => (
+                <div key={it.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-foreground truncate text-sm font-medium">
+                      {it.animals
+                        ? `${it.animals.tag}${it.animals.name ? ` · ${it.animals.name}` : ""}`
+                        : (it.description ?? "Ítem")}
+                    </p>
+                    <p className="text-foreground/40 text-xs">
+                      {it.quantity} × {money(it.price_per_unit)}
+                    </p>
+                  </div>
+                  <span className="text-foreground shrink-0 text-sm font-semibold tabular-nums">
+                    {money(it.quantity * it.price_per_unit)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Conditions */}
+        {conditions.length > 0 && (
+          <div>
+            <p className="text-foreground/60 mb-2 text-xs font-semibold uppercase tracking-wider">
+              Condiciones de pago
+            </p>
+            <ul className="space-y-1">
+              {conditions.map((c) => (
+                <li
+                  key={c.id}
+                  className="text-foreground/70 flex items-center justify-between gap-2 text-sm"
+                >
+                  <span className="truncate">{c.description || "—"}</span>
+                  <span className="text-red-600 dark:text-red-400 shrink-0 text-xs">
+                    −
+                    {c.reduction_type === "percent"
+                      ? `${c.reduction_value}%`
+                      : money(c.reduction_value)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Notes */}
+        {purchase.notes && (
+          <div>
+            <p className="text-foreground/60 mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
+              <FileText className="h-3.5 w-3.5" /> Notas
+            </p>
+            <p className="text-foreground/70 text-sm">{purchase.notes}</p>
+          </div>
+        )}
+
+        {/* Total */}
+        <div className="bg-muted/30 border-border flex items-center justify-between rounded-xl border px-4 py-3">
+          <span className="text-foreground/60 text-sm">Total</span>
+          <span className="text-foreground text-lg font-bold">{money(purchase.total_amount)}</span>
+        </div>
+
+        {/* Crypto tx */}
+        {purchase.crypto_tx && (
+          <a
+            href={`${EXPLORER_URL}/tx/${purchase.crypto_tx}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary hover:underline inline-flex items-center gap-1.5 text-xs"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Ver transacción en blockchain
+          </a>
+        )}
+
+        {/* Footer actions */}
+        <div className="border-border flex justify-between gap-3 border-t pt-4">
+          {canCancel ? (
+            <button
+              type="button"
+              onClick={onCancelPurchase}
+              className="border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium"
+            >
+              <Ban className="h-4 w-4" /> Cancelar compra
+            </button>
+          ) : (
+            <span />
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="border-border text-foreground/70 hover:bg-muted rounded-xl border px-4 py-2 text-sm font-medium"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Confirm dialog ───────────────────────────────────────────────────────────
+
+function ConfirmDialog({
+  title,
+  body,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+  pending,
+}: {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  pending: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="bg-card border-border w-full max-w-sm rounded-2xl border p-6 shadow-2xl">
+        <h2 className="text-foreground mb-2 text-base font-bold">{title}</h2>
+        <p className="text-foreground/70 mb-6 text-sm">{body}</p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={pending}
+            className="border-border text-foreground/80 hover:bg-muted rounded-xl border px-4 py-2 text-sm font-medium disabled:opacity-50"
+          >
+            Volver
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onConfirm}
+            className="bg-red-600 hover:bg-red-600/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── main component ───────────────────────────────────────────────────────────
 
 function VentasPageInner() {
@@ -1040,6 +1297,8 @@ function VentasPageInner() {
   const [filter, setFilter] = useState<SaleFilter>("all");
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [payingPurchase, setPayingPurchase] = useState<PurchaseRow | null>(null);
+  const [detailPurchase, setDetailPurchase] = useState<PurchaseRow | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<PurchaseRow | null>(null);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -1109,6 +1368,24 @@ function VentasPageInner() {
         _item_count: r.purchase_items?.length ?? 0,
       }));
     },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("purchases")
+        .update({ status: "cancelled" })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Compra cancelada");
+      qc.invalidateQueries({ queryKey: ["purchases", farmId] });
+      setCancelTarget(null);
+      setDetailPurchase(null);
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const allSales = salesQuery.data ?? [];
@@ -1419,10 +1696,10 @@ function VentasPageInner() {
             </div>
           ) : (
             <div className="bg-card border-border overflow-hidden rounded-2xl border">
-              <div className="border-border hidden grid-cols-[1fr_120px_130px_110px_180px] items-center gap-4 border-b px-5 py-3 md:grid">
-                {["Vendedor", "Animales", "Total", "Pago", "Estado"].map((h) => (
+              <div className="border-border hidden grid-cols-[1fr_90px_120px_90px_110px_190px] items-center gap-4 border-b px-5 py-3 md:grid">
+                {["Vendedor", "Animales", "Total", "Pago", "Estado", ""].map((h, idx) => (
                   <span
-                    key={h}
+                    key={idx}
                     className="text-foreground/40 text-xs font-semibold tracking-wider uppercase"
                   >
                     {h}
@@ -1433,7 +1710,7 @@ function VentasPageInner() {
                 {purchasesPg.pageItems.map((p) => (
                   <li
                     key={p.id}
-                    className="hover:bg-muted/30 grid items-center gap-4 px-5 py-4 transition-colors md:grid-cols-[1fr_120px_130px_110px_180px]"
+                    className="hover:bg-muted/30 grid items-center gap-4 px-5 py-4 transition-colors md:grid-cols-[1fr_90px_120px_90px_110px_190px]"
                   >
                     <div className="flex items-center gap-3">
                       <div className="bg-amber-500/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
@@ -1474,20 +1751,13 @@ function VentasPageInner() {
                         ? (PAYMENT_LABEL[p.payment_method] ?? p.payment_method)
                         : "—"}
                     </span>
-                    <div className="hidden md:flex items-center gap-2 min-w-0">
+                    {/* Estado (desktop) */}
+                    <div className="hidden md:flex items-center gap-1.5 min-w-0">
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center ${STATUS_CLS[p.status] ?? "bg-muted text-foreground/60"}`}
                       >
                         {STATUS_LABEL[p.status] ?? p.status}
                       </span>
-                      {p.payment_method === "crypto" && p.status === "confirmed" && (
-                        <button
-                          onClick={() => setPayingPurchase(p)}
-                          className="bg-amber-500 hover:bg-amber-500/90 text-white shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold inline-flex items-center gap-1"
-                        >
-                          <Wallet className="h-3 w-3" /> Pagar
-                        </button>
-                      )}
                       {p.payment_method === "crypto" && p.crypto_tx && (
                         <a
                           href={`${EXPLORER_URL}/tx/${p.crypto_tx}`}
@@ -1499,6 +1769,70 @@ function VentasPageInner() {
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       )}
+                    </div>
+
+                    {/* Acciones (desktop) */}
+                    <div className="hidden md:flex items-center justify-end gap-1.5">
+                      {p.payment_method === "crypto" && p.status === "confirmed" && (
+                        <button
+                          onClick={() => setPayingPurchase(p)}
+                          className="bg-amber-500 hover:bg-amber-500/90 text-white shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold inline-flex items-center gap-1"
+                        >
+                          <Wallet className="h-3 w-3" /> Pagar
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setDetailPurchase(p)}
+                        title="Ver detalles"
+                        className="border-border text-foreground/60 hover:bg-muted hover:text-foreground shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium inline-flex items-center gap-1 transition-colors"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> Detalles
+                      </button>
+                      {(p.status === "draft" || p.status === "confirmed") && (
+                        <button
+                          onClick={() => setCancelTarget(p)}
+                          title="Cancelar compra"
+                          className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 shrink-0 rounded-lg p-1.5 transition-colors"
+                        >
+                          <Ban className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Total + estado + acciones (móvil) */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 md:hidden">
+                      <span className="text-foreground font-semibold">
+                        ${p.total_amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_CLS[p.status] ?? "bg-muted text-foreground/60"}`}
+                        >
+                          {STATUS_LABEL[p.status] ?? p.status}
+                        </span>
+                        {p.payment_method === "crypto" && p.status === "confirmed" && (
+                          <button
+                            onClick={() => setPayingPurchase(p)}
+                            className="bg-amber-500 hover:bg-amber-500/90 text-white rounded-lg px-2 py-1 text-xs font-semibold inline-flex items-center gap-1"
+                          >
+                            <Wallet className="h-3 w-3" /> Pagar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setDetailPurchase(p)}
+                          className="border-border text-foreground/60 hover:bg-muted rounded-lg border px-2 py-1 text-xs font-medium inline-flex items-center gap-1"
+                        >
+                          <Eye className="h-3.5 w-3.5" /> Detalles
+                        </button>
+                        {(p.status === "draft" || p.status === "confirmed") && (
+                          <button
+                            onClick={() => setCancelTarget(p)}
+                            className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5"
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </li>
                 ))}
@@ -1537,6 +1871,26 @@ function VentasPageInner() {
             setPayingPurchase(null);
             qc.invalidateQueries({ queryKey: ["purchases", farmId] });
           }}
+        />
+      )}
+
+      {detailPurchase && (
+        <PurchaseDetailModal
+          purchase={detailPurchase}
+          supabase={supabase}
+          onClose={() => setDetailPurchase(null)}
+          onCancelPurchase={() => setCancelTarget(detailPurchase)}
+        />
+      )}
+
+      {cancelTarget && (
+        <ConfirmDialog
+          title="¿Cancelar compra?"
+          body={`La compra de "${cancelTarget.seller_name}" se marcará como cancelada. Esta acción no elimina el registro, pero lo excluye de los totales.`}
+          confirmLabel="Cancelar compra"
+          pending={cancelMutation.isPending}
+          onCancel={() => setCancelTarget(null)}
+          onConfirm={() => cancelMutation.mutate(cancelTarget.id)}
         />
       )}
     </DashboardShell>
