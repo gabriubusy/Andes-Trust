@@ -87,16 +87,16 @@ const SEX_LABEL: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   active: "Activo",
   sold: "Vendido",
-  deceased: "Fallecido",
-  transferred: "Transferido",
-  inactive: "Inactivo",
+  dead: "Fallecido",
+  slaughtered: "Sacrificado",
+  lost: "Perdido",
 };
 const STATUS_COLOR: Record<string, RGB> = {
   active: rgb(0.1, 0.6, 0.35),
   sold: rgb(0.14, 0.44, 0.94),
-  deceased: rgb(0.75, 0.18, 0.18),
-  transferred: rgb(0.5, 0.35, 0.1),
-  inactive: rgb(0.45, 0.5, 0.55),
+  dead: rgb(0.75, 0.18, 0.18),
+  slaughtered: rgb(0.6, 0.15, 0.3),
+  lost: rgb(0.7, 0.55, 0.15),
 };
 
 function fmtDate(d: string | null): string {

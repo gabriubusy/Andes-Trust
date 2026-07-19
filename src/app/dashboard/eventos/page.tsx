@@ -222,7 +222,7 @@ export default function EventosPage() {
     enabled: !!supabase && !!farmId,
     queryFn: async () => {
       const LIMIT = 200;
-      const [ev, weigh, vac, treat, insem, preg, sales] = await Promise.all([
+      const [ev, weigh, vac, treat, insem, preg, sales, births] = await Promise.all([
         supabase!
           .from("animal_events")
           .select("id, type, occurred_at, notes, payload, animals(id, tag, name)")
@@ -277,6 +277,15 @@ export default function EventosPage() {
           .eq("farm_id", farmId!)
           .neq("status", "draft")
           .order("sold_at", { ascending: false })
+          .limit(LIMIT),
+        // No existe un evento "birth" propio: el nacimiento se deriva de la
+        // fecha de nacimiento registrada en el animal.
+        supabase!
+          .from("animals")
+          .select("id, tag, name, birth_date, birth_weight_kg")
+          .eq("farm_id", farmId!)
+          .not("birth_date", "is", null)
+          .order("birth_date", { ascending: false })
           .limit(LIMIT),
       ]);
 
@@ -380,6 +389,17 @@ export default function EventosPage() {
           },
           // Con un único animal vinculado lo mostramos; con varios, el chip de conteo.
           animals: withAnimal.length === 1 ? oneAnimal(withAnimal[0].animals) : null,
+        });
+      }
+      for (const a of (births?.data ?? []) as any[]) {
+        if (!a.birth_date) continue;
+        rows.push({
+          id: `birth:${a.id}`,
+          type: "birth",
+          occurred_at: a.birth_date as string,
+          notes: null,
+          payload: { weight_kg: a.birth_weight_kg },
+          animals: { id: a.id, tag: a.tag, name: a.name },
         });
       }
 

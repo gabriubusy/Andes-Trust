@@ -28,6 +28,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
 } from "recharts";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
@@ -48,6 +53,12 @@ type MilkRow = {
 };
 
 const SHIFT_LABEL: Record<string, string> = { am: "AM", pm: "PM", midday: "Mediodía" };
+// Paleta categórica validada (CVD-safe en claro y oscuro) para el desglose por turno.
+const SHIFT_CHART_COLOR: Record<string, string> = {
+  am: "#3987e5",
+  midday: "#d55181",
+  pm: "#008300",
+};
 const SHIFT_STYLE: Record<string, string> = {
   am: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   midday: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
@@ -67,6 +78,33 @@ function MilkTooltip({ active, payload, label }: any) {
   return (
     <div className="bg-card border-border rounded-xl border px-3 py-2 shadow-lg text-xs">
       <div className="text-foreground/60 mb-1">{label}</div>
+      <div className="text-secondary font-bold">{Number(payload[0]?.value ?? 0).toFixed(1)} L</div>
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ShiftTooltip({ active, payload, total }: any) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0];
+  const v = Number(p?.value ?? 0);
+  const pct = total > 0 ? ((v / total) * 100).toFixed(0) : "0";
+  return (
+    <div className="bg-card border-border rounded-xl border px-3 py-2 shadow-lg text-xs">
+      <div className="text-foreground/70 font-semibold mb-0.5">{p?.name}</div>
+      <div className="text-foreground/60">
+        {v.toFixed(1)} L · {pct}%
+      </div>
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function AnimalTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border-border rounded-xl border px-3 py-2 shadow-lg text-xs">
+      <div className="text-foreground/70 font-semibold mb-0.5">{payload[0]?.payload?.name}</div>
       <div className="text-secondary font-bold">{Number(payload[0]?.value ?? 0).toFixed(1)} L</div>
     </div>
   );
@@ -902,9 +940,42 @@ export default function ProduccionPage() {
     }
     return Object.entries(byDay)
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .slice(-14)
+      .slice(-30)
       .map(([date, litros]) => ({ label: fmt(date), litros }));
   }, [records]);
+
+  // Producción por turno (donut)
+  const shiftData = useMemo(() => {
+    const byShift: Record<string, number> = {};
+    for (const r of records) {
+      byShift[r.shift] = (byShift[r.shift] ?? 0) + Number(r.liters);
+    }
+    return (["am", "midday", "pm"] as const)
+      .filter((s) => byShift[s] > 0)
+      .map((s) => ({
+        key: s,
+        name: SHIFT_LABEL[s],
+        value: +byShift[s].toFixed(1),
+        color: SHIFT_CHART_COLOR[s],
+      }));
+  }, [records]);
+
+  // Top animales por producción (barra horizontal)
+  const animalData = useMemo(() => {
+    const byAnimal: Record<string, number> = {};
+    for (const r of records) {
+      const key = r.animals
+        ? `${r.animals.tag}${r.animals.name ? ` · ${r.animals.name}` : ""}`
+        : "Finca";
+      byAnimal[key] = (byAnimal[key] ?? 0) + Number(r.liters);
+    }
+    return Object.entries(byAnimal)
+      .map(([name, litros]) => ({ name, litros: +litros.toFixed(1) }))
+      .sort((a, b) => b.litros - a.litros)
+      .slice(0, 8);
+  }, [records]);
+
+  const shiftTotal = shiftData.reduce((s, d) => s + d.value, 0);
 
   return (
     <DashboardShell
@@ -970,6 +1041,151 @@ export default function ProduccionPage() {
           </div>
         ))}
       </div>
+
+      {/* Charts */}
+      {records.length > 0 && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Producción diaria */}
+          <div className="bg-card border-border rounded-2xl border p-6 lg:col-span-2">
+            <div className="mb-5">
+              <h2 className="text-foreground text-base font-bold">Producción diaria</h2>
+              <p className="text-foreground/50 text-xs mt-0.5">
+                Litros por día · últimos {days} días
+              </p>
+            </div>
+            {chartData.length === 0 ? (
+              <div className="flex h-[220px] items-center justify-center">
+                <p className="text-foreground/40 text-sm">Sin datos</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="prodAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(148,163,184,0.15)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip content={<MilkTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="litros"
+                    stroke="#3b82f6"
+                    strokeWidth={2.5}
+                    fill="url(#prodAreaGrad)"
+                    dot={{ fill: "#3b82f6", r: 3, strokeWidth: 0 }}
+                    activeDot={{ r: 5, strokeWidth: 0 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Distribución por turno */}
+          <div className="bg-card border-border rounded-2xl border p-6">
+            <div className="mb-5">
+              <h2 className="text-foreground text-base font-bold">Por turno</h2>
+              <p className="text-foreground/50 text-xs mt-0.5">Distribución de litros</p>
+            </div>
+            {shiftData.length === 0 ? (
+              <div className="flex h-[200px] items-center justify-center">
+                <p className="text-foreground/40 text-sm">Sin datos</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie
+                      data={shiftData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={48}
+                      outerRadius={72}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {shiftData.map((d) => (
+                        <Cell key={d.key} fill={d.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<ShiftTooltip total={shiftTotal} />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <ul className="space-y-1.5">
+                  {shiftData.map((d) => (
+                    <li key={d.key} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ background: d.color }} />
+                        <span className="text-foreground/70">{d.name}</span>
+                      </div>
+                      <span className="text-foreground font-medium tabular-nums">
+                        {d.value.toFixed(1)} L
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Producción por animal */}
+      {animalData.length > 0 && (
+        <div className="bg-card border-border rounded-2xl border p-6">
+          <div className="mb-5">
+            <h2 className="text-foreground text-base font-bold">Producción por animal</h2>
+            <p className="text-foreground/50 text-xs mt-0.5">
+              Litros acumulados · top {animalData.length}
+            </p>
+          </div>
+          <ResponsiveContainer width="100%" height={Math.max(140, animalData.length * 40)}>
+            <BarChart
+              data={animalData}
+              layout="vertical"
+              margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(148,163,184,0.15)"
+                horizontal={false}
+              />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                width={110}
+                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip content={<AnimalTooltip />} cursor={{ fill: "rgba(148,163,184,0.08)" }} />
+              <Bar dataKey="litros" fill="#3b82f6" radius={[0, 4, 4, 0]} maxBarSize={22} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-card border-border overflow-hidden rounded-2xl border">

@@ -50,16 +50,18 @@ type SortDir = "asc" | "desc";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Activo",
-  inactive: "Inactivo",
   sold: "Vendido",
-  deceased: "Fallecido",
+  dead: "Fallecido",
+  slaughtered: "Sacrificado",
+  lost: "Perdido",
 };
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  inactive: "bg-slate-500/15 text-slate-400 border-slate-500/20",
   sold: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  deceased: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
+  dead: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
+  slaughtered: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/20",
+  lost: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
 };
 
 function AnimalAvatar({

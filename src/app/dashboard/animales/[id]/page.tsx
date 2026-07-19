@@ -51,6 +51,14 @@ type Animal = AnimalUpdate & {
   animal_breeds: { breeds: { name: string } | null }[] | null;
 };
 
+const STATUS_LABEL: Record<Animal["status"], string> = {
+  active: "Activo",
+  sold: "Vendido",
+  dead: "Fallecido",
+  slaughtered: "Sacrificado",
+  lost: "Perdido",
+};
+
 type Tab = "info" | "pesajes" | "vacunas" | "tratamientos" | "leche" | "movimientos" | "qr";
 
 function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
@@ -177,10 +185,30 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       }
       const { error } = await supabase.from("animals").update(payload).eq("id", id);
       if (error) throw error;
+
+      // Registrar el evento de baja al cambiar de estado, para que aparezca en el
+      // timeline. Solo en la transición (no si ya estaba muerto/sacrificado).
+      const prevStatus = animalQuery.data?.status;
+      if (
+        (values.status === "dead" || values.status === "slaughtered") &&
+        values.status !== prevStatus &&
+        profileId &&
+        farmQuery.data?.id
+      ) {
+        await supabase.from("animal_events").insert({
+          animal_id: id,
+          farm_id: farmQuery.data.id,
+          type: values.status === "dead" ? "death" : "slaughter",
+          occurred_at: new Date().toISOString(),
+          performed_by: profileId,
+          payload: {},
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["animal", id] });
       queryClient.invalidateQueries({ queryKey: ["animals"] });
+      queryClient.invalidateQueries({ queryKey: ["events-merged"] });
       setEditing(false);
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -470,13 +498,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       : "bg-red-500/80 text-white"
                 }`}
               >
-                {animal.status === "active"
-                  ? "Activo"
-                  : animal.status === "sold"
-                    ? "Vendido"
-                    : animal.status === "dead"
-                      ? "Fallecido"
-                      : animal.status}
+                {STATUS_LABEL[animal.status] ?? animal.status}
               </span>
             </div>
 
@@ -595,13 +617,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     : "bg-red-500/15 text-red-500"
               }`}
             >
-              {animal.status === "active"
-                ? "Activo"
-                : animal.status === "sold"
-                  ? "Vendido"
-                  : animal.status === "dead"
-                    ? "Fallecido"
-                    : animal.status}
+              {STATUS_LABEL[animal.status] ?? animal.status}
             </span>
           </div>
 
@@ -801,7 +817,8 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       <option value="active">Activo</option>
                       <option value="sold">Vendido</option>
                       <option value="dead">Fallecido</option>
-                      <option value="retired">Retirado</option>
+                      <option value="slaughtered">Sacrificado</option>
+                      <option value="lost">Perdido</option>
                     </select>
                   </div>
                   <div className="md:col-span-2">

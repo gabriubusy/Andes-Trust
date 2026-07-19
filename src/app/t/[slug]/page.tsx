@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { notFound } from "next/navigation";
 import {
   Beef,
   Milk,
@@ -32,42 +33,6 @@ const CERT_TYPE_LABELS: Record<string, string> = {
   other: "Otro",
 };
 
-// DIAGNÓSTICO TEMPORAL — panel de error visible en lugar de un 404 mudo
-function DebugPanel({ step, slug, detail }: { step: string; slug: string; detail: unknown }) {
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0b1220",
-        color: "#e2e8f0",
-        fontFamily: "monospace",
-        padding: "2rem",
-      }}
-    >
-      <h1 style={{ color: "#f87171", fontSize: "1.25rem", marginBottom: "1rem" }}>
-        ⚠ Diagnóstico /t/[slug] — falló en el paso: {step}
-      </h1>
-      <div style={{ marginBottom: "0.5rem" }}>slug: {slug}</div>
-      <pre
-        style={{
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-all",
-          background: "#111827",
-          border: "1px solid #334155",
-          borderRadius: 8,
-          padding: "1rem",
-          fontSize: "0.8rem",
-        }}
-      >
-        {JSON.stringify(detail, null, 2)}
-      </pre>
-      <p style={{ color: "#94a3b8", marginTop: "1rem", fontSize: "0.75rem" }}>
-        Bloque de diagnóstico temporal. Se retira una vez identificado el error.
-      </p>
-    </div>
-  );
-}
-
 export default async function PublicAnimalPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = createSupabaseServiceClient();
@@ -78,27 +43,10 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
     .eq("slug", slug)
     .maybeSingle();
 
-  // DIAGNÓSTICO TEMPORAL — reemplaza notFound() por un error visible
-  if (tokenError || !token || !token.is_active || token.entity_type !== "animal") {
-    console.error("[t/slug] token gate", { slug, tokenError, token });
-    return (
-      <DebugPanel
-        step="TOKEN"
-        slug={slug}
-        detail={{
-          tokenError,
-          token,
-          reason: tokenError
-            ? "La consulta del token devolvió ERROR"
-            : !token
-              ? "El token no se encontró (null) — service role no lee la fila"
-              : !token.is_active
-                ? "El token existe pero is_active = false"
-                : `entity_type = '${token.entity_type}' (se esperaba 'animal')`,
-        }}
-      />
-    );
-  }
+  // Si la consulta falla (no un simple "no existe"), lo logueamos para no
+  // esconder un error real como un 404 mudo.
+  if (tokenError) console.error("[t/slug] error consultando token", { slug, tokenError });
+  if (tokenError || !token || !token.is_active || token.entity_type !== "animal") notFound();
 
   const now = Date.now();
 
@@ -140,27 +88,15 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
         .maybeSingle(),
     ]);
 
-  // DIAGNÓSTICO TEMPORAL — muestra el error real de la consulta del animal
-  if (animalRes.error || !animalRes.data) {
-    console.error("[t/slug] animal gate", {
+  // Un error de la consulta (p. ej. permisos/relación) no debe ocultarse como
+  // un 404 silencioso: lo dejamos en los logs del servidor.
+  if (animalRes.error)
+    console.error("[t/slug] error consultando animal", {
       slug,
       entityId: token.entity_id,
       animalError: animalRes.error,
     });
-    return (
-      <DebugPanel
-        step="ANIMAL"
-        slug={slug}
-        detail={{
-          entityId: token.entity_id,
-          animalError: animalRes.error,
-          reason: animalRes.error
-            ? "La consulta del animal devolvió ERROR (PostgREST)"
-            : "La consulta no devolvió datos (data = null) sin error",
-        }}
-      />
-    );
-  }
+  if (!animalRes.data) notFound();
   const animal = animalRes.data as unknown as Omit<typeof animalRes.data, "animal_breeds"> & {
     animal_breeds: { breeds: { name: string } | null }[] | null;
   };
