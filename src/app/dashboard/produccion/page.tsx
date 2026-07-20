@@ -1254,7 +1254,7 @@ export default function ProduccionPage() {
         )}
 
         {filtered.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="text-foreground/50 border-border border-b text-xs uppercase tracking-wide">
                 <tr>
@@ -1328,6 +1328,70 @@ export default function ProduccionPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Tarjetas (móvil) */}
+        {filtered.length > 0 && (
+          <ul className="divide-border divide-y md:hidden">
+            {pagedRecords.map((r) => (
+              <li key={r.id} className="space-y-3 px-4 py-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-foreground text-lg font-bold tabular-nums">
+                      {Number(r.liters).toFixed(2)}
+                      <span className="text-foreground/40 ml-1 text-xs font-normal">L</span>
+                    </div>
+                    <div className="text-foreground/70 mt-0.5 text-xs tabular-nums">
+                      {fmt(r.recorded_on)}
+                    </div>
+                  </div>
+                  <span
+                    className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${SHIFT_STYLE[r.shift] ?? "bg-muted text-foreground/60 border-border"}`}
+                  >
+                    {SHIFT_LABEL[r.shift] ?? r.shift}
+                  </span>
+                </div>
+
+                <div>
+                  {r.animals ? (
+                    <span className="text-foreground font-mono text-xs font-semibold">
+                      {r.animals.tag}
+                      {r.animals.name && (
+                        <span className="text-foreground/50 font-normal"> · {r.animals.name}</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="bg-muted/60 text-foreground/50 rounded-lg px-2 py-0.5 text-xs">
+                      Finca
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-foreground/60">
+                      Grasa{" "}
+                      <span className="text-foreground/80 tabular-nums">
+                        {r.fat_pct ? `${r.fat_pct}%` : "—"}
+                      </span>
+                    </span>
+                    <span className="text-foreground/60">
+                      Proteína{" "}
+                      <span className="text-foreground/80 tabular-nums">
+                        {r.protein_pct ? `${r.protein_pct}%` : "—"}
+                      </span>
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setEditRecord(r)}
+                    className="text-foreground/60 border-border hover:text-primary hover:bg-primary/10 inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+                  >
+                    <Pencil className="h-3 w-3" /> Editar
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
 
         {filtered.length > 0 && (

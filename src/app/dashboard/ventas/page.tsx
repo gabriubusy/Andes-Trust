@@ -1617,15 +1617,33 @@ function VentasPageInner() {
                       >
                         {STATUS_LABEL[sale.status] ?? sale.status}
                       </span>
-                      <div className="flex items-center justify-between md:hidden">
-                        <span className="text-foreground font-semibold">
-                          ${sale.total_amount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_CLS[sale.status] ?? "bg-muted text-foreground/60"}`}
-                        >
-                          {STATUS_LABEL[sale.status] ?? sale.status}
-                        </span>
+                      <div className="space-y-2 md:hidden">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[11px]">
+                            {sale._item_count} animal{sale._item_count !== 1 ? "es" : ""}
+                          </span>
+                          {sale.payment_method && (
+                            <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[11px]">
+                              {PAYMENT_LABEL[sale.payment_method] ?? sale.payment_method}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-foreground font-semibold">
+                            $
+                            {sale.total_amount.toLocaleString("es-VE", {
+                              minimumFractionDigits: 2,
+                            })}
+                            <span className="text-muted-foreground ml-1 text-xs font-normal">
+                              {sale.currency}
+                            </span>
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_CLS[sale.status] ?? "bg-muted text-foreground/60"}`}
+                          >
+                            {STATUS_LABEL[sale.status] ?? sale.status}
+                          </span>
+                        </div>
                       </div>
                       <ChevronRight className="text-muted-foreground/40 hidden h-4 w-4 md:block" />
                     </Link>

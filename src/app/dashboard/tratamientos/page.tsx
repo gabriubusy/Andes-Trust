@@ -542,7 +542,7 @@ export default function TratamientosPage() {
             </div>
           )}
           <div className="bg-card border-border overflow-hidden rounded-2xl border">
-            <table className="w-full text-sm">
+            <table className="hidden w-full text-sm md:table">
               <thead>
                 <tr className="border-border border-b">
                   <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase">
@@ -608,6 +608,50 @@ export default function TratamientosPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Tarjetas (móvil) */}
+            <ul className="divide-border divide-y md:hidden">
+              {historyPg.pageItems.map((t) => (
+                <li key={t.id} className="space-y-3 px-4 py-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-foreground font-medium">
+                        {t.treatments_catalog?.name ?? "Libre"}
+                      </div>
+                      {t.dose && <div className="text-muted-foreground text-xs">{t.dose}</div>}
+                    </div>
+                    {t.animals ? (
+                      <Link
+                        href={`/dashboard/animales/${t.animals.id}`}
+                        className="text-primary shrink-0 font-mono text-xs font-semibold hover:underline"
+                      >
+                        {t.animals.tag}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground shrink-0 text-xs">—</span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <KindBadge kind={t.treatments_catalog?.kind ?? null} />
+                    <span className="text-muted-foreground text-xs">
+                      {new Date(t.started_at).toLocaleDateString()}
+                      {t.ended_at
+                        ? ` → ${new Date(t.ended_at).toLocaleDateString()}`
+                        : " → en curso"}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <WithdrawalChip label="🥩" date={t.withdrawal_until_meat} />
+                    <WithdrawalChip label="🥛" date={t.withdrawal_until_milk} />
+                    {!t.withdrawal_until_meat && !t.withdrawal_until_milk && (
+                      <span className="text-muted-foreground text-xs">Sin retiro</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
           {(historyQuery.data ?? []).length > 0 && (
             <Pagination

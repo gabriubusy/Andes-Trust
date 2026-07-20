@@ -369,9 +369,9 @@ export default function CertificadosPage() {
           </div>
         )}
 
-        {/* Table */}
+        {/* Tabla (escritorio) */}
         {filtered.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="text-foreground/50 border-border border-b text-xs uppercase tracking-wide">
                 <tr>
@@ -459,6 +459,90 @@ export default function CertificadosPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Tarjetas (móvil) */}
+        {filtered.length > 0 && (
+          <ul className="divide-border divide-y md:hidden">
+            {pagedCerts.map((c) => {
+              const st = getStatus(c.valid_until);
+              return (
+                <li key={c.id} className="space-y-3 px-4 py-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${CERT_TYPE_STYLES[c.type] ?? CERT_TYPE_STYLES.other}`}
+                    >
+                      <span>{CERT_ICON[c.type] ?? "📄"}</span>
+                      {CERT_TYPE_LABELS[c.type] ?? c.type}
+                    </span>
+                    <span className="shrink-0">{STATUS_BADGE[st]}</span>
+                  </div>
+
+                  <div>
+                    {c.animals ? (
+                      <span className="text-foreground font-mono text-xs font-semibold">
+                        {c.animals.tag}
+                        {c.animals.name && (
+                          <span className="text-foreground/50 font-normal">
+                            {" "}
+                            · {c.animals.name}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="bg-muted/60 text-foreground/50 rounded-lg px-2 py-0.5 text-xs">
+                        Finca
+                      </span>
+                    )}
+                  </div>
+
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                    <div className="col-span-2">
+                      <dt className="text-foreground/40">Emisor</dt>
+                      <dd className="text-foreground/80 mt-0.5">
+                        {c.issuer ?? <span className="text-foreground/30 italic">—</span>}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-foreground/40">Emitido</dt>
+                      <dd className="text-foreground/70 mt-0.5 tabular-nums">{fmt(c.issued_at)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-foreground/40">Vence</dt>
+                      <dd
+                        className={`mt-0.5 tabular-nums ${
+                          st === "expired"
+                            ? "text-red-600 dark:text-red-400"
+                            : st === "near"
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-foreground/70"
+                        }`}
+                      >
+                        {fmt(c.valid_until)}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <SignAnchorButton
+                      entityType="certifications"
+                      entityId={c.id}
+                      txHash={anchorsQuery.data?.[c.id] ?? null}
+                      disabled={st === "expired"}
+                      disabledTitle="No se puede anclar un certificado vencido"
+                      onDone={() => anchorsQuery.refetch()}
+                    />
+                    <Link
+                      href={`/dashboard/certificados/${c.id}`}
+                      className="text-primary border-primary/20 hover:bg-primary/10 inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium"
+                    >
+                      Ver →
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
 
         {filtered.length > 0 && (

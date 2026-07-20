@@ -166,7 +166,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
 
   const sale = saleQuery.data;
 
-  if (saleQuery.isLoading || !sale) {
+  if (!supabase || saleQuery.isPending) {
     return (
       <DashboardShell title="Cargando venta…">
         <div className="grid animate-pulse gap-6 lg:grid-cols-[1fr_380px]">
@@ -207,6 +207,42 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <div className="bg-muted/40 h-3 w-2/3 rounded-full" />
             <div className="bg-muted/50 h-10 w-full rounded-xl" />
             <div className="bg-muted/40 h-10 w-full rounded-xl" />
+          </div>
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  // La query terminó pero no hay venta: error de carga o la venta no existe.
+  if (saleQuery.isError || !sale) {
+    return (
+      <DashboardShell title="Venta no disponible">
+        <div className="bg-card border-border rounded-2xl border p-10 text-center">
+          <XCircle className="text-muted-foreground/30 mx-auto mb-4 h-12 w-12" />
+          <p className="text-foreground mb-1 text-sm font-medium">
+            No se pudo cargar el detalle de la venta
+          </p>
+          <p className="text-foreground/60 mb-6 text-sm">
+            {saleQuery.isError
+              ? ((saleQuery.error as Error).message ?? "Ocurrió un error al consultar la venta.")
+              : "La venta no existe o no tienes acceso a ella."}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => saleQuery.refetch()}
+              disabled={saleQuery.isFetching}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saleQuery.isFetching && <Loader2 className="h-4 w-4 animate-spin" />}
+              Reintentar
+            </button>
+            <Link
+              href="/dashboard/ventas"
+              className="border-border text-foreground/70 hover:bg-muted inline-flex items-center gap-1 rounded-xl border px-4 py-2 text-sm font-medium"
+            >
+              <ArrowLeft className="h-4 w-4" /> Volver a ventas
+            </Link>
           </div>
         </div>
       </DashboardShell>

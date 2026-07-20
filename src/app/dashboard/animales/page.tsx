@@ -405,9 +405,9 @@ export default function AnimalesListPage() {
           </div>
         )}
 
-        {/* Table */}
+        {/* Tabla (escritorio) */}
         {filtered.length > 0 && (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="text-foreground/50 border-border border-b text-xs uppercase tracking-wide">
                 <tr>
@@ -540,6 +540,87 @@ export default function AnimalesListPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Tarjetas (móvil) */}
+        {filtered.length > 0 && (
+          <ul className="divide-border divide-y md:hidden">
+            {pagedAnimals.map((a) => (
+              <li key={a.id} className="px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <AnimalAvatar tag={a.tag} name={a.name} photoUrl={a.photo_url ?? null} />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-foreground font-mono text-xs font-bold tracking-wider">
+                        {a.tag}
+                      </span>
+                      <span
+                        className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${
+                          STATUS_STYLES[a.status] ?? "bg-muted text-foreground/60 border-border"
+                        }`}
+                      >
+                        <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                        {STATUS_LABELS[a.status] ?? a.status}
+                      </span>
+                    </div>
+
+                    <p className="text-foreground mt-0.5 truncate text-sm font-medium">
+                      {a.name ?? (
+                        <span className="text-foreground/30 font-normal italic">Sin nombre</span>
+                      )}
+                    </p>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                          a.sex === "female"
+                            ? "bg-pink-500/10 text-pink-600 dark:text-pink-400"
+                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                        }`}
+                      >
+                        {a.sex === "female" ? (
+                          <Venus className="h-2.5 w-2.5" />
+                        ) : (
+                          <Mars className="h-2.5 w-2.5" />
+                        )}
+                        {a.sex === "female" ? "Hembra" : "Macho"}
+                      </span>
+
+                      {breedNames(a) && (
+                        <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[11px]">
+                          {breedNames(a)}
+                        </span>
+                      )}
+
+                      {a.current_weight_kg && (
+                        <span className="text-foreground/70 bg-muted/60 rounded-lg px-2 py-0.5 text-[11px] tabular-nums">
+                          {a.current_weight_kg} kg
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <Link
+                    href={`/dashboard/animales/${a.id}`}
+                    className="border-border text-foreground/80 hover:bg-muted inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Ver ficha
+                  </Link>
+                  {canEdit && (
+                    <Link
+                      href={`/dashboard/animales/${a.id}?edit=1`}
+                      className="border-border text-foreground/80 hover:bg-muted inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Link>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
 
         {/* Paginación */}

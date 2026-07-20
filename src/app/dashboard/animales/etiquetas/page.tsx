@@ -138,7 +138,7 @@ export default function EtiquetasPage() {
 
         {error && <div className="text-accent px-5 py-3 text-sm">{error}</div>}
 
-        <div className="overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-foreground/60 text-xs uppercase">
               <tr>
@@ -182,6 +182,52 @@ export default function EtiquetasPage() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Tarjetas (móvil) */}
+        <div className="md:hidden">
+          {animalsQuery.isLoading && (
+            <p className="text-foreground/60 px-4 py-6 text-sm">Cargando…</p>
+          )}
+          {!animalsQuery.isLoading && animals.length > 0 && (
+            <>
+              <label className="border-border bg-muted/40 text-foreground/70 flex cursor-pointer items-center gap-2 border-b px-4 py-2.5 text-xs font-medium">
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+                Seleccionar todos
+              </label>
+              <ul className="divide-border divide-y">
+                {animals.map((a) => {
+                  const slug = a.traceability_tokens.find((t) => t.is_active)?.slug;
+                  return (
+                    <li key={a.id}>
+                      <label
+                        className={`flex items-start gap-3 px-4 py-3.5 ${slug ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 shrink-0"
+                          checked={selected.has(a.id)}
+                          onChange={() => toggleOne(a.id)}
+                          disabled={!slug}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-foreground font-mono text-xs font-semibold">
+                            {a.tag}
+                          </div>
+                          <div className="text-foreground mt-0.5 truncate text-sm">
+                            {a.name ?? "—"}
+                          </div>
+                          <div className="text-foreground/60 mt-1 truncate font-mono text-[11px]">
+                            {slug ?? <span className="text-accent">sin token</span>}
+                          </div>
+                        </div>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
         </div>
       </div>
     </DashboardShell>

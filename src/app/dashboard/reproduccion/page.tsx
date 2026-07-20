@@ -336,7 +336,7 @@ export default function ReproduccionPage() {
               No hay gestaciones activas registradas.
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="hidden w-full text-sm md:table">
               <thead>
                 <tr className="border-border border-b">
                   <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
@@ -412,6 +412,72 @@ export default function ReproduccionPage() {
               </tbody>
             </table>
           )}
+
+          {/* Tarjetas (móvil) */}
+          {activePregnancies.length > 0 && (
+            <ul className="divide-border divide-y md:hidden">
+              {pregPg.pageItems.map((p) => {
+                const animal = Array.isArray(p.animals) ? p.animals[0] : p.animals;
+                const days = daysUntil(p.expected_due_at);
+                const overdue = days !== null && days < 0;
+                return (
+                  <li key={p.id} className="space-y-3 px-4 py-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-medium">{animal?.tag ?? "—"}</span>
+                        {animal?.name && (
+                          <span className="text-foreground/50 ml-1 text-xs">{animal.name}</span>
+                        )}
+                      </div>
+                      <PregnancyResultBadge result={p.result} />
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                      <div>
+                        <dt className="text-foreground/40">Confirmada</dt>
+                        <dd className="text-foreground/80 mt-0.5">{fmt(p.confirmed_at)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-foreground/40">Parto estimado</dt>
+                        <dd className="text-foreground mt-0.5 font-medium">
+                          {fmt(p.expected_due_at)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-foreground/40">Días restantes</dt>
+                        <dd className="mt-0.5">
+                          {days === null ? (
+                            "—"
+                          ) : (
+                            <span
+                              className={`font-semibold ${overdue ? "text-red-600" : days <= 7 ? "text-amber-600" : "text-foreground"}`}
+                            >
+                              {overdue
+                                ? `${Math.abs(days)} d vencido`
+                                : days === 0
+                                  ? "Hoy"
+                                  : `${days} d`}
+                            </span>
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <UpdateResultButton
+                      pregnancy={p}
+                      farmId={farmId!}
+                      supabase={supabase}
+                      onDone={() => {
+                        qc.invalidateQueries({ queryKey: ["pregnancies", farmId] });
+                        qc.invalidateQueries({ queryKey: ["inseminations", farmId] });
+                      }}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
           {activePregnancies.length > 0 && (
             <div className="px-5 pb-2">
               <Pagination
@@ -434,7 +500,7 @@ export default function ReproduccionPage() {
               No hay inseminaciones registradas aún.
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="hidden w-full text-sm md:table">
               <thead>
                 <tr className="border-border border-b">
                   <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
@@ -498,6 +564,61 @@ export default function ReproduccionPage() {
               </tbody>
             </table>
           )}
+
+          {/* Tarjetas (móvil) */}
+          {allInsem.length > 0 && (
+            <ul className="divide-border divide-y md:hidden">
+              {insemPg.pageItems.map((i) => {
+                const animal = Array.isArray(i.animals) ? i.animals[0] : i.animals;
+                const sire = Array.isArray(i.sire) ? i.sire[0] : i.sire;
+                const preg = i.pregnancies?.[0];
+                return (
+                  <li key={i.id} className="space-y-3 px-4 py-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-medium">{animal?.tag ?? "—"}</span>
+                        {animal?.name && (
+                          <span className="text-foreground/50 ml-1 text-xs">{animal.name}</span>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <PregnancyResultBadge result={preg?.result ?? null} pending={!preg} />
+                        <button
+                          onClick={() => setDeleteInsemId(i.id)}
+                          title="Eliminar inseminación"
+                          className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                      <div>
+                        <dt className="text-foreground/40">Fecha</dt>
+                        <dd className="text-foreground/80 mt-0.5">{fmt(i.performed_at)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-foreground/40">Método</dt>
+                        <dd className="text-foreground/80 mt-0.5">
+                          {METHOD_LABELS[i.method] ?? i.method}
+                        </dd>
+                      </div>
+                      <div className="col-span-2">
+                        <dt className="text-foreground/40">Toro / Semen</dt>
+                        <dd className="text-foreground/80 mt-0.5">
+                          {sire
+                            ? `${sire.tag}${sire.name ? ` · ${sire.name}` : ""}`
+                            : (i.sire_external ?? "—")}
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
           {allInsem.length > 0 && (
             <div className="px-5 pb-2">
               <Pagination
