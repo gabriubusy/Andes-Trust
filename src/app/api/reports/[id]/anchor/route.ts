@@ -22,10 +22,12 @@ import { relayContractWrite } from "@/lib/blockchain/relayer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// entity_type libre almacenado en blockchain_records
+// entity_type libre almacenado en blockchain_records (aquí sí distinguimos el reporte)
 const REPORT_RECORD_TYPE = "regulatory_report";
-// Índice del enum EntityType.Report en TraceabilityAnchor.sol (añadido tras IoTReading)
-const REPORT_ENTITY_TYPE_INDEX = 7;
+// Índice del enum EntityType en TraceabilityAnchor.sol. Reutilizamos Certification(3)
+// —el valor más cercano a un documento regulatorio— para no tener que redesplegar el
+// contrato con un miembro nuevo. La distinción real vive en blockchain_records.entity_type.
+const REPORT_ENTITY_TYPE_INDEX = 3;
 // Roles autorizados a anclar reportes (mismos que pueden generarlos)
 const ALLOWED_ROLES = ["owner", "admin", "vet"];
 
