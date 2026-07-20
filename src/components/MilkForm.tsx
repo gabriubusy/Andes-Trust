@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
-import { enqueueMutation } from "@/lib/offline/db";
+import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
 import { toast } from "sonner";
 
 const schema = z.object({
@@ -78,16 +78,10 @@ export default function MilkForm({ animalId, farmId, profileId, onDone }: Props)
         fat_pct: v.fat_pct ? Number(v.fat_pct) : null,
         protein_pct: v.protein_pct ? Number(v.protein_pct) : null,
       };
-      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-      if (!supabase || isOffline) {
-        await enqueueMutation("milk_records", payload);
-        return;
-      }
-      const { error } = await supabase.from("milk_records").insert(payload);
-      if (error) throw error;
+      return submitOrQueue(supabase, "milk_records", payload, profileId);
     },
-    onSuccess: () => {
-      toast.success("Guardado correctamente");
+    onSuccess: (result) => {
+      toast.success(submitToastMessage(result));
       reset({ shift: "am" });
       queryClient.invalidateQueries({ queryKey: ["milk", animalId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });

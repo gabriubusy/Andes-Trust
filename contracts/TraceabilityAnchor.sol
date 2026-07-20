@@ -23,7 +23,8 @@ contract TraceabilityAnchor {
         Certification, // 3 - certificado de calidad/sanidad
         Sale,          // 4 - venta
         Treatment,     // 5 - tratamiento veterinario
-        IoTReading     // 6 - lectura de sensor / oráculo
+        IoTReading,    // 6 - lectura de sensor / oráculo
+        Report         // 7 - reporte regulatorio (INSAI / calidad láctea)
     }
 
     struct AnchorRecord {

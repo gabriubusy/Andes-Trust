@@ -29,6 +29,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -119,6 +120,12 @@ const navItems: {
     roles: ["owner", "admin"],
   },
   {
+    icon: RefreshCw,
+    label: "Sincronización",
+    href: "/dashboard/sincronizacion",
+    matches: ["/dashboard/sincronizacion"],
+  },
+  {
     icon: Settings,
     label: "Configuración",
     href: "/dashboard/configuracion",
@@ -164,7 +171,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const pathname = usePathname();
   const { ready, authenticated, user, logout, getAccessToken } = usePrivy();
   const farmQuery = useCurrentFarm();
-  const { supabase } = useSupabase();
+  const { supabase, ready: sessionReady, captureMode, online } = useSupabase();
   const farmId = farmQuery.data?.id;
   const queryClient = useQueryClient();
   const [notifOpen, setNotifOpen] = useState(false);
@@ -217,12 +224,15 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const openAlerts = alertsQuery.data?.length ?? 0;
 
   useEffect(() => {
-    if (ready && !authenticated) router.replace("/login");
-  }, [ready, authenticated, router]);
+    // Sin red no se puede distinguir "sesión caducada" de "Privy no arrancó",
+    // así que en modo captura NO se echa al usuario al login: se quedaría
+    // atrapado ahí sin poder autenticarse.
+    if (ready && !authenticated && !captureMode) router.replace("/login");
+  }, [ready, authenticated, captureMode, router]);
 
   // Acepta automáticamente invitaciones pendientes del email del usuario
   useEffect(() => {
-    if (!ready || !authenticated) return;
+    if (!ready || !authenticated || !online) return;
     (async () => {
       try {
         const token = await getAccessToken();
@@ -241,9 +251,9 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
         // silencioso: no bloquea el dashboard si falla
       }
     })();
-  }, [ready, authenticated, getAccessToken, queryClient]);
+  }, [ready, authenticated, online, getAccessToken, queryClient]);
 
-  if (!ready || !authenticated) {
+  if (!sessionReady) {
     return (
       <div className="bg-background text-foreground flex min-h-screen flex-col items-center justify-center gap-8">
         <div className="space-y-4 text-center">
@@ -252,7 +262,11 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
           </div>
           <div className="space-y-1">
             <h1 className="text-foreground text-xl font-semibold">Finca El Progreso</h1>
-            <p className="text-foreground/50 text-sm">Verificando sesión...</p>
+            <p className="text-foreground/50 text-sm">
+              {online
+                ? "Verificando sesión..."
+                : "Sin conexión. Conéctate una vez para poder trabajar offline."}
+            </p>
           </div>
         </div>
         <div className="flex gap-1">
@@ -417,8 +431,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
               <button
                 type="button"
                 onClick={() => {
-                  clearCacheOnLogout();
-                  logout();
+                  void clearCacheOnLogout().finally(() => logout());
                 }}
                 aria-label="Cerrar sesión"
                 className="text-foreground/60 hover:bg-background hover:text-foreground rounded-lg p-1.5 transition-colors"
@@ -549,8 +562,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             <button
               type="button"
               onClick={() => {
-                clearCacheOnLogout();
-                logout();
+                void clearCacheOnLogout().finally(() => logout());
               }}
               aria-label="Cerrar sesión"
               className="border-border text-foreground hover:border-primary/40 hover:bg-primary/5 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors lg:hidden"

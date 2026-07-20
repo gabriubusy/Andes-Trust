@@ -1,37 +1,58 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { CloudOff, Cloud, RefreshCw, Loader2 } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import Link from "next/link";
+import { CloudOff, Cloud, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { pendingCount } from "@/lib/offline/db";
-import { flushPending } from "@/lib/offline/sync";
+import { flushPending, stuckCount } from "@/lib/offline/sync";
+
+/** Cada cuánto se reintenta drenar mientras haya cola. El backoff real por
+ *  fila vive en flushPending; esto sólo marca el pulso. */
+const FLUSH_INTERVAL_MS = 15_000;
+const COUNT_INTERVAL_MS = 5_000;
 
 export default function OfflineBanner() {
-  const { supabase } = useSupabase();
+  const { supabase, captureMode, profileId } = useSupabase();
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
+  const [stuck, setStuck] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const syncingRef = useRef(false);
 
   const refreshCount = useCallback(async () => {
     setPending(await pendingCount());
+    try {
+      setStuck(await stuckCount());
+    } catch {
+      setStuck(0);
+    }
   }, []);
 
-  const sync = useCallback(async () => {
-    if (!supabase || syncing) return;
-    setSyncing(true);
-    try {
-      await flushPending(supabase);
-    } finally {
-      setSyncing(false);
-      await refreshCount();
-    }
-  }, [supabase, syncing, refreshCount]);
+  const sync = useCallback(
+    async (force = false) => {
+      // Ref en vez de estado: el estado no se ve actualizado dentro del
+      // intervalo, y dos drenados simultáneos pisan la misma fila.
+      if (!supabase || syncingRef.current) return;
+      syncingRef.current = true;
+      setSyncing(true);
+      try {
+        await flushPending(supabase, { force, profileId });
+      } finally {
+        syncingRef.current = false;
+        setSyncing(false);
+        await refreshCount();
+      }
+    },
+    [supabase, profileId, refreshCount]
+  );
 
   useEffect(() => {
     setMounted(true);
     setOnline(navigator.onLine);
     void refreshCount();
+
     const onOnline = () => {
       setOnline(true);
       void sync();
@@ -39,7 +60,7 @@ export default function OfflineBanner() {
     const onOffline = () => setOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
-    const t = window.setInterval(refreshCount, 5000);
+    const t = window.setInterval(refreshCount, COUNT_INTERVAL_MS);
 
     // En desarrollo NO registramos el service worker: cachear chunks de
     // /_next/static/* con CacheFirst rompe el HMR (sirve hashes viejos).
@@ -62,28 +83,51 @@ export default function OfflineBanner() {
     };
   }, [refreshCount, sync]);
 
+  // Drenado periódico con pulso fijo. Antes esto era un efecto que dependía
+  // de `pending`, así que una fila permanentemente fallida lo re-disparaba
+  // sin descanso; ahora el ritmo lo marca el intervalo y el backoff por fila.
   useEffect(() => {
-    if (online && supabase && pending > 0 && !syncing) void sync();
-  }, [online, supabase, pending, syncing, sync]);
+    if (!online || !supabase) return;
+    const t = window.setInterval(() => {
+      if (pending > stuck) void sync();
+    }, FLUSH_INTERVAL_MS);
+    return () => window.clearInterval(t);
+  }, [online, supabase, pending, stuck, sync]);
 
-  if (!mounted || (online && pending === 0)) return null;
+  const drainable = pending - stuck;
+  const idle = online && pending === 0 && !captureMode;
+  if (!mounted || idle) return null;
+
+  const tone =
+    !online || captureMode
+      ? "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+      : stuck > 0
+        ? "border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300"
+        : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300";
 
   return (
     <div
-      className={`pointer-events-auto fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border px-4 py-2 text-xs shadow-lg backdrop-blur ${
-        online
-          ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-          : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
-      }`}
+      className={`pointer-events-auto fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border px-4 py-2 text-xs shadow-lg backdrop-blur ${tone}`}
     >
-      {online ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+      {online && !captureMode ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
       <span>
-        {online ? "Conectado" : "Sin conexión"}
+        {captureMode ? "Modo captura · sin conexión" : online ? "Conectado" : "Sin conexión"}
         {pending > 0 && ` · ${pending} pendiente(s)`}
       </span>
-      {online && pending > 0 && (
+
+      {stuck > 0 && (
+        <Link
+          href="/dashboard/sincronizacion"
+          className="inline-flex items-center gap-1 rounded-full bg-current/10 px-2 py-0.5 hover:bg-current/20"
+        >
+          <AlertTriangle className="h-3 w-3" />
+          {stuck} con error
+        </Link>
+      )}
+
+      {online && drainable > 0 && (
         <button
-          onClick={sync}
+          onClick={() => void sync(true)}
           disabled={syncing}
           className="ml-1 inline-flex items-center gap-1 rounded-full bg-current/10 px-2 py-0.5 hover:bg-current/20 disabled:opacity-50"
         >

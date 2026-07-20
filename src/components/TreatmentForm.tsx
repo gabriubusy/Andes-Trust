@@ -6,7 +6,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
-import { enqueueMutation } from "@/lib/offline/db";
+import { enqueueMutation, newClientUuid } from "@/lib/offline/db";
+import { submitToastMessage } from "@/lib/offline/submit";
 import AnimalPhotoUploader from "@/components/AnimalPhotoUploader";
 import { uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { useState, useEffect } from "react";
@@ -177,8 +178,14 @@ export default function TreatmentForm({
 
       const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
       if (!supabase || isOffline) {
-        await enqueueMutation("treatments", payload);
-        return;
+        // La cola no guarda binarios: si hay foto adjunta, se pierde. Mejor
+        // decirlo que dejar al usuario creyendo que quedó registrada.
+        await enqueueMutation(
+          "treatments",
+          { ...payload, client_uuid: newClientUuid() },
+          profileId
+        );
+        return { queued: true as const, photoDropped: !!photo };
       }
 
       const { data: inserted, error } = await supabase
@@ -199,12 +206,17 @@ export default function TreatmentForm({
           entityId: inserted.id,
         });
       }
+      return { queued: false as const, photoDropped: false };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       reset();
       setPhoto(null);
       queryClient.invalidateQueries({ queryKey: ["treatments", animalId] });
-      toast.success("Guardado correctamente");
+      toast.success(submitToastMessage(result), {
+        description: result.photoDropped
+          ? "La foto no se pudo adjuntar sin conexión; vuelve a subirla más tarde."
+          : undefined,
+      });
       onDone?.();
     },
     onError: (err) => toast.error((err as Error).message),

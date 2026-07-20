@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
-import { enqueueMutation } from "@/lib/offline/db";
+import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
 import { toast } from "sonner";
 
 const schema = z.object({
@@ -64,18 +64,12 @@ export default function WeighingForm({ animalId, farmId, profileId, onDone }: Pr
         measured_by: profileId,
         notes: v.notes || null,
       };
-      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-      if (!supabase || isOffline) {
-        await enqueueMutation("weighings", payload);
-        return { queued: true };
-      }
-      const { error } = await supabase.from("weighings").insert(payload);
-      if (error) throw error;
-      await supabase.from("animals").update({ current_weight_kg: weight }).eq("id", animalId);
-      return { queued: false };
+      // `current_weight_kg` lo mantiene el trigger trg_sync_animal_current_weight
+      // (migración 0039), así ambos caminos —online y cola— quedan consistentes.
+      return submitOrQueue(supabase, "weighings", payload, profileId);
     },
-    onSuccess: () => {
-      toast.success("Guardado correctamente");
+    onSuccess: (result) => {
+      toast.success(submitToastMessage(result));
       reset();
       queryClient.invalidateQueries({ queryKey: ["animal", animalId] });
       queryClient.invalidateQueries({ queryKey: ["weighings", animalId] });

@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import AnchorReportButton from "@/components/AnchorReportButton";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { toast } from "sonner";
@@ -186,6 +187,26 @@ export default function ReportesPage() {
         .limit(50);
       if (error) throw error;
       return (data ?? []) as ReportRow[];
+    },
+  });
+
+  // tx de anclaje por reporte (entity_type = "regulatory_report")
+  const reportIds = (reportsQuery.data ?? []).map((r) => r.id);
+  const anchorsQuery = useQuery<Record<string, string>>({
+    queryKey: ["report-anchors", farmId, reportIds],
+    enabled: !!supabase && reportIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase!
+        .from("blockchain_records")
+        .select("entity_id, tx_hash")
+        .eq("entity_type", "regulatory_report")
+        .in("entity_id", reportIds);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      for (const row of data ?? []) {
+        if (row.tx_hash) map[row.entity_id as string] = row.tx_hash as string;
+      }
+      return map;
     },
   });
 
@@ -410,6 +431,16 @@ export default function ReportesPage() {
                       </code>
                     </div>
                   )}
+
+                  <div className="border-border/60 mt-2.5 flex items-center justify-between gap-2 border-t pt-2.5">
+                    <span className="text-foreground/40 text-[10px]">Trazabilidad on-chain</span>
+                    <AnchorReportButton
+                      reportId={r.id}
+                      txHash={anchorsQuery.data?.[r.id] ?? null}
+                      disabled={!r.payload_hash}
+                      onDone={() => anchorsQuery.refetch()}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>

@@ -3,18 +3,63 @@
 // Cada entrada describe un upsert a Supabase que se ejecutará al volver
 // la conectividad. La forma del payload es la misma que se pasaría a
 // `supabase.from(table).insert(payload)`.
+//
+// `client_uuid` va DENTRO del payload y se genera antes del primer
+// intento, así el reintento hace upsert sobre la misma fila en vez de
+// duplicarla (ver migración 0039_offline_idempotency.sql).
 // =====================================================================
 
 import Dexie, { type Table } from "dexie";
 
+export type OfflineTable =
+  | "weighings"
+  | "vaccinations"
+  | "treatments"
+  | "animal_events"
+  | "milk_records";
+
 export type PendingMutation = {
   id?: number;
-  table: "weighings" | "vaccinations" | "treatments" | "animal_events" | "milk_records";
+  table: OfflineTable;
   payload: Record<string, unknown>;
   created_at: number;
   attempts: number;
   last_error?: string;
+  /** Marca de tiempo del último intento; null si nunca se intentó. */
+  last_attempt_at?: number;
+  /**
+   * Perfil que creó la mutación. El drenado sólo procesa filas del usuario
+   * activo: si A encola sin red y luego B inicia sesión en el mismo
+   * dispositivo, las filas de A no deben irse con las credenciales de B.
+   * Las filas se conservan (no se borran en logout) hasta que A vuelva.
+   */
+  owner_profile_id?: string;
 };
+
+/** Tablas con índice UNIQUE sobre client_uuid — pueden hacer upsert idempotente. */
+const IDEMPOTENT_TABLES: ReadonlySet<string> = new Set([
+  "weighings",
+  "vaccinations",
+  "treatments",
+  "milk_records",
+]);
+
+export function supportsIdempotentUpsert(table: OfflineTable): boolean {
+  return IDEMPOTENT_TABLES.has(table);
+}
+
+/** UUID v4 con fallback para navegadores sin crypto.randomUUID (contextos no seguros). */
+export function newClientUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 class OfflineDB extends Dexie {
   pending!: Table<PendingMutation, number>;
@@ -23,6 +68,12 @@ class OfflineDB extends Dexie {
     super("andes-trust-offline");
     this.version(1).stores({
       pending: "++id, table, created_at",
+    });
+    // v2: añade last_attempt_at y owner_profile_id. Dexie migra en sitio; las
+    // filas existentes quedan con los campos undefined —"nunca intentada" y
+    // "sin dueño conocido"— que es el comportamiento heredado correcto.
+    this.version(2).stores({
+      pending: "++id, table, created_at, attempts, owner_profile_id",
     });
   }
 }
@@ -34,21 +85,31 @@ export function getOfflineDb(): OfflineDB {
   }
   if (!_db) {
     _db = new OfflineDB();
-    // Limpiar mutaciones con más de 7 días al inicializar
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    _db.pending
-      .where("created_at")
-      .below(cutoff)
-      .delete()
-      .catch(() => {});
   }
   return _db;
 }
 
+export class EnqueueError extends Error {
+  constructor(cause: unknown) {
+    super(
+      "No se pudo guardar el registro en el dispositivo. " +
+        "Puede que el almacenamiento esté lleno o que el navegador esté en modo privado."
+    );
+    this.name = "EnqueueError";
+    this.cause = cause;
+  }
+}
+
+/**
+ * Encola una mutación. LANZA si no se pudo persistir: cuando estamos offline
+ * este es el único camino de escritura, así que un fallo silencioso equivale
+ * a perder el dato sin avisar al usuario.
+ */
 export async function enqueueMutation(
-  table: PendingMutation["table"],
-  payload: Record<string, unknown>
-) {
+  table: OfflineTable,
+  payload: Record<string, unknown>,
+  ownerProfileId?: string
+): Promise<number> {
   try {
     const db = getOfflineDb();
     return await db.pending.add({
@@ -56,32 +117,42 @@ export async function enqueueMutation(
       payload,
       created_at: Date.now(),
       attempts: 0,
+      owner_profile_id: ownerProfileId,
     });
-  } catch {
-    // Si IndexedDB está llena o no disponible, ignorar silenciosamente
-    // — la mutación ya fue enviada directamente a Supabase
+  } catch (err) {
+    throw new EnqueueError(err);
   }
 }
 
 export async function removeMutation(id: number) {
-  try {
-    const db = getOfflineDb();
-    await db.pending.delete(id);
-  } catch {
-    // ignorar
-  }
+  const db = getOfflineDb();
+  await db.pending.delete(id);
 }
 
 export async function clearAllMutations() {
-  try {
-    const db = getOfflineDb();
-    await db.pending.clear();
-  } catch {
-    // ignorar
-  }
+  const db = getOfflineDb();
+  await db.pending.clear();
 }
 
 export async function pendingCount(): Promise<number> {
   if (typeof window === "undefined") return 0;
-  return getOfflineDb().pending.count();
+  try {
+    return await getOfflineDb().pending.count();
+  } catch {
+    return 0;
+  }
+}
+
+/** Cierra la conexión y borra la base entera. Usado al cerrar sesión. */
+export async function destroyOfflineDb() {
+  if (typeof window === "undefined") return;
+  try {
+    if (_db) {
+      _db.close();
+      _db = null;
+    }
+    await Dexie.delete("andes-trust-offline");
+  } catch {
+    // ignorar: no debe bloquear el logout
+  }
 }

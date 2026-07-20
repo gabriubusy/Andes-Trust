@@ -10,7 +10,7 @@
 //   - POST/PATCH/DELETE: nunca se cachean (la app los encola en IDB).
 // =====================================================================
 
-const VERSION = "v3";
+const VERSION = "v4";
 const SHELL_CACHE   = `shell-${VERSION}`;
 const STATIC_CACHE  = `static-${VERSION}`;
 const PHOTOS_CACHE  = `photos-${VERSION}`;

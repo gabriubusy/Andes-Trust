@@ -14,26 +14,6 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
-      name: "IERC1363",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC1363__factory>;
-    getContractFactory(
-      name: "IERC20",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC20__factory>;
-    getContractFactory(
-      name: "SafeERC20",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.SafeERC20__factory>;
-    getContractFactory(
-      name: "IERC165",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC165__factory>;
-    getContractFactory(
-      name: "ReentrancyGuard",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ReentrancyGuard__factory>;
-    getContractFactory(
       name: "MilkQualityCertifier",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MilkQualityCertifier__factory>;
@@ -59,31 +39,6 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.TraceabilityAnchor__factory>;
 
     getContractAt(
-      name: "IERC1363",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC1363>;
-    getContractAt(
-      name: "IERC20",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC20>;
-    getContractAt(
-      name: "SafeERC20",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.SafeERC20>;
-    getContractAt(
-      name: "IERC165",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC165>;
-    getContractAt(
-      name: "ReentrancyGuard",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ReentrancyGuard>;
-    getContractAt(
       name: "MilkQualityCertifier",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -115,26 +70,6 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.TraceabilityAnchor>;
 
     deployContract(
-      name: "IERC1363",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC1363>;
-    deployContract(
-      name: "IERC20",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC20>;
-    deployContract(
-      name: "SafeERC20",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.SafeERC20>;
-    deployContract(
-      name: "IERC165",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC165>;
-    deployContract(
-      name: "ReentrancyGuard",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ReentrancyGuard>;
-    deployContract(
       name: "MilkQualityCertifier",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MilkQualityCertifier>;
@@ -159,31 +94,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TraceabilityAnchor>;
 
-    deployContract(
-      name: "IERC1363",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC1363>;
-    deployContract(
-      name: "IERC20",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC20>;
-    deployContract(
-      name: "SafeERC20",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.SafeERC20>;
-    deployContract(
-      name: "IERC165",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC165>;
-    deployContract(
-      name: "ReentrancyGuard",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ReentrancyGuard>;
     deployContract(
       name: "MilkQualityCertifier",
       args: any[],

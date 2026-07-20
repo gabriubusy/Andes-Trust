@@ -5,9 +5,7 @@ import { CloudOff, RefreshCw, Trash2, AlertCircle, CheckCircle, Loader2 } from "
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { getOfflineDb, type PendingMutation } from "@/lib/offline/db";
-import { flushPending } from "@/lib/offline/sync";
-
-const MAX_ATTEMPTS = 5;
+import { flushPending, MAX_ATTEMPTS } from "@/lib/offline/sync";
 
 const TABLE_LABEL: Record<string, string> = {
   weighings: "Pesaje",
@@ -18,7 +16,7 @@ const TABLE_LABEL: Record<string, string> = {
 };
 
 export default function SincronizacionPage() {
-  const { supabase } = useSupabase();
+  const { supabase, profileId } = useSupabase();
   const [items, setItems] = useState<PendingMutation[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -33,33 +31,14 @@ export default function SincronizacionPage() {
     return () => clearInterval(t);
   }, [reload]);
 
-  const sync = async () => {
+  // `force` ignora backoff y cap de intentos: es una acción explícita del
+  // usuario. Ambos botones pasan por flushPending para no saltarse el upsert
+  // idempotente — un insert directo aquí volvería a crear duplicados.
+  const runFlush = async (ids?: number[]) => {
     if (!supabase) return;
     setBusy(true);
     try {
-      await flushPending(supabase);
-    } finally {
-      setBusy(false);
-      await reload();
-    }
-  };
-
-  const retryOne = async (id: number) => {
-    if (!supabase) return;
-    const db = getOfflineDb();
-    const item = await db.pending.get(id);
-    if (!item) return;
-    setBusy(true);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any).from(item.table).insert(item.payload);
-      if (error) throw error;
-      await db.pending.delete(id);
-    } catch (err) {
-      await db.pending.update(id, {
-        attempts: (item.attempts ?? 0) + 1,
-        last_error: (err as Error).message,
-      });
+      await flushPending(supabase, { force: true, ids, profileId });
     } finally {
       setBusy(false);
       await reload();
@@ -68,6 +47,15 @@ export default function SincronizacionPage() {
 
   const discard = async (id: number) => {
     const db = getOfflineDb();
+    const item = await db.pending.get(id);
+    const label = item ? (TABLE_LABEL[item.table] ?? item.table) : "el registro";
+    if (
+      !window.confirm(
+        `Descartar ${label}?\n\nEste registro nunca llegó al servidor y no se puede recuperar.`
+      )
+    ) {
+      return;
+    }
     await db.pending.delete(id);
     await reload();
   };
@@ -81,7 +69,7 @@ export default function SincronizacionPage() {
       subtitle="Mutaciones encoladas localmente"
       action={
         <button
-          onClick={sync}
+          onClick={() => void runFlush()}
           disabled={busy || items.length === 0}
           className="border-border hover:border-primary/40 inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm disabled:opacity-50"
         >
@@ -94,7 +82,12 @@ export default function SincronizacionPage() {
         <div className="grid grid-cols-3 gap-3">
           <Stat icon={CloudOff} label="En cola" value={pending.length} tint="text-amber-500" />
           <Stat icon={AlertCircle} label="Atascadas" value={stuck.length} tint="text-red-500" />
-          <Stat icon={CheckCircle} label="Listo" value={items.length === 0 ? "✓" : 0} tint="text-emerald-500" />
+          <Stat
+            icon={CheckCircle}
+            label="Listo"
+            value={items.length === 0 ? "✓" : 0}
+            tint="text-emerald-500"
+          />
         </div>
 
         {items.length === 0 ? (
@@ -109,7 +102,9 @@ export default function SincronizacionPage() {
                 const stuck = (it.attempts ?? 0) >= MAX_ATTEMPTS;
                 return (
                   <li key={it.id} className="flex items-start gap-4 px-6 py-4">
-                    <div className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${stuck ? "bg-red-500" : "bg-amber-500"}`} />
+                    <div
+                      className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${stuck ? "bg-red-500" : "bg-amber-500"}`}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-foreground text-sm font-medium">
@@ -131,7 +126,7 @@ export default function SincronizacionPage() {
                     </div>
                     <div className="flex shrink-0 gap-2">
                       <button
-                        onClick={() => it.id != null && retryOne(it.id)}
+                        onClick={() => it.id != null && void runFlush([it.id])}
                         disabled={busy}
                         className="border-border hover:bg-muted rounded-lg border px-2 py-1 text-xs disabled:opacity-50"
                       >
@@ -156,7 +151,17 @@ export default function SincronizacionPage() {
   );
 }
 
-function Stat({ icon: Icon, label, value, tint }: { icon: typeof CloudOff; label: string; value: number | string; tint: string }) {
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  tint,
+}: {
+  icon: typeof CloudOff;
+  label: string;
+  value: number | string;
+  tint: string;
+}) {
   return (
     <div className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4">
       <Icon className={`h-5 w-5 ${tint}`} />

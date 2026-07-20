@@ -51,6 +51,7 @@ export interface TraceabilityAnchorInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "anchor"
+      | "anchorBatch"
       | "getEntityIds"
       | "getRecord"
       | "owner"
@@ -63,6 +64,10 @@ export interface TraceabilityAnchorInterface extends Interface {
   encodeFunctionData(
     functionFragment: "anchor",
     values: [BytesLike, BytesLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "anchorBatch",
+    values: [BytesLike[], BytesLike[], BigNumberish[]]
   ): string;
   encodeFunctionData(
     functionFragment: "getEntityIds",
@@ -83,6 +88,10 @@ export interface TraceabilityAnchorInterface extends Interface {
   ): string;
 
   decodeFunctionResult(functionFragment: "anchor", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "anchorBatch",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "getEntityIds",
     data: BytesLike
@@ -173,6 +182,16 @@ export interface TraceabilityAnchor extends BaseContract {
     "nonpayable"
   >;
 
+  anchorBatch: TypedContractMethod<
+    [
+      entityIds: BytesLike[],
+      payloadHashes: BytesLike[],
+      entityTypes: BigNumberish[]
+    ],
+    [void],
+    "nonpayable"
+  >;
+
   getEntityIds: TypedContractMethod<
     [offset: BigNumberish, limit: BigNumberish],
     [string[]],
@@ -203,6 +222,17 @@ export interface TraceabilityAnchor extends BaseContract {
     nameOrSignature: "anchor"
   ): TypedContractMethod<
     [entityId: BytesLike, payloadHash: BytesLike, entityType: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "anchorBatch"
+  ): TypedContractMethod<
+    [
+      entityIds: BytesLike[],
+      payloadHashes: BytesLike[],
+      entityTypes: BigNumberish[]
+    ],
     [void],
     "nonpayable"
   >;
