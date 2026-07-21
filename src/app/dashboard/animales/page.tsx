@@ -25,20 +25,8 @@ import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { canWrite } from "@/lib/permissions";
-import { ANIMAL_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { animalsQueryKey, fetchAnimals, type AnimalRow } from "@/lib/queries/animals";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
-
-type AnimalRow = {
-  id: string;
-  tag: string;
-  name: string | null;
-  sex: "male" | "female";
-  status: string;
-  current_weight_kg: number | null;
-  birth_date: string | null;
-  photo_url: string | null;
-  animal_breeds: { breeds: { name: string } | null }[] | null;
-};
 
 function breedNames(a: { animal_breeds: { breeds: { name: string } | null }[] | null }): string {
   return (a.animal_breeds ?? [])
@@ -113,28 +101,9 @@ export default function AnimalesListPage() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const animalsQuery = useQuery<AnimalRow[]>({
-    queryKey: ["animals", farmId],
+    queryKey: animalsQueryKey(farmId),
     enabled: !!supabase && !!farmId,
-    queryFn: async () => {
-      if (!supabase || !farmId) return [];
-      const { data, error } = await supabase
-        .from("animals")
-        .select(
-          "id, tag, name, sex, status, current_weight_kg, birth_date, photo_url, animal_breeds(breeds(name))"
-        )
-        .eq("farm_id", farmId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      const rows = (data ?? []) as unknown as AnimalRow[];
-
-      // Bucket es público — convertir storagePath a URL pública directamente
-      return rows.map((a) => ({
-        ...a,
-        photo_url: a.photo_url
-          ? supabase.storage.from(ANIMAL_PHOTOS_BUCKET).getPublicUrl(a.photo_url).data.publicUrl
-          : null,
-      }));
-    },
+    queryFn: () => fetchAnimals(supabase, farmId),
   });
 
   useEffect(() => {

@@ -42,6 +42,7 @@ import { canWrite } from "@/lib/permissions";
 import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
 import { toast } from "sonner";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
+import OfflineWriteNotice, { useOnline } from "@/components/OfflineWriteNotice";
 
 type MilkRow = {
   id: string;
@@ -331,6 +332,7 @@ function EditRecordModal({
   onClose: () => void;
 }) {
   const { supabase } = useSupabase();
+  const online = useOnline();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     liters: String(record.liters),
@@ -413,6 +415,9 @@ function EditRecordModal({
         </div>
 
         <div className="space-y-4">
+          {/* Editar y eliminar no pasan por la cola: necesitan el id que ya
+              existe en el servidor. Se avisa antes de que el usuario escriba. */}
+          {!online && <OfflineWriteNotice action="editar o eliminar un registro" />}
           <div>
             <label className={labelClass}>Turno *</label>
             <div className="grid grid-cols-3 gap-2">
@@ -519,7 +524,7 @@ function EditRecordModal({
                 deleteMutation.mutate();
               }
             }}
-            disabled={deleteMutation.isPending}
+            disabled={deleteMutation.isPending || !online}
             className="text-destructive hover:bg-destructive/10 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
             {deleteMutation.isPending ? (
@@ -539,7 +544,7 @@ function EditRecordModal({
             </button>
             <button
               type="button"
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || !online}
               onClick={() => mutation.mutate()}
               className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
             >

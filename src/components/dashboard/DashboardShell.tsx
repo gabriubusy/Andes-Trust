@@ -185,7 +185,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   // Deja vacunas, tratamientos y razas en la caché del service worker mientras
   // hay señal, para que los formularios los encuentren offline aunque sea la
   // primera vez que se abren.
-  useCatalogPrefetch(supabase, online);
+  useCatalogPrefetch(supabase, online, farmId);
 
   // Cerrar notifications dropdown al hacer click fuera
   useEffect(() => {

@@ -33,6 +33,9 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { getSignedPhotoUrl, uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
+import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
+import OfflineWriteNotice, { useOnline } from "@/components/OfflineWriteNotice";
+import { toast } from "sonner";
 
 type AnimalUpdate = {
   id: string;
@@ -65,6 +68,7 @@ type Tab = "info" | "pesajes" | "vacunas" | "tratamientos" | "leche" | "movimien
 function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { supabase, profileId, captureMode } = useSupabase();
+  const online = useOnline();
   const farmQuery = useCurrentFarm();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -236,26 +240,36 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       reason: string;
       occurred_at: string;
     }) => {
-      if (!supabase || !profileId || !farmQuery.data?.id) throw new Error("Sesión no lista.");
-      const { error } = await supabase.from("animal_events").insert({
-        animal_id: id,
-        farm_id: farmQuery.data.id,
-        type: "transfer",
-        occurred_at: vals.occurred_at
-          ? new Date(vals.occurred_at).toISOString()
-          : new Date().toISOString(),
-        performed_by: profileId,
-        payload: {
-          location_from: vals.location_from || null,
-          location_to: vals.location_to || null,
+      if (!profileId || !farmQuery.data?.id) throw new Error("Sesión no lista.");
+      // Pasa por la cola, no por un insert directo: `animal_events` ya es una
+      // OfflineTable. Antes el traslado se perdía sin conexión —y encima el
+      // modal se cerraba igual, así que ni siquiera se notaba.
+      return submitOrQueue(
+        supabase,
+        "animal_events",
+        {
+          animal_id: id,
+          farm_id: farmQuery.data.id,
+          type: "transfer",
+          occurred_at: vals.occurred_at
+            ? new Date(vals.occurred_at).toISOString()
+            : new Date().toISOString(),
+          performed_by: profileId,
+          payload: {
+            location_from: vals.location_from || null,
+            location_to: vals.location_to || null,
+          },
+          notes: vals.reason || null,
         },
-        notes: vals.reason || null,
-      });
-      if (error) throw error;
+        profileId
+      );
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      toast.success(submitToastMessage(result));
       queryClient.invalidateQueries({ queryKey: ["movements", id] });
+      setMovModal(false);
     },
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const treatmentsQuery = useQuery({
@@ -703,7 +717,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     </button>
                     <button
                       type="button"
-                      disabled={updateMutation.isPending}
+                      disabled={updateMutation.isPending || !online}
                       onClick={() => {
                         const payload: Record<string, unknown> = {
                           name: editValues.name || null,
@@ -778,6 +792,11 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 </dl>
               ) : (
                 <div className="grid gap-4 p-5 md:grid-cols-2">
+                  {!online && (
+                    <div className="md:col-span-2">
+                      <OfflineWriteNotice action="editar este animal" />
+                    </div>
+                  )}
                   {[
                     { label: "Nombre", key: "name" as const, type: "text" },
                     { label: "Color", key: "color" as const, type: "text" },
@@ -1323,10 +1342,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                       <MovementForm
                         isSaving={addMovement.isPending}
                         saveError={addMovement.error as Error | null}
-                        onSubmit={(vals) => {
-                          addMovement.mutate(vals);
-                          setMovModal(false);
-                        }}
+                        onSubmit={(vals) => addMovement.mutate(vals)}
                       />
                     </div>
                   </div>
@@ -1378,6 +1394,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 {animal.name ? ` (${animal.name})` : ""}? Se borrarán también todos sus pesajes,
                 vacunas, tratamientos y demás registros asociados. Esta acción no se puede deshacer.
               </p>
+              {!online && <OfflineWriteNotice action="eliminar un animal" />}
               {deleteMutation.error && (
                 <p className="text-accent text-xs">{friendlyErrorMessage(deleteMutation.error)}</p>
               )}
@@ -1392,7 +1409,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 </button>
                 <button
                   type="button"
-                  disabled={deleteMutation.isPending}
+                  disabled={deleteMutation.isPending || !online}
                   onClick={() => deleteMutation.mutate()}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-60"
                 >

@@ -59,7 +59,11 @@ export async function submitOrQueue(
     return { queued: false };
   } catch (err) {
     if (isNetworkError(err)) {
-      await enqueueMutation(table, body);
+      // Con `ownerProfileId`, igual que la rama de arriba. Sin él la fila queda
+      // sin dueño y `sync.ts` sólo salta las que tienen uno distinto, así que
+      // se acabaría enviando con las credenciales de quien esté logueado —
+      // justo lo que `owner_profile_id` existe para impedir.
+      await enqueueMutation(table, body, ownerProfileId ?? undefined);
       return { queued: true };
     }
     throw err; // error real de validación/RLS: debe verlo el usuario

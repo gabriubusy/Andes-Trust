@@ -21,9 +21,13 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { animalsQueryKey, fetchAnimals } from "@/lib/queries/animals";
 
 /** Los catálogos cambian muy poco: no hace falta revalidar en cada montaje. */
 const CATALOG_STALE_TIME = 30 * 60 * 1000;
+
+/** El hato sí cambia a diario: se revalida mucho antes que un catálogo. */
+const ANIMALS_STALE_TIME = 5 * 60 * 1000;
 
 type Catalog = {
   key: string;
@@ -49,7 +53,11 @@ const CATALOGS: Catalog[] = [
  * Deja los catálogos en caché mientras hay señal. No devuelve nada ni bloquea:
  * si falla, el formulario los pedirá por su cuenta como hasta ahora.
  */
-export function useCatalogPrefetch(supabase: SupabaseClient | null, online: boolean) {
+export function useCatalogPrefetch(
+  supabase: SupabaseClient | null,
+  online: boolean,
+  farmId?: string
+) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -68,5 +76,17 @@ export function useCatalogPrefetch(supabase: SupabaseClient | null, online: bool
         },
       });
     }
-  }, [supabase, online, queryClient]);
+
+    // El hato completo: sin esto, quien nunca abrió la lista de animales con
+    // señal se encontraba el listado y los selectores de animal vacíos en el
+    // campo. Se importa la misma definición que usa la pantalla para que la
+    // URL —y por tanto la entrada del service worker— sea la misma.
+    if (farmId) {
+      void queryClient.prefetchQuery({
+        queryKey: animalsQueryKey(farmId),
+        staleTime: ANIMALS_STALE_TIME,
+        queryFn: () => fetchAnimals(supabase, farmId),
+      });
+    }
+  }, [supabase, online, farmId, queryClient]);
 }

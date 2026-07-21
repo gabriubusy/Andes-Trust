@@ -84,8 +84,17 @@ export function friendlyErrorMessage(err: unknown, options: FriendlyErrorOptions
   const haystack = `${raw} ${details}`.toLowerCase();
 
   // Red antes que nada: sin conexión no hay error de negocio que valga.
+  //
+  // Se distingue "no hay señal" de "la señal no llegó": si el registro pudiera
+  // encolarse nunca habríamos llegado hasta aquí, así que estar offline
+  // significa que ESTE dato necesita internet. Decir "revisa tu conexión" a
+  // quien ya sabe que no tiene es lo que dejaba al usuario reintentando en
+  // bucle sin entender por qué el formulario no se cerraba.
   if (NETWORK_HINTS.some((h) => haystack.includes(h))) {
-    return "No se pudo contactar al servidor. Revisa tu conexión e inténtalo de nuevo.";
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    return offline
+      ? "Sin conexión: este registro necesita internet y no puede guardarse en el dispositivo. Se conservará lo que escribiste; vuelve a intentarlo al recuperar señal."
+      : "No se pudo contactar al servidor. Revisa tu conexión e inténtalo de nuevo.";
   }
 
   // 1) Código de nuestra API (slug exacto, no subcadena: son mensajes cortos
