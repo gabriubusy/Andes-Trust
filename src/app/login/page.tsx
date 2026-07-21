@@ -33,6 +33,27 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 }
 
+/** Traduce los errores de `sendCode` de Privy a un mensaje accionable. */
+function describeSendCodeError(err: unknown): { title: string; description: string } {
+  const message = err instanceof Error ? err.message : String(err);
+
+  if (/temporary email|disposable/i.test(message)) {
+    return {
+      title: "Correo temporal no permitido",
+      description:
+        "Los correos desechables (mailinator, tempmail, etc.) están bloqueados. Usa una dirección permanente.",
+    };
+  }
+  if (/rate.?limit|too many|429/i.test(message)) {
+    return {
+      title: "Demasiados intentos",
+      description:
+        "Has solicitado varios códigos seguidos. Espera unos minutos antes de reintentar.",
+    };
+  }
+  return { title: "No pudimos enviar el código", description: message };
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { ready, authenticated } = usePrivy();
@@ -104,14 +125,8 @@ export default function LoginPage() {
         setStep("code");
       } catch (err) {
         console.error("[login] sendCode failed", err);
-        const message = err instanceof Error ? err.message : String(err);
-        const isRateLimit = /rate.?limit|too many|429/i.test(message);
-        toast.error(isRateLimit ? "Demasiados intentos" : "No pudimos enviar el código", {
-          description: isRateLimit
-            ? "Has solicitado varios códigos seguidos. Espera unos minutos antes de reintentar."
-            : message,
-          duration: 8000,
-        });
+        const { title, description } = describeSendCodeError(err);
+        toast.error(title, { description, duration: 8000 });
       }
     } finally {
       setLoading(false);

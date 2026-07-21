@@ -44,6 +44,22 @@ const CODE_MESSAGES: Record<string, string> = {
   PGRST301: "Tu sesión expiró. Vuelve a iniciar sesión.",
 };
 
+/**
+ * Códigos que devuelven nuestras rutas de API. Llegan como `new Error(json.error)`,
+ * así que sin esta tabla la UI mostraría el slug crudo (`invalid_params`).
+ */
+const API_ERROR_MESSAGES: Record<string, string> = {
+  unauthorized: "Tu sesión expiró. Vuelve a iniciar sesión.",
+  invalid_token: "Tu sesión expiró. Vuelve a iniciar sesión.",
+  forbidden: "No tienes permisos para realizar esta acción.",
+  not_invited: "Esta plataforma es solo por invitación.",
+  invalid_params: "Faltan datos obligatorios o son incorrectos.",
+  invalid_role: "Ese rol no está disponible para esta finca.",
+  invalid_email: "El correo no tiene un formato válido. Ejemplo: nombre@correo.com",
+  no_profile_email: "Tu cuenta no tiene un correo asociado.",
+  profile_upsert_failed: "No se pudo preparar tu perfil. Inténtalo de nuevo.",
+};
+
 export type FriendlyErrorOptions = {
   /** Mensaje si no se reconoce el error. */
   fallback?: string;
@@ -72,15 +88,20 @@ export function friendlyErrorMessage(err: unknown, options: FriendlyErrorOptions
     return "No se pudo contactar al servidor. Revisa tu conexión e inténtalo de nuevo.";
   }
 
-  // 1) Restricción concreta.
+  // 1) Código de nuestra API (slug exacto, no subcadena: son mensajes cortos
+  //    y una coincidencia parcial daría falsos positivos).
+  const slug = raw.trim();
+  if (API_ERROR_MESSAGES[slug]) return API_ERROR_MESSAGES[slug];
+
+  // 2) Restricción concreta.
   for (const [constraint, message] of Object.entries(CONSTRAINT_MESSAGES)) {
     if (haystack.includes(constraint.toLowerCase())) return message;
   }
 
-  // 2) Código SQLSTATE.
+  // 3) Código SQLSTATE.
   if (code && CODE_MESSAGES[code]) return CODE_MESSAGES[code];
 
-  // 3) Mensajes propios de la app (los lanzamos nosotros, ya son legibles).
+  // 4) Mensajes propios de la app (los lanzamos nosotros, ya son legibles).
   //    Se distinguen de los del motor en que no traen código SQL ni la
   //    jerga típica de Postgres.
   const looksInternal =

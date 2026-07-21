@@ -25,7 +25,7 @@ function getAdmin() {
   return _admin;
 }
 
-const ALLOWED = new Set(["owner", "admin", "operator", "vet", "viewer"]);
+const ALLOWED = new Set(["owner", "admin", "operator", "vet", "viewer", "regulator"]);
 
 async function actorAdmin(req: Request, farmId: string) {
   const auth = req.headers.get("authorization");

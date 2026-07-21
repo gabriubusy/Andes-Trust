@@ -29,8 +29,15 @@ function getAdmin() {
   return _admin;
 }
 
-type Role = "owner" | "admin" | "operator" | "vet" | "viewer";
-const ALLOWED_ROLES: Role[] = ["owner", "admin", "operator", "vet", "viewer"];
+type Role = "owner" | "admin" | "operator" | "vet" | "viewer" | "regulator";
+const ALLOWED_ROLES: Role[] = ["owner", "admin", "operator", "vet", "viewer", "regulator"];
+
+/** Mismo criterio de formato que usa el login, para no invitar correos inalcanzables. */
+function isValidEmail(email: string): boolean {
+  const trimmed = email.trim();
+  if (!trimmed || trimmed.length > 254) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
 
 async function actor(req: Request) {
   const auth = req.headers.get("authorization");
@@ -62,8 +69,14 @@ export async function POST(req: Request) {
   if (!me) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = (await req.json()) as { farm_id: string; email: string; role: Role };
-  if (!body.farm_id || !body.email || !ALLOWED_ROLES.includes(body.role)) {
+  if (!body.farm_id || !body.email) {
     return NextResponse.json({ error: "invalid_params" }, { status: 400 });
+  }
+  if (!ALLOWED_ROLES.includes(body.role)) {
+    return NextResponse.json({ error: "invalid_role" }, { status: 400 });
+  }
+  if (!isValidEmail(body.email)) {
+    return NextResponse.json({ error: "invalid_email" }, { status: 400 });
   }
   if (!(await requireAdmin(me.id, body.farm_id))) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
