@@ -97,8 +97,14 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!privyReady) return;
 
-    // Privy confirmó que no hay sesión: limpiar todo rastro local.
+    // Privy dice que no hay sesión. Sin red esa respuesta NO es de fiar: el
+    // SDK no puede validar contra su API y reporta `authenticated: false`
+    // aunque la sesión siga siendo buena. Borrar aquí destruía el token
+    // persistido —justo el que permite trabajar offline— y dejaba la app en
+    // el spinner "Conéctate una vez para poder trabajar offline" de forma
+    // permanente. El logout explícito ya limpia todo vía clearCacheOnLogout().
     if (!authenticated) {
+      if (!online) return; // conservar la sesión: se entra en modo captura
       clearSession();
       setState(null);
       setNotInvited(false);
@@ -170,10 +176,16 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
   // Conocemos al usuario pero no podemos hablar con Supabase por falta de
   // red: la app arranca igual para seguir capturando datos en la cola.
-  const captureMode = hydrated && !!state && !tokenUsable && !online;
+  //
+  // No se exige que el token esté vencido. Quedarse sin cobertura con un
+  // token todavía válido es el caso NORMAL (se renueva cada ~58 min), y
+  // pedir `!tokenUsable` dejaba captureMode en false justo entonces: el
+  // banner decía "Sin conexión" en vez de "Modo captura" y, peor, el guard
+  // de DashboardShell que evita el redirect a /login no se activaba.
+  const captureMode = hydrated && !!state && !online;
 
-  // En modo captura el JWT está vencido, pero el cliente se crea IGUAL con el
-  // token viejo. Las lecturas GET no llegan a Supabase: las responde el service
+  // En modo captura el JWT puede estar vencido, pero el cliente se crea IGUAL
+  // con el token guardado. Las lecturas GET no llegan a Supabase: las responde el service
   // worker desde su caché (ventana de 7 días), que no valida el JWT. Y las
   // escrituras nunca salen por aquí — los formularios comprueban `navigator.
   // onLine` y las mandan a la cola de Dexie.
