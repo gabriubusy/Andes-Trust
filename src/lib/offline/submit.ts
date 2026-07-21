@@ -22,7 +22,12 @@ const NETWORK_HINTS = [
   "fetch failed",
 ];
 
-function isNetworkError(err: unknown): boolean {
+/**
+ * ¿El fallo es de red y no de negocio? Exportado porque los formularios con
+ * adjuntos (vacunación, tratamiento) no pueden usar `submitOrQueue` —la cola
+ * no guarda binarios— pero deben tomar la misma decisión de encolar.
+ */
+export function isNetworkError(err: unknown): boolean {
   const msg = (err as { message?: string })?.message?.toLowerCase() ?? "";
   if (NETWORK_HINTS.some((h) => msg.includes(h))) return true;
   // PostgrestError de red llega sin código SQL.

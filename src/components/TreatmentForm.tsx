@@ -7,7 +7,7 @@ import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { enqueueMutation, newClientUuid } from "@/lib/offline/db";
-import { submitToastMessage } from "@/lib/offline/submit";
+import { isNetworkError, submitToastMessage } from "@/lib/offline/submit";
 import AnimalPhotoUploader from "@/components/AnimalPhotoUploader";
 import { uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { useState, useEffect } from "react";
@@ -177,24 +177,37 @@ export default function TreatmentForm({
         withdrawal_until_milk: withdrawalMilk,
       };
 
-      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-      if (!supabase || isOffline) {
-        // La cola no guarda binarios: si hay foto adjunta, se pierde. Mejor
-        // decirlo que dejar al usuario creyendo que quedó registrada.
-        await enqueueMutation(
-          "treatments",
-          { ...payload, client_uuid: newClientUuid() },
-          profileId
-        );
-        return { queued: true as const, photoDropped: !!photo };
-      }
+      // El uuid se genera ANTES del primer intento y viaja también en el
+      // insert online: si el insert llega pero se pierde la respuesta, el
+      // drenado hace upsert sobre la misma fila en vez de duplicarla.
+      const body = { ...payload, client_uuid: newClientUuid() };
 
-      const { data: inserted, error } = await supabase
-        .from("treatments")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error) throw error;
+      // La cola no guarda binarios: si hay foto adjunta, se pierde. Mejor
+      // decirlo que dejar al usuario creyendo que quedó registrada.
+      const queue = async () => {
+        await enqueueMutation("treatments", body, profileId);
+        return { queued: true as const, photoDropped: !!photo };
+      };
+
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (!supabase || isOffline) return queue();
+
+      let inserted: { id: string } | null;
+      try {
+        const { data, error } = await supabase
+          .from("treatments")
+          .insert(body)
+          .select("id")
+          .single();
+        if (error) throw error;
+        inserted = data;
+      } catch (err) {
+        // `navigator.onLine` sólo sabe si hay interfaz de red levantada, no si
+        // hay internet: en el campo devuelve true con señal que no llega a
+        // ningún sitio. Sin esto el registro se perdía con un error rojo.
+        if (isNetworkError(err)) return queue();
+        throw err; // validación o RLS: debe verlo el usuario
+      }
 
       if (photo && inserted?.id && farmId && profileId) {
         await uploadAnimalPhoto({

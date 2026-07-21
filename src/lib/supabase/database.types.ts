@@ -742,6 +742,7 @@ export type Database = {
       milk_records: {
         Row: {
           animal_id: string | null
+          client_uuid: string | null
           created_at: string
           farm_id: string
           fat_pct: number | null
@@ -757,6 +758,7 @@ export type Database = {
         }
         Insert: {
           animal_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           farm_id: string
           fat_pct?: number | null
@@ -772,6 +774,7 @@ export type Database = {
         }
         Update: {
           animal_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           farm_id?: string
           fat_pct?: number | null
@@ -1210,6 +1213,7 @@ export type Database = {
       treatments: {
         Row: {
           animal_id: string
+          client_uuid: string | null
           disease_id: string | null
           dose: string | null
           ended_at: string | null
@@ -1224,6 +1228,7 @@ export type Database = {
         }
         Insert: {
           animal_id: string
+          client_uuid?: string | null
           disease_id?: string | null
           dose?: string | null
           ended_at?: string | null
@@ -1238,6 +1243,7 @@ export type Database = {
         }
         Update: {
           animal_id?: string
+          client_uuid?: string | null
           disease_id?: string | null
           dose?: string | null
           ended_at?: string | null
@@ -1333,6 +1339,7 @@ export type Database = {
           applied_at: string
           applied_by: string | null
           batch_number: string | null
+          client_uuid: string | null
           dose_ml: number | null
           farm_id: string
           id: string
@@ -1345,6 +1352,7 @@ export type Database = {
           applied_at?: string
           applied_by?: string | null
           batch_number?: string | null
+          client_uuid?: string | null
           dose_ml?: number | null
           farm_id: string
           id?: string
@@ -1357,6 +1365,7 @@ export type Database = {
           applied_at?: string
           applied_by?: string | null
           batch_number?: string | null
+          client_uuid?: string | null
           dose_ml?: number | null
           farm_id?: string
           id?: string
@@ -1437,6 +1446,7 @@ export type Database = {
       weighings: {
         Row: {
           animal_id: string
+          client_uuid: string | null
           farm_id: string
           id: string
           measured_at: string
@@ -1446,6 +1456,7 @@ export type Database = {
         }
         Insert: {
           animal_id: string
+          client_uuid?: string | null
           farm_id: string
           id?: string
           measured_at?: string
@@ -1455,6 +1466,7 @@ export type Database = {
         }
         Update: {
           animal_id?: string
+          client_uuid?: string | null
           farm_id?: string
           id?: string
           measured_at?: string
