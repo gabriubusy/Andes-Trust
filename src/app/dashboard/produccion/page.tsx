@@ -39,6 +39,7 @@ import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { canWrite } from "@/lib/permissions";
+import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
 import { toast } from "sonner";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
@@ -151,25 +152,30 @@ function AddRecordModal({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!supabase) throw new Error("Sin sesión");
       if (!form.liters || Number(form.liters) <= 0) throw new Error("Litros inválidos");
-      const { error } = await supabase.from("milk_records").insert({
-        farm_id: farmId,
-        recorded_by: profileId,
-        animal_id: form.animal_id || null,
-        liters: Number(form.liters),
-        shift: form.shift,
-        recorded_on: form.recorded_on,
-        fat_pct: form.fat_pct ? Number(form.fat_pct) : null,
-        protein_pct: form.protein_pct ? Number(form.protein_pct) : null,
-        notes: form.notes || null,
-      });
-      if (error) throw error;
+      // Pasa por submitOrQueue, no por supabase.insert directo: si no, sin red
+      // el registro se perdía con un error rojo en vez de irse a la cola.
+      return submitOrQueue(
+        supabase,
+        "milk_records",
+        {
+          farm_id: farmId,
+          recorded_by: profileId,
+          animal_id: form.animal_id || null,
+          liters: Number(form.liters),
+          shift: form.shift,
+          recorded_on: form.recorded_on,
+          fat_pct: form.fat_pct ? Number(form.fat_pct) : null,
+          protein_pct: form.protein_pct ? Number(form.protein_pct) : null,
+          notes: form.notes || null,
+        },
+        profileId
+      );
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["milk-production"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
-      toast.success("Guardado correctamente");
+      toast.success(submitToastMessage(result));
       onClose();
     },
     onError: (err) => toast.error(friendlyErrorMessage(err)),

@@ -61,6 +61,18 @@ export function newClientUuid(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+/**
+ * Motivo por el que la base local no está operativa, o null si está sana.
+ * Se expone para que la UI lo diga en vez de mostrar una cola vacía: un
+ * "0 pendientes" falso es peor que un error, porque el usuario cree que
+ * sus registros se enviaron.
+ */
+let openFailure: string | null = null;
+
+export function queueFailure(): string | null {
+  return openFailure;
+}
+
 class OfflineDB extends Dexie {
   pending!: Table<PendingMutation, number>;
 
@@ -74,6 +86,16 @@ class OfflineDB extends Dexie {
     // "sin dueño conocido"— que es el comportamiento heredado correcto.
     this.version(2).stores({
       pending: "++id, table, created_at, attempts, owner_profile_id",
+    });
+
+    // IndexedDB no puede migrar el esquema mientras otra pestaña mantenga
+    // abierta una versión anterior: se queda esperando PARA SIEMPRE, y con
+    // ella cualquier add()/count(). Sin este handler el síntoma era un modal
+    // que no se cerraba y una cola que parecía vacía.
+    this.on("blocked", () => {
+      openFailure =
+        "Hay otra pestaña de la app abierta con una versión anterior. " +
+        "Ciérrala y recarga esta página para poder guardar sin conexión.";
     });
   }
 }
@@ -92,12 +114,33 @@ export function getOfflineDb(): OfflineDB {
 export class EnqueueError extends Error {
   constructor(cause: unknown) {
     super(
-      "No se pudo guardar el registro en el dispositivo. " +
-        "Puede que el almacenamiento esté lleno o que el navegador esté en modo privado."
+      queueFailure() ??
+        "No se pudo guardar el registro en el dispositivo. " +
+          "Puede que el almacenamiento esté lleno o que el navegador esté en modo privado."
     );
     this.name = "EnqueueError";
     this.cause = cause;
   }
+}
+
+/**
+ * Tope de espera para una escritura en IndexedDB. Estas filas son diminutas:
+ * si en 5 s no se ha escrito, es que la base está bloqueada, no lenta.
+ *
+ * Se prefiere fallar visiblemente a esperar sin fin. Contrapartida asumida:
+ * si la escritura acaba completándose después del timeout, el usuario habrá
+ * visto un error para un registro que sí quedó encolado — molesto, pero
+ * mucho menos grave que un formulario congelado sin explicación.
+ */
+const ENQUEUE_TIMEOUT_MS = 5_000;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout al escribir en IndexedDB")), ms)
+    ),
+  ]);
 }
 
 /**
@@ -112,13 +155,16 @@ export async function enqueueMutation(
 ): Promise<number> {
   try {
     const db = getOfflineDb();
-    return await db.pending.add({
-      table,
-      payload,
-      created_at: Date.now(),
-      attempts: 0,
-      owner_profile_id: ownerProfileId,
-    });
+    return await withTimeout(
+      db.pending.add({
+        table,
+        payload,
+        created_at: Date.now(),
+        attempts: 0,
+        owner_profile_id: ownerProfileId,
+      }),
+      ENQUEUE_TIMEOUT_MS
+    );
   } catch (err) {
     throw new EnqueueError(err);
   }
@@ -134,12 +180,21 @@ export async function clearAllMutations() {
   await db.pending.clear();
 }
 
+/**
+ * Devuelve -1 si la cola no se pudo leer. Antes devolvía 0, indistinguible de
+ * "no hay nada pendiente": el banner afirmaba que todo estaba sincronizado
+ * justo cuando la base local estaba rota.
+ */
 export async function pendingCount(): Promise<number> {
   if (typeof window === "undefined") return 0;
   try {
-    return await getOfflineDb().pending.count();
-  } catch {
-    return 0;
+    return await withTimeout(getOfflineDb().pending.count(), ENQUEUE_TIMEOUT_MS);
+  } catch (err) {
+    if (!openFailure) {
+      openFailure = "No se pudo leer la cola local de este dispositivo.";
+    }
+    console.error("[offline] pendingCount falló", err);
+    return -1;
   }
 }
 

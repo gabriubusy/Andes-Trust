@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { CloudOff, Cloud, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
-import { pendingCount } from "@/lib/offline/db";
+import { pendingCount, queueFailure } from "@/lib/offline/db";
 import { flushPending, stuckCount } from "@/lib/offline/sync";
 
 /** Cada cuánto se reintenta drenar mientras haya cola. El backoff real por
@@ -19,10 +19,12 @@ export default function OfflineBanner() {
   const [stuck, setStuck] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
   const syncingRef = useRef(false);
 
   const refreshCount = useCallback(async () => {
     setPending(await pendingCount());
+    setFailure(queueFailure());
     try {
       setStuck(await stuckCount());
     } catch {
@@ -95,15 +97,29 @@ export default function OfflineBanner() {
   }, [online, supabase, pending, stuck, sync]);
 
   const drainable = pending - stuck;
-  const idle = online && pending === 0 && !captureMode;
+  const idle = online && pending === 0 && !captureMode && !failure;
   if (!mounted || idle) return null;
 
-  const tone =
-    !online || captureMode
+  const tone = failure
+    ? "border-red-500/40 bg-red-500/15 text-red-700 dark:text-red-300"
+    : !online || captureMode
       ? "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
       : stuck > 0
         ? "border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300"
         : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300";
+
+  // La cola rota se anuncia sola: sin esto el banner decía "Conectado" con
+  // cero pendientes mientras los registros no se estaban guardando.
+  if (failure) {
+    return (
+      <div
+        className={`pointer-events-auto fixed bottom-4 left-1/2 z-50 flex max-w-[92vw] -translate-x-1/2 items-center gap-2 rounded-2xl border px-4 py-2 text-xs shadow-lg backdrop-blur ${tone}`}
+      >
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        <span>{failure}</span>
+      </div>
+    );
+  }
 
   return (
     <div

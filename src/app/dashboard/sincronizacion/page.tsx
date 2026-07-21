@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { CloudOff, RefreshCw, Trash2, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
-import { getOfflineDb, type PendingMutation } from "@/lib/offline/db";
+import { getOfflineDb, queueFailure, type PendingMutation } from "@/lib/offline/db";
 import { flushPending, MAX_ATTEMPTS } from "@/lib/offline/sync";
 
 const TABLE_LABEL: Record<string, string> = {
@@ -19,10 +19,22 @@ export default function SincronizacionPage() {
   const { supabase, profileId } = useSupabase();
   const [items, setItems] = useState<PendingMutation[]>([]);
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Si la lectura falla hay que DECIRLO: una lista vacía se lee como "no hay
+  // nada pendiente", justo la conclusión contraria a la real.
   const reload = useCallback(async () => {
-    const db = getOfflineDb();
-    setItems(await db.pending.orderBy("created_at").toArray());
+    try {
+      const db = getOfflineDb();
+      setItems(await db.pending.orderBy("created_at").toArray());
+      setLoadError(queueFailure());
+    } catch (err) {
+      console.error("[sincronizacion] no se pudo leer la cola", err);
+      setLoadError(
+        queueFailure() ??
+          "No se pudo leer la cola local. Cierra otras pestañas de la app y recarga."
+      );
+    }
   }, []);
 
   useEffect(() => {
@@ -79,6 +91,16 @@ export default function SincronizacionPage() {
       }
     >
       <div className="space-y-6">
+        {loadError && (
+          <div className="flex items-start gap-3 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-medium">No se pudo leer la cola local</p>
+              <p className="mt-0.5 opacity-80">{loadError}</p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-3">
           <Stat icon={CloudOff} label="En cola" value={pending.length} tint="text-amber-500" />
           <Stat icon={AlertCircle} label="Atascadas" value={stuck.length} tint="text-red-500" />
@@ -91,10 +113,13 @@ export default function SincronizacionPage() {
         </div>
 
         {items.length === 0 ? (
-          <div className="bg-card border-border flex flex-col items-center justify-center gap-3 rounded-2xl border py-16">
-            <CheckCircle className="h-10 w-10 text-emerald-500" />
-            <p className="text-foreground/50 text-sm">No hay mutaciones pendientes</p>
-          </div>
+          // Sólo se afirma "no hay nada" cuando la lectura funcionó.
+          !loadError && (
+            <div className="bg-card border-border flex flex-col items-center justify-center gap-3 rounded-2xl border py-16">
+              <CheckCircle className="h-10 w-10 text-emerald-500" />
+              <p className="text-foreground/50 text-sm">No hay mutaciones pendientes</p>
+            </div>
+          )
         ) : (
           <div className="bg-card border-border rounded-2xl border">
             <ul className="divide-border divide-y">
