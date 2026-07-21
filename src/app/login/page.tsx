@@ -73,14 +73,24 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/check-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed }),
-      });
-      const data = (await res.json()) as { allowed?: boolean };
+      let allowed: boolean;
+      try {
+        const res = await fetch("/api/auth/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trimmed }),
+        });
+        const data = (await res.json()) as { allowed?: boolean };
+        allowed = !!data.allowed;
+      } catch (err) {
+        console.error("[login] check-email failed", err);
+        toast.error("No pudimos verificar tu correo", {
+          description: "Revisa tu conexión e intenta de nuevo.",
+        });
+        return;
+      }
 
-      if (!data.allowed) {
+      if (!allowed) {
         toast.error("No tienes acceso a esta plataforma", {
           description:
             "Esta plataforma es solo por invitación. Contacta al administrador de tu finca.",
@@ -89,10 +99,20 @@ export default function LoginPage() {
         return;
       }
 
-      await sendCode({ email: trimmed });
-      setStep("code");
-    } catch {
-      toast.error("Error al verificar el correo. Intenta de nuevo.");
+      try {
+        await sendCode({ email: trimmed });
+        setStep("code");
+      } catch (err) {
+        console.error("[login] sendCode failed", err);
+        const message = err instanceof Error ? err.message : String(err);
+        const isRateLimit = /rate.?limit|too many|429/i.test(message);
+        toast.error(isRateLimit ? "Demasiados intentos" : "No pudimos enviar el código", {
+          description: isRateLimit
+            ? "Has solicitado varios códigos seguidos. Espera unos minutos antes de reintentar."
+            : message,
+          duration: 8000,
+        });
+      }
     } finally {
       setLoading(false);
     }
