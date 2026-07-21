@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -52,6 +52,22 @@ export default function AnimalForm() {
   const farmQuery = useCurrentFarm();
   const [photo, setPhoto] = useState<File | null>(null);
   const [selectedBreedIds, setSelectedBreedIds] = useState<string[]>([]);
+  // El alta de animal NO se puede encolar: encadena varios inserts que dependen
+  // del id que genera el servidor (razas, pesaje inicial, token de trazabilidad
+  // y foto). Por eso aquí se avisa y se bloquea, en vez de fallar a medias.
+  const [online, setOnline] = useState(true);
+
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
 
   const {
     register,
@@ -120,6 +136,11 @@ export default function AnimalForm() {
 
   const create = useMutation({
     mutationFn: async (values: FormValues) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        throw new Error(
+          "Sin conexión: el alta de un animal necesita internet. Los pesajes, vacunas, tratamientos y leche sí se guardan sin conexión."
+        );
+      }
       if (!supabase || !profileId || !farmQuery.data) {
         throw new Error("Sesión no lista. Reintenta en unos segundos.");
       }
@@ -185,14 +206,34 @@ export default function AnimalForm() {
       queryClient.invalidateQueries({ queryKey: ["animals"] });
       router.push(`/dashboard/animales/${animalId}`);
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => {
+      const msg = (err as Error)?.message ?? "";
+      const isNetwork = /failed to fetch|networkerror|load failed|fetch failed/i.test(msg);
+      toast.error(
+        isNetwork
+          ? "No se pudo contactar al servidor. Revisa tu conexión e inténtalo de nuevo."
+          : msg || "No se pudo crear el animal."
+      );
+    },
   });
 
   const disabled = create.isPending || !farmQuery.data;
-  const submitDisabled = disabled || !isValid;
+  const submitDisabled = disabled || !isValid || !online;
 
   return (
     <form onSubmit={handleSubmit((v) => create.mutate(v))} className="space-y-6">
+      {!online && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+          <WifiOff className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            <span className="font-semibold">Sin conexión.</span> El alta de un animal necesita
+            internet porque genera su ficha, su token de trazabilidad y su pesaje inicial. Los
+            pesajes, vacunas, tratamientos y registros de leche sí puedes guardarlos sin conexión y
+            se enviarán solos al recuperar señal.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <label className={labelClass}>Arete / Identificador *</label>

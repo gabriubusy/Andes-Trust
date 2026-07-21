@@ -8,9 +8,20 @@
 //     fallback a cache para lectura offline.
 //   - API propia (/api/*) GET: NetworkFirst con fallback.
 //   - POST/PATCH/DELETE: nunca se cachean (la app los encola en IDB).
+//
+// Sobre la caducidad del fallback: al ser NetworkFirst, con conexión SIEMPRE
+// se sirve dato fresco —el TTL sólo decide cuánto vale la copia cuando no hay
+// red—. Por eso las ventanas son largas: en campo, una jornada entera sin
+// señal debe seguir mostrando el hato. Pasado el TTL tampoco devolvemos error:
+// servimos la copia marcada con `sw-stale: 1`, porque un dato viejo es mejor
+// que una pantalla vacía. Sólo se responde 503 si nunca se cacheó nada.
 // =====================================================================
 
-const VERSION = "v4";
+const VERSION = "v5";
+
+// Ventanas de validez del fallback offline.
+const TTL_SUPABASE = 60 * 60 * 24 * 7; // 7 días — datos del hato, cambian poco
+const TTL_OWN_API = 60 * 60 * 24; // 24 h — endpoints propios
 const SHELL_CACHE   = `shell-${VERSION}`;
 const STATIC_CACHE  = `static-${VERSION}`;
 const PHOTOS_CACHE  = `photos-${VERSION}`;
@@ -58,7 +69,16 @@ async function networkFirst(req, cacheName, ttlSeconds = 300) {
     const cached = await cache.match(req);
     if (cached) {
       const cachedAt = parseInt(cached.headers.get("sw-cached-at") || "0", 10);
-      if (Date.now() - cachedAt < ttlSeconds * 1000) return cached;
+      const ageMs = Date.now() - cachedAt;
+      if (ageMs < ttlSeconds * 1000) return cached;
+
+      // Fuera de ventana: se sirve igualmente, pero marcado para que la UI
+      // pueda advertir que son datos antiguos. Mejor eso que un 503.
+      const headers = new Headers(cached.headers);
+      headers.set("sw-stale", "1");
+      headers.set("sw-age-seconds", Math.floor(ageMs / 1000).toString());
+      const body = await cached.arrayBuffer();
+      return new Response(body, { status: cached.status, headers });
     }
     return new Response(JSON.stringify({ error: "offline" }), {
       status: 503,
@@ -93,9 +113,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // API Supabase GET (lectura de tablas) → NetworkFirst 5 min TTL
+  // API Supabase GET (lectura de tablas) → NetworkFirst, fallback 7 días
   if (PHOTO_HOST_RE.test(url.hostname) && SUPABASE_API_RE.test(url.pathname)) {
-    event.respondWith(networkFirst(req, API_CACHE, 300));
+    event.respondWith(networkFirst(req, API_CACHE, TTL_SUPABASE));
     return;
   }
 
@@ -107,9 +127,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // API propia GET (/api/verify, /api/reports) → NetworkFirst 2 min
+  // API propia GET (/api/verify, /api/reports) → NetworkFirst, fallback 24 h
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(networkFirst(req, API_CACHE, 120));
+    event.respondWith(networkFirst(req, API_CACHE, TTL_OWN_API));
     return;
   }
 
@@ -135,8 +155,12 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 
-  // Invalidar caché de API cuando la app hace una mutación
+  // Tras sincronizar, la copia cacheada quedó desfasada. NO la borramos:
+  // al ser NetworkFirst, estando online la siguiente lectura ya pide red y
+  // sobrescribe la entrada sola. Borrarla dejaría al usuario sin respaldo si
+  // pierde la señal justo después de sincronizar —que es lo normal en campo—
+  // y tiraría por tierra la ventana offline de 7 días.
   if (event.data?.type === "INVALIDATE_API_CACHE") {
-    caches.delete(API_CACHE);
+    // no-op intencionado (ver arriba)
   }
 });
