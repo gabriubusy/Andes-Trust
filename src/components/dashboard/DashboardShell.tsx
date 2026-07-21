@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { useSupabase } from "@/hooks/use-supabase";
+import { useCatalogPrefetch } from "@/hooks/use-catalog-prefetch";
 import { clearCacheOnLogout } from "@/lib/cache/clear-on-logout";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -180,6 +181,11 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
   const bellRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Deja vacunas, tratamientos y razas en la caché del service worker mientras
+  // hay señal, para que los formularios los encuentren offline aunque sea la
+  // primera vez que se abren.
+  useCatalogPrefetch(supabase, online);
+
   // Cerrar notifications dropdown al hacer click fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -257,7 +263,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
     return (
       <div className="bg-background text-foreground flex min-h-screen flex-col items-center justify-center gap-8">
         <div className="space-y-4 text-center">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+          <div className="bg-primary/10 inline-flex h-16 w-16 items-center justify-center rounded-2xl">
             <Loader2 className="text-primary h-8 w-8 animate-spin" />
           </div>
           <div className="space-y-1">
@@ -424,7 +430,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
               <div className="min-w-0 flex-1">
                 <div className="text-foreground truncate text-sm font-medium">{displayName}</div>
                 <div className="text-foreground/60 truncate text-xs">{email ?? "Sin email"}</div>
-                <span className="mt-1 inline-block rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                <span className="bg-primary/10 text-primary mt-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold">
                   {ROLE_LABEL[currentRole]}
                 </span>
               </div>
@@ -482,7 +488,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
               </button>
 
               {notifOpen && (
-                <div className="bg-card border-border absolute right-0 top-11 z-50 w-80 rounded-2xl border shadow-xl">
+                <div className="bg-card border-border absolute top-11 right-0 z-50 w-80 rounded-2xl border shadow-xl">
                   <div className="border-border flex items-center justify-between border-b px-4 py-3">
                     <span className="text-foreground text-sm font-semibold">Notificaciones</span>
                     {openAlerts > 0 && (

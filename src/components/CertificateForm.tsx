@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const CERT_TYPES = [
   { value: "origin", label: "Origen" },
@@ -106,7 +107,7 @@ export default function CertificateForm({ onSuccess, onCancel }: Props) {
       setValue("document_url", urlData.publicUrl);
       toast.success("Archivo subido correctamente");
     } catch (err) {
-      toast.error("Error al subir: " + (err as Error).message);
+      toast.error(friendlyErrorMessage(err, { fallback: "Error al subir." }));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -157,7 +158,7 @@ export default function CertificateForm({ onSuccess, onCancel }: Props) {
               onClick={() => setValue("type", t.value, { shouldValidate: true })}
               className={`cursor-pointer rounded-xl border px-4 py-2 text-sm font-medium transition-all ${
                 certType === t.value
-                  ? "border-primary bg-primary/10 text-primary shadow-sm shadow-primary/10"
+                  ? "border-primary bg-primary/10 text-primary shadow-primary/10 shadow-sm"
                   : "border-border bg-background/40 text-foreground/60 hover:border-primary/40 hover:bg-muted/40 hover:text-foreground"
               }`}
             >
@@ -313,7 +314,7 @@ export default function CertificateForm({ onSuccess, onCancel }: Props) {
         <button
           type="submit"
           disabled={isSubmitting || uploading}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold shadow-sm shadow-primary/20 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
           Guardar certificado

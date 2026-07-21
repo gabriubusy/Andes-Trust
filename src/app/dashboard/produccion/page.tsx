@@ -39,6 +39,7 @@ import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type MilkRow = {
   id: string;
@@ -76,7 +77,7 @@ const fmt = (d: string) =>
 function MilkTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border-border rounded-xl border px-3 py-2 shadow-lg text-xs">
+    <div className="bg-card border-border rounded-xl border px-3 py-2 text-xs shadow-lg">
       <div className="text-foreground/60 mb-1">{label}</div>
       <div className="text-secondary font-bold">{Number(payload[0]?.value ?? 0).toFixed(1)} L</div>
     </div>
@@ -90,8 +91,8 @@ function ShiftTooltip({ active, payload, total }: any) {
   const v = Number(p?.value ?? 0);
   const pct = total > 0 ? ((v / total) * 100).toFixed(0) : "0";
   return (
-    <div className="bg-card border-border rounded-xl border px-3 py-2 shadow-lg text-xs">
-      <div className="text-foreground/70 font-semibold mb-0.5">{p?.name}</div>
+    <div className="bg-card border-border rounded-xl border px-3 py-2 text-xs shadow-lg">
+      <div className="text-foreground/70 mb-0.5 font-semibold">{p?.name}</div>
       <div className="text-foreground/60">
         {v.toFixed(1)} L · {pct}%
       </div>
@@ -103,8 +104,8 @@ function ShiftTooltip({ active, payload, total }: any) {
 function AnimalTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border-border rounded-xl border px-3 py-2 shadow-lg text-xs">
-      <div className="text-foreground/70 font-semibold mb-0.5">{payload[0]?.payload?.name}</div>
+    <div className="bg-card border-border rounded-xl border px-3 py-2 text-xs shadow-lg">
+      <div className="text-foreground/70 mb-0.5 font-semibold">{payload[0]?.payload?.name}</div>
       <div className="text-secondary font-bold">{Number(payload[0]?.value ?? 0).toFixed(1)} L</div>
     </div>
   );
@@ -170,7 +171,7 @@ function AddRecordModal({
       toast.success("Guardado correctamente");
       onClose();
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   return (
@@ -373,7 +374,7 @@ function EditRecordModal({
       toast.success("Registro actualizado");
       onClose();
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const deleteMutation = useMutation({
@@ -388,7 +389,7 @@ function EditRecordModal({
       toast.success("Registro eliminado");
       onClose();
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   return (
@@ -628,7 +629,7 @@ function CertifyModal({
       setResult(data);
       onSuccess();
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(friendlyErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -709,7 +710,7 @@ function CertifyModal({
               if (data.length < 2) return null;
               return (
                 <div className="bg-muted/30 rounded-xl p-3">
-                  <p className="text-foreground/40 text-[10px] mb-2 font-medium uppercase tracking-wider">
+                  <p className="text-foreground/40 mb-2 text-[10px] font-medium tracking-wider uppercase">
                     Producción del período · {periodRecords.length} registros
                   </p>
                   <ResponsiveContainer width="100%" height={100}>
@@ -746,8 +747,8 @@ function CertifyModal({
               );
             })()}
 
-            <div className="bg-muted/30 border-border rounded-xl border p-3 flex items-start gap-2">
-              <AlertTriangle className="text-amber-500 h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <div className="bg-muted/30 border-border flex items-start gap-2 rounded-xl border p-3">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
               <p className="text-foreground/50 text-xs">
                 Esta acción es <strong className="text-foreground/70">irreversible</strong> — el
                 grado queda registrado on-chain. Verifica que los datos del período sean completos.
@@ -776,7 +777,7 @@ function CertifyModal({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className={`${g!.bg} ${g!.border} rounded-2xl border p-5 text-center space-y-2`}>
+            <div className={`${g!.bg} ${g!.border} space-y-2 rounded-2xl border p-5 text-center`}>
               <div className={`text-4xl font-black ${g!.text}`}>{result.grade}</div>
               <div className={`text-sm font-semibold ${g!.text}`}>
                 {GRADE_STYLE[result.grade].label}
@@ -809,7 +810,7 @@ function CertifyModal({
                 href={`https://amoy.polygonscan.com/tx/${result.txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline inline-flex items-center gap-1 text-xs"
+                className="text-primary inline-flex items-center gap-1 text-xs hover:underline"
               >
                 <ExternalLink className="h-3 w-3" /> Ver en Polygonscan
               </a>
@@ -855,7 +856,7 @@ export default function ProduccionPage() {
       toast.success("Certificación anclada en blockchain");
       queryClient.invalidateQueries({ queryKey: ["milk-quality-certs", farmId] });
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
   const [showModal, setShowModal] = useState(false);
   const [editRecord, setEditRecord] = useState<MilkRow | null>(null);
@@ -904,7 +905,7 @@ export default function ProduccionPage() {
 
   useEffect(() => {
     if (recordsQuery.error)
-      toast.error("Error al cargar: " + (recordsQuery.error as Error).message);
+      toast.error(friendlyErrorMessage(recordsQuery.error, { fallback: "Error al cargar." }));
   }, [recordsQuery.error]);
 
   const records = recordsQuery.data ?? [];
@@ -1049,7 +1050,7 @@ export default function ProduccionPage() {
           <div className="bg-card border-border rounded-2xl border p-6 lg:col-span-2">
             <div className="mb-5">
               <h2 className="text-foreground text-base font-bold">Producción diaria</h2>
-              <p className="text-foreground/50 text-xs mt-0.5">
+              <p className="text-foreground/50 mt-0.5 text-xs">
                 Litros por día · últimos {days} días
               </p>
             </div>
@@ -1101,7 +1102,7 @@ export default function ProduccionPage() {
           <div className="bg-card border-border rounded-2xl border p-6">
             <div className="mb-5">
               <h2 className="text-foreground text-base font-bold">Por turno</h2>
-              <p className="text-foreground/50 text-xs mt-0.5">Distribución de litros</p>
+              <p className="text-foreground/50 mt-0.5 text-xs">Distribución de litros</p>
             </div>
             {shiftData.length === 0 ? (
               <div className="flex h-[200px] items-center justify-center">
@@ -1151,7 +1152,7 @@ export default function ProduccionPage() {
         <div className="bg-card border-border rounded-2xl border p-6">
           <div className="mb-5">
             <h2 className="text-foreground text-base font-bold">Producción por animal</h2>
-            <p className="text-foreground/50 text-xs mt-0.5">
+            <p className="text-foreground/50 mt-0.5 text-xs">
               Litros acumulados · top {animalData.length}
             </p>
           </div>
@@ -1189,7 +1190,7 @@ export default function ProduccionPage() {
 
       {/* Table */}
       <div className="bg-card border-border overflow-hidden rounded-2xl border">
-        <div className="border-border border-b px-5 py-4 space-y-3">
+        <div className="border-border space-y-3 border-b px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-foreground text-base font-bold">Registros</h2>
@@ -1201,7 +1202,7 @@ export default function ProduccionPage() {
             </div>
             {/* Period filter */}
             <div className="flex items-center gap-1.5">
-              <span className="text-foreground/50 text-xs mr-1">Período:</span>
+              <span className="text-foreground/50 mr-1 text-xs">Período:</span>
               {[7, 30, 90].map((d) => (
                 <button
                   key={d}
@@ -1226,7 +1227,7 @@ export default function ProduccionPage() {
               placeholder="Buscar por animal o fecha…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-muted/50 border-border text-foreground placeholder:text-foreground/30 focus:border-primary w-full rounded-xl border py-2 pr-3 pl-8 text-sm outline-none transition-colors"
+              className="bg-muted/50 border-border text-foreground placeholder:text-foreground/30 focus:border-primary w-full rounded-xl border py-2 pr-3 pl-8 text-sm transition-colors outline-none"
             />
           </div>
         </div>
@@ -1256,7 +1257,7 @@ export default function ProduccionPage() {
         {filtered.length > 0 && (
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
-              <thead className="text-foreground/50 border-border border-b text-xs uppercase tracking-wide">
+              <thead className="text-foreground/50 border-border border-b text-xs tracking-wide uppercase">
                 <tr>
                   <th className="px-5 py-3 text-left font-medium">Fecha</th>
                   <th className="px-5 py-3 text-left font-medium">Turno</th>
@@ -1271,7 +1272,7 @@ export default function ProduccionPage() {
                 {pagedRecords.map((r) => (
                   <tr key={r.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3.5">
-                      <span className="text-foreground/70 tabular-nums text-sm">
+                      <span className="text-foreground/70 text-sm tabular-nums">
                         {fmt(r.recorded_on)}
                       </span>
                     </td>
@@ -1305,10 +1306,10 @@ export default function ProduccionPage() {
                         <span className="text-foreground/40 ml-1 text-xs font-normal">L</span>
                       </span>
                     </td>
-                    <td className="text-foreground/60 px-5 py-3.5 text-right tabular-nums text-sm">
+                    <td className="text-foreground/60 px-5 py-3.5 text-right text-sm tabular-nums">
                       {r.fat_pct ? `${r.fat_pct}%` : <span className="text-foreground/30">—</span>}
                     </td>
-                    <td className="text-foreground/60 px-5 py-3.5 text-right tabular-nums text-sm">
+                    <td className="text-foreground/60 px-5 py-3.5 text-right text-sm tabular-nums">
                       {r.protein_pct ? (
                         `${r.protein_pct}%`
                       ) : (
@@ -1451,15 +1452,15 @@ export default function ProduccionPage() {
               return (
                 <div key={cert.id} className="flex items-center gap-4 px-5 py-4">
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-lg ${g.bg} ${g.text}`}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-black ${g.bg} ${g.text}`}
                   >
                     {cert.grade}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`text-xs font-semibold ${g.text}`}>{g.label}</span>
                       {cert.tx_hash ? (
-                        <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-bold rounded-full px-1.5 py-0.5 flex items-center gap-1">
+                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500">
                           <ShieldCheck className="h-2.5 w-2.5" /> On-chain
                         </span>
                       ) : (
@@ -1468,7 +1469,7 @@ export default function ProduccionPage() {
                           onClick={() => retryAnchor.mutate(cert.id)}
                           disabled={retryAnchor.isPending}
                           title="Reintentar anclaje en blockchain"
-                          className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 inline-flex cursor-pointer items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <RotateCw
                             className={`h-2.5 w-2.5 ${retryAnchor.isPending && retryAnchor.variables === cert.id ? "animate-spin" : ""}`}
@@ -1477,10 +1478,10 @@ export default function ProduccionPage() {
                         </button>
                       )}
                     </div>
-                    <p className="text-foreground/40 text-xs mt-0.5">
+                    <p className="text-foreground/40 mt-0.5 text-xs">
                       {fmtPeriod(cert.period_start)} — {fmtPeriod(cert.period_end)}
                     </p>
-                    <div className="flex items-center gap-3 mt-1 text-[10px] text-foreground/35">
+                    <div className="text-foreground/35 mt-1 flex items-center gap-3 text-[10px]">
                       {cert.total_liters != null && (
                         <span>{Number(cert.total_liters).toFixed(1)} L</span>
                       )}

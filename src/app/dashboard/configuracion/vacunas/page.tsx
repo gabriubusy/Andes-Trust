@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Syringe } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type Vaccine = {
   id: string;
@@ -236,7 +237,7 @@ export default function VacunasCatalogoPage() {
 
         {vaccinesQuery.error && (
           <div className="text-accent px-5 py-4 text-sm">
-            Error: {(vaccinesQuery.error as Error).message}
+            Error: {friendlyErrorMessage(vaccinesQuery.error)}
           </div>
         )}
 

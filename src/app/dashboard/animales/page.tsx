@@ -25,6 +25,7 @@ import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { ANIMAL_PHOTOS_BUCKET } from "@/lib/supabase/storage";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type AnimalRow = {
   id: string;
@@ -137,7 +138,7 @@ export default function AnimalesListPage() {
 
   useEffect(() => {
     if (animalsQuery.error)
-      toast.error("Error al cargar: " + (animalsQuery.error as Error).message);
+      toast.error(friendlyErrorMessage(animalsQuery.error, { fallback: "Error al cargar." }));
   }, [animalsQuery.error]);
 
   const animals = animalsQuery.data ?? [];
@@ -280,7 +281,7 @@ export default function AnimalesListPage() {
 
       <div className="bg-card border-border overflow-hidden rounded-2xl border">
         {/* Toolbar */}
-        <div className="border-border border-b px-5 py-4 space-y-3">
+        <div className="border-border space-y-3 border-b px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-foreground text-base font-bold">Listado</h2>
@@ -298,7 +299,7 @@ export default function AnimalesListPage() {
                 placeholder="Buscar por arete, nombre o raza…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-muted/50 border-border text-foreground placeholder:text-foreground/30 focus:border-primary w-full rounded-xl border py-2 pr-3 pl-8 text-sm outline-none transition-colors"
+                className="bg-muted/50 border-border text-foreground placeholder:text-foreground/30 focus:border-primary w-full rounded-xl border py-2 pr-3 pl-8 text-sm transition-colors outline-none"
               />
             </div>
           </div>
@@ -373,7 +374,7 @@ export default function AnimalesListPage() {
         {/* No results */}
         {!animalsQuery.isLoading && animals.length > 0 && filtered.length === 0 && (
           <div className="px-5 py-12 text-center">
-            <Search className="text-foreground/20 mx-auto h-8 w-8 mb-3" />
+            <Search className="text-foreground/20 mx-auto mb-3 h-8 w-8" />
             <p className="text-foreground/60 text-sm">No se encontraron animales con ese filtro.</p>
             <button
               onClick={() => {
@@ -409,7 +410,7 @@ export default function AnimalesListPage() {
         {filtered.length > 0 && (
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
-              <thead className="text-foreground/50 border-border border-b text-xs uppercase tracking-wide">
+              <thead className="text-foreground/50 border-border border-b text-xs tracking-wide uppercase">
                 <tr>
                   <th className={thClass} style={{ width: 48 }} />
                   <th className={thClass}>
@@ -441,7 +442,7 @@ export default function AnimalesListPage() {
                 {pagedAnimals.map((a) => (
                   <tr key={a.id} className="hover:bg-muted/30 group transition-colors">
                     {/* Avatar */}
-                    <td className="pl-5 py-3.5">
+                    <td className="py-3.5 pl-5">
                       <AnimalAvatar tag={a.tag} name={a.name} photoUrl={a.photo_url ?? null} />
                     </td>
 
@@ -493,7 +494,7 @@ export default function AnimalesListPage() {
                     {/* Weight */}
                     <td className="px-4 py-3.5 text-right">
                       {a.current_weight_kg ? (
-                        <span className="text-foreground/80 tabular-nums text-sm">
+                        <span className="text-foreground/80 text-sm tabular-nums">
                           {a.current_weight_kg}{" "}
                           <span className="text-foreground/40 text-xs">kg</span>
                         </span>
@@ -515,7 +516,7 @@ export default function AnimalesListPage() {
                     </td>
 
                     {/* Actions */}
-                    <td className="pr-5 py-3.5">
+                    <td className="py-3.5 pr-5">
                       <div className="flex items-center justify-end gap-1.5">
                         <Link
                           href={`/dashboard/animales/${a.id}`}

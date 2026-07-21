@@ -25,6 +25,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import SignAnchorButton from "@/components/SignAnchorButton";
 import { qrCodePngDataUrl } from "@/lib/qr/generate";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const CERT_TYPE_LABELS: Record<string, string> = {
   origin: "Origen",
@@ -83,7 +84,7 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(friendlyErrorMessage(e));
     } finally {
       setDownloading(false);
     }
@@ -150,7 +151,7 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
       toast.success("Certificado eliminado");
       router.push("/dashboard/certificados");
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const fmt = (d: string | null) =>
@@ -351,7 +352,7 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
             </div>
 
             {/* Zona de peligro */}
-            <div className="bg-card border-red-500/20 rounded-2xl border p-6 shadow-sm">
+            <div className="bg-card rounded-2xl border border-red-500/20 p-6 shadow-sm">
               <div className="mb-1 flex items-center gap-2">
                 <Trash2 className="h-4 w-4 text-red-500" />
                 <h3 className="text-foreground text-sm font-bold">Eliminar certificado</h3>

@@ -7,6 +7,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type FarmDetail = {
   id: string;
@@ -153,7 +154,7 @@ export default function FincaSettingsPage() {
             </div>
 
             {updateMutation.error && (
-              <p className="text-accent text-sm">{(updateMutation.error as Error).message}</p>
+              <p className="text-accent text-sm">{friendlyErrorMessage(updateMutation.error)}</p>
             )}
 
             <div className="pt-2">

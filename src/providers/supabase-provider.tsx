@@ -167,11 +167,23 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }, [privyReady, authenticated, online, fetchToken, logout]);
 
   const tokenUsable = isTokenUsable(state);
-  const supabase = tokenUsable ? createSupabaseBrowserClient(state!.token) : null;
 
   // Conocemos al usuario pero no podemos hablar con Supabase por falta de
   // red: la app arranca igual para seguir capturando datos en la cola.
   const captureMode = hydrated && !!state && !tokenUsable && !online;
+
+  // En modo captura el JWT está vencido, pero el cliente se crea IGUAL con el
+  // token viejo. Las lecturas GET no llegan a Supabase: las responde el service
+  // worker desde su caché (ventana de 7 días), que no valida el JWT. Y las
+  // escrituras nunca salen por aquí — los formularios comprueban `navigator.
+  // onLine` y las mandan a la cola de Dexie.
+  //
+  // Devolver null aquí era lo que rompía la captura offline: medio dashboard
+  // usa `!!supabase` como gate ("¿hay sesión?"), así que con el token vencido
+  // TODAS las queries quedaban `enabled: false`. La ficha de animal se quedaba
+  // en skeleton eterno, `useCurrentFarm` no resolvía y los catálogos de vacunas
+  // y tratamientos salían vacíos — aunque el service worker tuviera el dato.
+  const supabase = tokenUsable || captureMode ? createSupabaseBrowserClient(state!.token) : null;
 
   // `ready` ya no depende de que Privy arranque: offline nunca lo hace.
   const ready = hydrated && (!!supabase || captureMode || (privyReady && !authenticated));

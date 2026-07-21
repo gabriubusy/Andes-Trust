@@ -238,7 +238,7 @@ export default function LoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="tu@correo.com"
-                        className="border-border bg-muted/40 text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-primary/20 w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-2 transition-colors"
+                        className="border-border bg-muted/40 text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-primary/20 w-full rounded-xl border px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
                       />
                     </div>
 
@@ -296,7 +296,7 @@ export default function LoginPage() {
                         value={code}
                         onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                         placeholder="123456"
-                        className="border-border bg-muted/40 text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-primary/20 w-full rounded-xl border px-4 py-3 text-center text-xl font-mono tracking-widest outline-none focus:ring-2 transition-colors"
+                        className="border-border bg-muted/40 text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-primary/20 w-full rounded-xl border px-4 py-3 text-center font-mono text-xl tracking-widest transition-colors outline-none focus:ring-2"
                       />
                     </div>
 

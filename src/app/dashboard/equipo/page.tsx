@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type Member = {
   profile_id: string;
@@ -222,59 +223,59 @@ export default function EquipoPage() {
   return (
     <DashboardShell title="Equipo de trabajo" subtitle="Miembros con acceso a la finca">
       {/* Cabecera con stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 mb-2">
-        <div className="bg-card border-border rounded-2xl border p-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <Users className="h-5 w-5 text-primary" />
+      <div className="mb-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4">
+          <div className="bg-primary/10 flex h-10 w-10 items-center justify-center rounded-xl">
+            <Users className="text-primary h-5 w-5" />
           </div>
           <div>
-            <div className="text-2xl font-bold text-foreground">{memberCount}</div>
-            <div className="text-xs text-foreground/50">Miembros activos</div>
+            <div className="text-foreground text-2xl font-bold">{memberCount}</div>
+            <div className="text-foreground/50 text-xs">Miembros activos</div>
           </div>
         </div>
-        <div className="bg-card border-border rounded-2xl border p-4 flex items-center gap-3">
+        <div className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
             <Clock className="h-5 w-5 text-amber-500" />
           </div>
           <div>
-            <div className="text-2xl font-bold text-foreground">{pendingCount}</div>
-            <div className="text-xs text-foreground/50">Invitaciones pendientes</div>
+            <div className="text-foreground text-2xl font-bold">{pendingCount}</div>
+            <div className="text-foreground/50 text-xs">Invitaciones pendientes</div>
           </div>
         </div>
-        <div className="hidden sm:flex bg-card border-border rounded-2xl border p-4 items-center gap-3">
+        <div className="bg-card border-border hidden items-center gap-3 rounded-2xl border p-4 sm:flex">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
             <Shield className="h-5 w-5 text-emerald-500" />
           </div>
           <div>
-            <div className="text-2xl font-bold text-foreground">{ROLES.length}</div>
-            <div className="text-xs text-foreground/50">Roles disponibles</div>
+            <div className="text-foreground text-2xl font-bold">{ROLES.length}</div>
+            <div className="text-foreground/50 text-xs">Roles disponibles</div>
           </div>
         </div>
       </div>
 
       {/* Invitar miembro */}
-      <div className="bg-card border-border rounded-2xl border overflow-hidden">
-        <div className="border-b border-border px-6 py-4 flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-            <UserPlus className="h-4 w-4 text-primary" />
+      <div className="bg-card border-border overflow-hidden rounded-2xl border">
+        <div className="border-border flex items-center gap-3 border-b px-6 py-4">
+          <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+            <UserPlus className="text-primary h-4 w-4" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Invitar miembro</h3>
-            <p className="text-xs text-foreground/50">La invitación expira en 14 días</p>
+            <h3 className="text-foreground text-sm font-semibold">Invitar miembro</h3>
+            <p className="text-foreground/50 text-xs">La invitación expira en 14 días</p>
           </div>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="space-y-4 p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
               <label
                 htmlFor="invite-email"
-                className="mb-1.5 block text-xs font-medium text-foreground/70"
+                className="text-foreground/70 mb-1.5 block text-xs font-medium"
               >
                 Correo del invitado <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30" />
+                <Mail className="text-foreground/30 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                 <input
                   id="invite-email"
                   type="email"
@@ -282,14 +283,14 @@ export default function EquipoPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && email.trim() && invite.mutate()}
                   placeholder="correo@ejemplo.com"
-                  className="border-border bg-background/60 w-full rounded-xl border pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 transition placeholder:text-foreground/30"
+                  className="border-border bg-background/60 focus:ring-primary/30 placeholder:text-foreground/30 w-full rounded-xl border py-2.5 pr-4 pl-10 text-sm transition outline-none focus:ring-2"
                 />
               </div>
             </div>
             <div>
               <label
                 htmlFor="invite-role"
-                className="mb-1.5 block text-xs font-medium text-foreground/70"
+                className="text-foreground/70 mb-1.5 block text-xs font-medium"
               >
                 Rol <span className="text-red-500">*</span>
               </label>
@@ -298,7 +299,7 @@ export default function EquipoPage() {
                   id="invite-role"
                   value={role}
                   onChange={(e) => setRole(e.target.value as Member["role"])}
-                  className="border-border bg-background/60 appearance-none rounded-xl border pl-4 pr-9 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 transition w-full sm:w-auto"
+                  className="border-border bg-background/60 focus:ring-primary/30 w-full appearance-none rounded-xl border py-2.5 pr-9 pl-4 text-sm transition outline-none focus:ring-2 sm:w-auto"
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -306,13 +307,13 @@ export default function EquipoPage() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/40" />
+                <ChevronDown className="text-foreground/40 pointer-events-none absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2" />
               </div>
             </div>
             <button
               onClick={() => invite.mutate()}
               disabled={!email.trim() || invite.isPending}
-              className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               {invite.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -324,28 +325,28 @@ export default function EquipoPage() {
           </div>
 
           {/* Rol seleccionado: descripción */}
-          <div className="flex items-center gap-2 rounded-xl bg-muted/40 border border-border px-4 py-2.5">
-            <div className={`h-2 w-2 rounded-full shrink-0 ${ROLE_DOT[role]}`} />
-            <p className="text-xs text-foreground/60">
-              <span className="font-medium text-foreground/80">{ROLE_LABEL[role]}:</span>{" "}
+          <div className="bg-muted/40 border-border flex items-center gap-2 rounded-xl border px-4 py-2.5">
+            <div className={`h-2 w-2 shrink-0 rounded-full ${ROLE_DOT[role]}`} />
+            <p className="text-foreground/60 text-xs">
+              <span className="text-foreground/80 font-medium">{ROLE_LABEL[role]}:</span>{" "}
               {ROLE_DESCRIPTIONS[role]}
             </p>
           </div>
 
           {invite.isError && (
-            <p className="text-xs text-red-500 flex items-center gap-1.5">
+            <p className="flex items-center gap-1.5 text-xs text-red-500">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500" />
-              {(invite.error as Error).message}
+              {friendlyErrorMessage(invite.error)}
             </p>
           )}
           {invite.isSuccess && invite.data?.added_directly && (
-            <p className="text-xs text-emerald-500 flex items-center gap-1.5">
+            <p className="flex items-center gap-1.5 text-xs text-emerald-500">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Miembro añadido directamente (ya tenía cuenta).
             </p>
           )}
           {invite.isSuccess && invite.data?.invitation && (
-            <p className="text-xs text-foreground/60 flex items-center gap-1.5">
+            <p className="text-foreground/60 flex items-center gap-1.5 text-xs">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
               Invitación enviada. El miembro debe iniciar sesión con ese email.
             </p>
@@ -356,48 +357,48 @@ export default function EquipoPage() {
       {/* Tabla miembros + columna invitaciones */}
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         {/* Miembros activos */}
-        <div className="bg-card border-border rounded-2xl border overflow-hidden">
-          <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="bg-card border-border overflow-hidden rounded-2xl border">
+          <div className="border-border flex items-center justify-between border-b px-6 py-4">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-foreground/50" />
-              <h3 className="text-sm font-semibold text-foreground">Miembros activos</h3>
+              <Users className="text-foreground/50 h-4 w-4" />
+              <h3 className="text-foreground text-sm font-semibold">Miembros activos</h3>
             </div>
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+            <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-xs font-semibold">
               {memberCount}
             </span>
           </div>
 
           {membersQuery.isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
+              <Loader2 className="text-foreground/30 h-5 w-5 animate-spin" />
             </div>
           ) : memberCount === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-2">
-              <Users className="h-8 w-8 text-foreground/15" />
-              <p className="text-sm text-foreground/40">Sin miembros aún</p>
+            <div className="flex flex-col items-center justify-center gap-2 py-16">
+              <Users className="text-foreground/15 h-8 w-8" />
+              <p className="text-foreground/40 text-sm">Sin miembros aún</p>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-border divide-y">
               {(membersQuery.data ?? []).map((m) => {
                 const p = m.profiles;
                 return (
                   <li
                     key={m.profile_id}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-muted/30 transition-colors"
+                    className="hover:bg-muted/30 flex items-center gap-4 px-6 py-4 transition-colors"
                   >
                     <AvatarCircle name={p?.full_name ?? null} email={p?.email ?? null} />
                     <div className="min-w-0 flex-1">
                       {p?.full_name ? (
                         <>
-                          <div className="truncate text-sm font-medium text-foreground">
+                          <div className="text-foreground truncate text-sm font-medium">
                             {p.full_name}
                           </div>
-                          <div className="truncate text-xs text-foreground/50">
+                          <div className="text-foreground/50 truncate text-xs">
                             {p?.email ?? "Sin email"}
                           </div>
                         </>
                       ) : (
-                        <div className="truncate text-sm font-medium text-foreground">
+                        <div className="text-foreground truncate text-sm font-medium">
                           {p?.email ?? "Sin email"}
                         </div>
                       )}
@@ -412,7 +413,7 @@ export default function EquipoPage() {
                             newRole: e.target.value as Member["role"],
                           })
                         }
-                        className={`appearance-none rounded-full px-3 py-1 pr-7 text-xs font-medium ring-1 outline-none cursor-pointer disabled:opacity-50 ${ROLE_TINT[m.role]}`}
+                        className={`cursor-pointer appearance-none rounded-full px-3 py-1 pr-7 text-xs font-medium ring-1 outline-none disabled:opacity-50 ${ROLE_TINT[m.role]}`}
                       >
                         {ROLES.map((r) => (
                           <option key={r} value={r}>
@@ -420,13 +421,13 @@ export default function EquipoPage() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 opacity-60" />
+                      <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3 w-3 -translate-y-1/2 opacity-60" />
                     </div>
                     <button
                       onClick={() => removeMember.mutate(m.profile_id)}
                       disabled={removeMember.isPending}
                       title="Eliminar miembro"
-                      className="shrink-0 rounded-lg p-1.5 text-foreground/30 hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                      className="text-foreground/30 shrink-0 rounded-lg p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
                     >
                       {removeMember.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -442,11 +443,11 @@ export default function EquipoPage() {
         </div>
 
         {/* Invitaciones pendientes */}
-        <div className="bg-card border-border rounded-2xl border overflow-hidden">
-          <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="bg-card border-border overflow-hidden rounded-2xl border">
+          <div className="border-border flex items-center justify-between border-b px-6 py-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-foreground/50" />
-              <h3 className="text-sm font-semibold text-foreground">Pendientes</h3>
+              <Clock className="text-foreground/50 h-4 w-4" />
+              <h3 className="text-foreground text-sm font-semibold">Pendientes</h3>
             </div>
             {pendingCount > 0 && (
               <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-500">
@@ -457,15 +458,15 @@ export default function EquipoPage() {
 
           {invitesQuery.isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
+              <Loader2 className="text-foreground/30 h-5 w-5 animate-spin" />
             </div>
           ) : pendingCount === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-2">
-              <Clock className="h-8 w-8 text-foreground/15" />
-              <p className="text-sm text-foreground/40">Sin invitaciones pendientes</p>
+            <div className="flex flex-col items-center justify-center gap-2 py-16">
+              <Clock className="text-foreground/15 h-8 w-8" />
+              <p className="text-foreground/40 text-sm">Sin invitaciones pendientes</p>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-border divide-y">
               {(invitesQuery.data ?? []).map((i) => {
                 const daysLeft = Math.max(
                   0,
@@ -474,14 +475,14 @@ export default function EquipoPage() {
                 return (
                   <li
                     key={i.id}
-                    className="flex items-center gap-3 px-6 py-4 hover:bg-muted/30 transition-colors"
+                    className="hover:bg-muted/30 flex items-center gap-3 px-6 py-4 transition-colors"
                   >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
                       <Mail className="h-4 w-4 text-amber-500" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-foreground">{i.email}</div>
-                      <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <div className="text-foreground truncate text-sm font-medium">{i.email}</div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${ROLE_TINT[i.role]}`}
                         >
@@ -498,7 +499,7 @@ export default function EquipoPage() {
                       onClick={() => verifyInvite.mutate(i.id)}
                       disabled={verifyInvite.isPending}
                       title="Verificar invitación"
-                      className="shrink-0 rounded-lg p-1.5 text-foreground/30 hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+                      className="text-foreground/30 shrink-0 rounded-lg p-1.5 transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 disabled:opacity-50"
                     >
                       {verifyInvite.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -510,7 +511,7 @@ export default function EquipoPage() {
                       onClick={() => revokeInvite.mutate(i.id)}
                       disabled={revokeInvite.isPending}
                       title="Revocar invitación"
-                      className="shrink-0 rounded-lg p-1.5 text-foreground/30 hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                      className="text-foreground/30 shrink-0 rounded-lg p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
                     >
                       {revokeInvite.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

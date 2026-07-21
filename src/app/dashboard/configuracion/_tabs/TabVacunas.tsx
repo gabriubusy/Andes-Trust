@@ -9,6 +9,7 @@ import Pagination, { usePagination } from "@/components/Pagination";
 import { inputClass, labelClass, type Vaccine } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const ROUTE_STYLES: Record<string, string> = {
   IM: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
@@ -173,7 +174,7 @@ export function TabVacunas() {
 
   useEffect(() => {
     if (vaccinesQuery.error)
-      toast.error("Error al cargar: " + (vaccinesQuery.error as Error).message);
+      toast.error(friendlyErrorMessage(vaccinesQuery.error, { fallback: "Error al cargar." }));
   }, [vaccinesQuery.error]);
 
   const upsertMutation = useMutation({
@@ -193,7 +194,7 @@ export function TabVacunas() {
       setModal(false);
       toast.success("Guardado correctamente");
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const deleteMutation = useMutation({
@@ -206,7 +207,7 @@ export function TabVacunas() {
       queryClient.invalidateQueries({ queryKey: ["vaccines-catalog"] });
       setDeleteId(null);
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const vaccines = vaccinesQuery.data ?? [];
@@ -218,7 +219,7 @@ export function TabVacunas() {
         {/* Header */}
         <div className="border-border flex items-center justify-between border-b px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-500/10 flex h-9 w-9 items-center justify-center rounded-xl">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
               <Syringe className="h-4 w-4 text-emerald-500" />
             </div>
             <div>
@@ -260,7 +261,7 @@ export function TabVacunas() {
         {/* Empty state */}
         {!vaccinesQuery.isLoading && vaccines.length === 0 && (
           <div className="flex flex-col items-center gap-3 px-5 py-14">
-            <div className="bg-emerald-500/10 flex h-14 w-14 items-center justify-center rounded-2xl">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10">
               <Syringe className="h-7 w-7 text-emerald-500/60" />
             </div>
             <div className="text-center">
@@ -283,7 +284,7 @@ export function TabVacunas() {
         {vaccines.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-foreground/40 text-[11px] uppercase tracking-wide">
+              <thead className="bg-muted/40 text-foreground/40 text-[11px] tracking-wide uppercase">
                 <tr>
                   <th className="px-5 py-2.5 text-left font-semibold">Nombre</th>
                   <th className="px-5 py-2.5 text-left font-semibold">Enfermedad</th>
@@ -300,7 +301,7 @@ export function TabVacunas() {
                     className="border-border hover:bg-muted/30 border-t transition-colors"
                   >
                     <td className="px-5 py-3">
-                      <p className="text-foreground font-medium leading-tight">{v.name}</p>
+                      <p className="text-foreground leading-tight font-medium">{v.name}</p>
                       {v.manufacturer && (
                         <p className="text-foreground/40 text-xs">{v.manufacturer}</p>
                       )}
@@ -317,13 +318,13 @@ export function TabVacunas() {
                         <span className="text-foreground/30 text-xs">—</span>
                       )}
                     </td>
-                    <td className="text-foreground/60 px-5 py-3 tabular-nums text-xs">
+                    <td className="text-foreground/60 px-5 py-3 text-xs tabular-nums">
                       {v.dose_ml ? `${v.dose_ml} ml` : "—"}
                     </td>
                     <td className="px-5 py-3">
                       {v.booster_days ? (
-                        <span className="text-foreground/60 inline-flex items-center gap-1 tabular-nums text-xs">
-                          <RefreshCw className="h-3 w-3 text-foreground/30" />
+                        <span className="text-foreground/60 inline-flex items-center gap-1 text-xs tabular-nums">
+                          <RefreshCw className="text-foreground/30 h-3 w-3" />
                           {v.booster_days} días
                         </span>
                       ) : (
@@ -343,7 +344,7 @@ export function TabVacunas() {
                         <button
                           type="button"
                           onClick={() => setDeleteId(v.id)}
-                          className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                          className="text-foreground/40 rounded-lg p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                           title="Eliminar"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

@@ -26,7 +26,7 @@ export default function Error({
   return (
     <div className="bg-background text-foreground flex min-h-screen items-center justify-center p-6">
       <div className="bg-card border-border w-full max-w-md rounded-2xl border p-8 text-center shadow-sm">
-        <div className="bg-amber-500/10 mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10">
           <AlertTriangle className="h-7 w-7 text-amber-500" />
         </div>
 

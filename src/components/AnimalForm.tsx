@@ -12,6 +12,7 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { uploadAnimalPhoto } from "@/lib/supabase/storage";
 import AnimalPhotoUploader from "@/components/AnimalPhotoUploader";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const schema = z.object({
   tag: z.string().min(1, "El arete es obligatorio").max(50),
@@ -74,6 +75,8 @@ export default function AnimalForm() {
     handleSubmit,
     watch,
     setValue,
+    setError,
+    setFocus,
     formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -120,12 +123,13 @@ export default function AnimalForm() {
   });
 
   useEffect(() => {
-    if (breedsQuery.error) toast.error("Error al cargar: " + (breedsQuery.error as Error).message);
+    if (breedsQuery.error)
+      toast.error(friendlyErrorMessage(breedsQuery.error, { fallback: "Error al cargar." }));
   }, [breedsQuery.error]);
 
   useEffect(() => {
     if (femalesQuery.error)
-      toast.error("Error al cargar: " + (femalesQuery.error as Error).message);
+      toast.error(friendlyErrorMessage(femalesQuery.error, { fallback: "Error al cargar." }));
   }, [femalesQuery.error]);
 
   function toggleBreed(id: string) {
@@ -208,6 +212,21 @@ export default function AnimalForm() {
     },
     onError: (err) => {
       const msg = (err as Error)?.message ?? "";
+      const code = (err as { code?: string })?.code;
+
+      // Arete repetido dentro de la finca (índice único farm_id + tag). Sin
+      // esto el usuario veía el error crudo de Postgres.
+      const isDuplicateTag = code === "23505" || /duplicate key|animals_farm_id_tag_key/i.test(msg);
+      if (isDuplicateTag) {
+        setError("tag", {
+          type: "manual",
+          message: "Ya existe un animal con este arete en la finca. Usa otro identificador.",
+        });
+        setFocus("tag");
+        toast.error("Ese arete ya está registrado en esta finca.");
+        return;
+      }
+
       const isNetwork = /failed to fetch|networkerror|load failed|fetch failed/i.test(msg);
       toast.error(
         isNetwork
@@ -261,7 +280,7 @@ export default function AnimalForm() {
                 {(breedsQuery.data ?? []).map((b: { id: string; name: string }) => (
                   <label
                     key={b.id}
-                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-muted text-sm"
+                    className="hover:bg-muted flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm"
                   >
                     <input
                       type="checkbox"

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, FlaskConical } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type Treatment = {
   id: string;
@@ -254,7 +255,7 @@ export default function TratamientosCatalogoPage() {
 
         {query.error && (
           <div className="text-accent px-5 py-4 text-sm">
-            Error: {(query.error as Error).message}
+            Error: {friendlyErrorMessage(query.error)}
           </div>
         )}
 

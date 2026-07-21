@@ -188,11 +188,11 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
           <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-transparent" />
 
           {/* Logo + finca */}
-          <div className="absolute top-4 left-0 right-0 flex items-center justify-center">
-            <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-1.5 flex items-center gap-2">
+          <div className="absolute top-4 right-0 left-0 flex items-center justify-center">
+            <div className="flex items-center gap-2 rounded-full bg-black/30 px-4 py-1.5 backdrop-blur-sm">
               <Image src="/logo.png" alt="Logo" width={80} height={32} className="h-5 w-auto" />
               {farm && (
-                <span className="text-white/70 text-xs flex items-center gap-1">
+                <span className="flex items-center gap-1 text-xs text-white/70">
                   <MapPin className="h-3 w-3" />
                   {[farm.name, farm.region].filter(Boolean).join(" · ")}
                 </span>
@@ -201,14 +201,14 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
           </div>
 
           {/* Nombre sobre la imagen */}
-          <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-5xl px-6 pb-8">
-            <p className="text-white/50 text-[10px] font-bold tracking-widest uppercase mb-1">
+          <div className="absolute right-0 bottom-0 left-0 mx-auto max-w-5xl px-6 pb-8">
+            <p className="mb-1 text-[10px] font-bold tracking-widest text-white/50 uppercase">
               Ficha pública de trazabilidad
             </p>
-            <h1 className="text-white text-4xl font-bold leading-tight drop-shadow-lg">
+            <h1 className="text-4xl leading-tight font-bold text-white drop-shadow-lg">
               {animal.name ?? animal.tag}
             </h1>
-            {animal.name && <p className="text-white/60 font-mono text-sm mt-0.5">{animal.tag}</p>}
+            {animal.name && <p className="mt-0.5 font-mono text-sm text-white/60">{animal.tag}</p>}
           </div>
         </div>
       ) : (
@@ -235,7 +235,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
             <p className="text-foreground/50 mb-1.5 text-[10px] font-bold tracking-widest uppercase">
               Ficha pública de trazabilidad
             </p>
-            <h1 className="text-foreground text-4xl font-bold leading-tight">
+            <h1 className="text-foreground text-4xl leading-tight font-bold">
               {animal.name ?? animal.tag}
             </h1>
             {animal.name && (
@@ -246,7 +246,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
       )}
 
       {/* ── PUBLISHED BADGE ──────────────────────────────── */}
-      <div className="bg-primary/10 border-primary/20 border-b border-t flex items-center justify-center gap-2 px-4 py-2.5">
+      <div className="bg-primary/10 border-primary/20 flex items-center justify-center gap-2 border-t border-b px-4 py-2.5">
         <ShieldCheck className="text-primary h-4 w-4 shrink-0" />
         <p className="text-primary text-xs font-medium">
           Ficha publicada por {farm?.name ?? "Finca El Progreso"}
@@ -254,7 +254,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
       </div>
 
       <div className="mx-auto max-w-5xl p-4">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-6 lg:items-start">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_1fr] lg:items-start lg:gap-6">
           {/* ── STATS GRID (panel lateral en escritorio) ─────── */}
           <div className="grid grid-cols-2 gap-3 lg:sticky lg:top-4">
             <StatCard
@@ -327,15 +327,15 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
                     return (
                       <li key={i} className="flex items-center justify-between px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="bg-violet-500/10 flex h-8 w-8 items-center justify-center rounded-lg">
-                            <Scale className="text-violet-500 h-3.5 w-3.5" />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
+                            <Scale className="h-3.5 w-3.5 text-violet-500" />
                           </div>
                           <span className="text-foreground text-sm font-semibold tabular-nums">
                             {w.weight_kg} kg
                           </span>
                           {delta !== null && (
                             <span
-                              className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${delta >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"}`}
+                              className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${delta >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"}`}
                             >
                               {delta >= 0 ? "+" : ""}
                               {delta.toFixed(1)} kg
@@ -366,52 +366,52 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
                     const isDue = v.next_due_at && new Date(v.next_due_at).getTime() < now;
                     const photoUrl = vacPhotos[v.id as string];
                     return (
-                      <div key={i} className="p-4 space-y-3">
+                      <div key={i} className="space-y-3 p-4">
                         {/* Evidence photo */}
                         {photoUrl && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={photoUrl}
                             alt={`Evidencia ${cat?.name ?? "vacuna"}`}
-                            className="w-full h-36 object-cover rounded-xl"
+                            className="h-36 w-full rounded-xl object-cover"
                           />
                         )}
                         <div className="flex items-start gap-3">
                           <div
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl mt-0.5 ${isDue ? "bg-red-500/10" : "bg-emerald-500/10"}`}
+                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isDue ? "bg-red-500/10" : "bg-emerald-500/10"}`}
                           >
                             <Syringe
                               className={`h-4 w-4 ${isDue ? "text-red-500" : "text-emerald-500"}`}
                             />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="text-foreground text-sm font-semibold">
                                 {cat?.name ?? "Vacuna"}
                               </span>
                               {isDue ? (
-                                <span className="bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1">
+                                <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500">
                                   <AlertTriangle className="h-2.5 w-2.5" />
                                   Refuerzo pendiente
                                 </span>
                               ) : (
-                                <span className="bg-emerald-500/10 text-emerald-600 text-[10px] font-bold rounded-full px-2 py-0.5">
+                                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
                                   Al día
                                 </span>
                               )}
                             </div>
                             {cat?.disease && (
-                              <p className="text-foreground/40 text-xs mt-0.5">
+                              <p className="text-foreground/40 mt-0.5 text-xs">
                                 Contra: {cat.disease}
                               </p>
                             )}
-                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                              <span className="text-foreground/50 text-xs bg-muted/40 rounded-lg px-2 py-0.5">
+                            <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                              <span className="text-foreground/50 bg-muted/40 rounded-lg px-2 py-0.5 text-xs">
                                 {fmtShort.format(new Date(v.applied_at as string))}
                               </span>
                               {v.next_due_at && (
                                 <span
-                                  className={`text-xs flex items-center gap-1 ${isDue ? "text-red-400" : "text-foreground/40"}`}
+                                  className={`flex items-center gap-1 text-xs ${isDue ? "text-red-400" : "text-foreground/40"}`}
                                 >
                                   <Clock className="h-3 w-3" />
                                   Próxima: {fmtShort.format(new Date(v.next_due_at))}
@@ -445,36 +445,36 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${expired ? "bg-red-500/10" : "bg-emerald-500/10"}`}
                         >
                           {expired ? (
-                            <XCircle className="text-red-500 h-3.5 w-3.5" />
+                            <XCircle className="h-3.5 w-3.5 text-red-500" />
                           ) : (
-                            <CheckCircle2 className="text-emerald-500 h-3.5 w-3.5" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                           )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="text-foreground text-sm font-medium">
                               {CERT_TYPE_LABELS[c.type] ?? c.type}
                             </span>
                             {expired ? (
-                              <span className="bg-red-500/10 text-red-500 text-[10px] font-semibold rounded-full px-1.5 py-0.5 flex items-center gap-1">
+                              <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">
                                 <AlertTriangle className="h-2.5 w-2.5" /> Vencido
                               </span>
                             ) : nearExpiry ? (
-                              <span className="bg-amber-500/10 text-amber-600 text-[10px] font-semibold rounded-full px-1.5 py-0.5 flex items-center gap-1">
+                              <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">
                                 <AlertTriangle className="h-2.5 w-2.5" /> Por vencer
                               </span>
                             ) : (
-                              <span className="bg-emerald-500/10 text-emerald-600 text-[10px] font-semibold rounded-full px-1.5 py-0.5">
+                              <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
                                 Vigente
                               </span>
                             )}
                           </div>
                           {c.issuer && (
-                            <p className="text-foreground/40 text-xs mt-0.5">{c.issuer}</p>
+                            <p className="text-foreground/40 mt-0.5 text-xs">{c.issuer}</p>
                           )}
                         </div>
                         {c.issued_at && (
-                          <span className="text-foreground/35 text-xs shrink-0">
+                          <span className="text-foreground/35 shrink-0 text-xs">
                             {fmtShort.format(new Date(c.issued_at))}
                           </span>
                         )}
@@ -519,18 +519,18 @@ function StatCard({
   sparkPath?: string;
 }) {
   return (
-    <div className="bg-card border-border rounded-2xl border p-4 space-y-3">
+    <div className="bg-card border-border space-y-3 rounded-2xl border p-4">
       <div className={`${bg} inline-flex h-8 w-8 items-center justify-center rounded-lg`}>
         <Icon className={`${color} h-4 w-4`} />
       </div>
       <div>
-        <p className="text-foreground/40 text-[10px] font-semibold uppercase tracking-wider">
+        <p className="text-foreground/40 text-[10px] font-semibold tracking-wider uppercase">
           {label}
         </p>
-        <p className="text-foreground text-base font-bold mt-0.5">{value}</p>
+        <p className="text-foreground mt-0.5 text-base font-bold">{value}</p>
       </div>
       {sparkPath && (
-        <svg viewBox="0 0 120 32" className="w-full h-7 opacity-60">
+        <svg viewBox="0 0 120 32" className="h-7 w-full opacity-60">
           <path
             d={sparkPath}
             fill="none"
@@ -560,7 +560,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-card border-border rounded-2xl border overflow-hidden">
+    <div className="bg-card border-border overflow-hidden rounded-2xl border">
       <div className="border-border flex items-center justify-between border-b px-4 py-3.5">
         <h2 className="text-foreground flex items-center gap-2 text-sm font-semibold">
           <Icon className={`${color} h-4 w-4`} />

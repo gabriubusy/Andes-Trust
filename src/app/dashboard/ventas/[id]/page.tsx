@@ -20,6 +20,7 @@ import {
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -158,7 +159,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(friendlyErrorMessage(e));
     } finally {
       setDownloadingInvoice(false);
     }
@@ -224,7 +225,9 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           </p>
           <p className="text-foreground/60 mb-6 text-sm">
             {saleQuery.isError
-              ? ((saleQuery.error as Error).message ?? "Ocurrió un error al consultar la venta.")
+              ? friendlyErrorMessage(saleQuery.error, {
+                  fallback: "Ocurrió un error al consultar la venta.",
+                })
               : "La venta no existe o no tienes acceso a ella."}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -343,7 +346,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
                 </button>
                 {statusMutation.isError && (
                   <p className="text-destructive w-full text-xs">
-                    {(statusMutation.error as Error).message}
+                    {friendlyErrorMessage(statusMutation.error)}
                   </p>
                 )}
               </div>
@@ -505,7 +508,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <h3 className="text-foreground mb-1 flex items-center gap-2 text-base font-bold">
               <Receipt className="text-primary h-4 w-4" /> Factura
             </h3>
-            <p className="text-foreground/40 text-xs mb-4">
+            <p className="text-foreground/40 mb-4 text-xs">
               {sale.invoice_number
                 ? `N° ${sale.invoice_number}`
                 : "Genera un PDF con el detalle de esta venta"}

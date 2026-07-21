@@ -449,28 +449,28 @@ export default function EventosPage() {
       <div className="flex flex-col gap-5">
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="bg-card border-border rounded-2xl border p-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-              <CalendarDays className="h-5 w-5 text-primary" />
+          <div className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4">
+            <div className="bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+              <CalendarDays className="text-primary h-5 w-5" />
             </div>
             <div>
-              <p className="text-foreground text-2xl font-bold leading-none">{total}</p>
-              <p className="text-foreground/40 text-xs mt-1">eventos cargados</p>
+              <p className="text-foreground text-2xl leading-none font-bold">{total}</p>
+              <p className="text-foreground/40 mt-1 text-xs">eventos cargados</p>
             </div>
           </div>
 
-          <div className="bg-card border-border rounded-2xl border p-4 flex items-center gap-3">
+          <div className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
               <Clock className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
-              <p className="text-foreground text-2xl font-bold leading-none">{todayCount}</p>
-              <p className="text-foreground/40 text-xs mt-1">registros hoy</p>
+              <p className="text-foreground text-2xl leading-none font-bold">{todayCount}</p>
+              <p className="text-foreground/40 mt-1 text-xs">registros hoy</p>
             </div>
           </div>
 
           {topType && topMeta ? (
-            <div className="bg-card border-border col-span-2 sm:col-span-1 rounded-2xl border p-4 flex items-center gap-3">
+            <div className="bg-card border-border col-span-2 flex items-center gap-3 rounded-2xl border p-4 sm:col-span-1">
               <div
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${topMeta.bg}`}
               >
@@ -478,26 +478,26 @@ export default function EventosPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-foreground/40 text-xs">Tipo más frecuente</p>
-                <p className="text-foreground font-semibold text-sm mt-0.5 truncate">
+                <p className="text-foreground mt-0.5 truncate text-sm font-semibold">
                   {topMeta.label}
                 </p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <TrendingUp className="h-3 w-3 text-foreground/30" />
+                <div className="mt-1 flex items-center gap-1.5">
+                  <TrendingUp className="text-foreground/30 h-3 w-3" />
                   <span className="text-foreground/40 text-xs">{topType[1]} registros</span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-card border-border col-span-2 sm:col-span-1 rounded-2xl border p-4" />
+            <div className="bg-card border-border col-span-2 rounded-2xl border p-4 sm:col-span-1" />
           )}
         </div>
 
         {/* ── Filtros ── */}
-        <div className="bg-card border-border rounded-2xl border overflow-hidden">
+        <div className="bg-card border-border overflow-hidden rounded-2xl border">
           {/* Search bar */}
           <div className="border-border border-b px-4 py-3">
             <div className="relative">
-              <Search className="text-foreground/30 absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+              <Search className="text-foreground/30 absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Buscar por animal, tipo, nota…"
@@ -506,12 +506,12 @@ export default function EventosPage() {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                className="bg-muted/40 text-foreground focus:bg-muted/70 w-full rounded-xl border-0 py-2 pr-9 pl-9 text-sm outline-none transition-colors placeholder:text-foreground/30"
+                className="bg-muted/40 text-foreground focus:bg-muted/70 placeholder:text-foreground/30 w-full rounded-xl border-0 py-2 pr-9 pl-9 text-sm transition-colors outline-none"
               />
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground"
+                  className="text-foreground/30 hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -520,7 +520,7 @@ export default function EventosPage() {
           </div>
 
           {/* Type chips — scrollable */}
-          <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 scrollbar-none">
+          <div className="scrollbar-none flex items-center gap-2 overflow-x-auto px-4 py-3">
             <button
               onClick={() => {
                 setTypeFilter("all");
@@ -546,7 +546,7 @@ export default function EventosPage() {
                     setTypeFilter(t);
                     setPage(0);
                   }}
-                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                     active
                       ? `${meta.bg} ${meta.color} ring-1 ${meta.ring}`
                       : "bg-muted text-foreground/50 hover:text-foreground"
@@ -609,7 +609,7 @@ export default function EventosPage() {
                 {/* Events */}
                 <div className="relative pl-5">
                   {/* Vertical timeline line */}
-                  <div className="border-border absolute left-0 top-0 bottom-0 w-px border-l border-dashed" />
+                  <div className="border-border absolute top-0 bottom-0 left-0 w-px border-l border-dashed" />
 
                   <div className="space-y-2">
                     {group.events.map((event) => {
@@ -630,7 +630,7 @@ export default function EventosPage() {
                         >
                           {/* Timeline dot */}
                           <div
-                            className={`absolute -left-[22px] top-4 h-2.5 w-2.5 rounded-full border-2 border-background ${meta.bg.replace("/10", "/60")}`}
+                            className={`border-background absolute top-4 -left-[22px] h-2.5 w-2.5 rounded-full border-2 ${meta.bg.replace("/10", "/60")}`}
                           />
 
                           {/* Icon */}
@@ -672,7 +672,7 @@ export default function EventosPage() {
                                     className="bg-muted/60 text-foreground/50 rounded-lg px-2 py-0.5 text-[11px]"
                                   >
                                     <span className="text-foreground/30">{c.label}:</span>{" "}
-                                    <span className="font-medium text-foreground/60">
+                                    <span className="text-foreground/60 font-medium">
                                       {c.value}
                                     </span>
                                   </span>

@@ -258,7 +258,7 @@ export default function AsistenteTratamientoPage() {
                           </div>
                           <span className="flex-1 leading-snug">{s.name}</span>
                           {s.severity_default >= 3 && (
-                            <span className="rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-red-500 uppercase tracking-wide">
+                            <span className="rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wide text-red-500 uppercase">
                               grave
                             </span>
                           )}
@@ -289,7 +289,7 @@ export default function AsistenteTratamientoPage() {
               </span>
               <button
                 onClick={() => setSelected(new Set())}
-                className="text-muted-foreground text-xs hover:text-foreground transition"
+                className="text-muted-foreground hover:text-foreground text-xs transition"
               >
                 Limpiar selección
               </button>
@@ -300,7 +300,7 @@ export default function AsistenteTratamientoPage() {
         {/* ── Resultados ── */}
         <div className="space-y-3">
           {selected.size === 0 && (
-            <div className="hidden lg:flex bg-card border-border flex-col items-center justify-center gap-3 rounded-2xl border py-20 text-center">
+            <div className="bg-card border-border hidden flex-col items-center justify-center gap-3 rounded-2xl border py-20 text-center lg:flex">
               <div className="bg-muted flex h-14 w-14 items-center justify-center rounded-2xl">
                 <Stethoscope className="text-muted-foreground/40 h-7 w-7" />
               </div>
@@ -356,7 +356,7 @@ export default function AsistenteTratamientoPage() {
                       <div className="text-muted-foreground mb-0.5 text-[10px] font-semibold tracking-wider uppercase">
                         #{idx + 1} diagnóstico
                       </div>
-                      <div className="text-foreground text-base font-bold leading-tight">
+                      <div className="text-foreground text-base leading-tight font-bold">
                         {s.disease_name}
                       </div>
                       <div className="mt-1 flex items-center gap-2">
@@ -386,7 +386,7 @@ export default function AsistenteTratamientoPage() {
                             key={t.treatment_id}
                             className={`rounded-xl p-3 ${
                               t.priority === 1
-                                ? "bg-emerald-500/8 border border-emerald-500/20"
+                                ? "border border-emerald-500/20 bg-emerald-500/8"
                                 : "bg-muted/40"
                             }`}
                           >
@@ -398,7 +398,7 @@ export default function AsistenteTratamientoPage() {
                                 </span>
                               )}
                               {t.priority > 1 && (
-                                <span className="text-muted-foreground rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold">
+                                <span className="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-[10px] font-semibold">
                                   {ti + 1}ª opción
                                 </span>
                               )}

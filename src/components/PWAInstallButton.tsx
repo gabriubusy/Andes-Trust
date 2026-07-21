@@ -55,24 +55,24 @@ export default function PWAInstallButton() {
   if (installed || dismissed || !prompt) return null;
 
   return (
-    <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 sm:bottom-6 sm:left-auto sm:right-6 sm:translate-x-0">
-      <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-card px-4 py-3 shadow-xl backdrop-blur-xl">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-          <Download className="h-4 w-4 text-primary" />
+    <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 sm:right-6 sm:bottom-6 sm:left-auto sm:translate-x-0">
+      <div className="border-primary/20 bg-card flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-xl backdrop-blur-xl">
+        <div className="bg-primary/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+          <Download className="text-primary h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Instalar app</p>
-          <p className="text-xs text-foreground/50">Acceso offline desde tu pantalla</p>
+          <p className="text-foreground text-sm font-semibold">Instalar app</p>
+          <p className="text-foreground/50 text-xs">Acceso offline desde tu pantalla</p>
         </div>
         <button
           onClick={install}
-          className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
+          className="bg-primary hover:bg-primary/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-colors"
         >
           Instalar
         </button>
         <button
           onClick={dismiss}
-          className="rounded-lg p-1 text-foreground/40 transition-colors hover:text-foreground"
+          className="text-foreground/40 hover:text-foreground rounded-lg p-1 transition-colors"
           aria-label="Cerrar"
         >
           <X className="h-4 w-4" />

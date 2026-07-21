@@ -23,8 +23,8 @@ function QrCard({
   accent: string;
 }) {
   return (
-    <div className="bg-background border-border flex flex-col items-center gap-3 rounded-2xl border p-4 flex-1">
-      <div className="bg-white rounded-xl p-3 shadow-sm">
+    <div className="bg-background border-border flex flex-1 flex-col items-center gap-3 rounded-2xl border p-4">
+      <div className="rounded-xl bg-white p-3 shadow-sm">
         {url ? (
           <QRCodeCanvas value={url} size={120} bgColor="#ffffff" fgColor="#0f172a" level="M" />
         ) : (
@@ -33,7 +33,7 @@ function QrCard({
       </div>
       <div className="text-center">
         <p className={`text-xs font-semibold ${accent}`}>{label}</p>
-        <p className="text-foreground/40 text-[10px] mt-0.5">{sublabel}</p>
+        <p className="text-foreground/40 mt-0.5 text-[10px]">{sublabel}</p>
       </div>
     </div>
   );
@@ -94,15 +94,15 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
       </div>
 
       {/* Info + CTA */}
-      <div className="bg-background border-border rounded-2xl border p-4 space-y-3">
+      <div className="bg-background border-border space-y-3 rounded-2xl border p-4">
         <div className="flex items-start gap-3">
           <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5 ${
+            className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
               hasProof ? "bg-emerald-500/10" : "bg-muted"
             }`}
           >
             {hasProof ? (
-              <ShieldCheck className="text-emerald-500 h-4 w-4" />
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
             ) : (
               <Shield className="text-foreground/50 h-4 w-4" />
             )}
@@ -112,7 +112,7 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
             {hasProof ? (
               <p className="text-foreground/50 text-xs leading-relaxed">
                 Escanea el QR{" "}
-                <span className="text-emerald-500 font-medium">«Verificar firma»</span> para auditar
+                <span className="font-medium text-emerald-500">«Verificar firma»</span> para auditar
                 la firma criptográfica y el registro en blockchain de este animal.
               </p>
             ) : (

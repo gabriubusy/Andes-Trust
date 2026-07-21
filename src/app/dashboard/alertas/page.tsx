@@ -160,7 +160,7 @@ export default function AlertasPage() {
           ).map(([label, value, Icon, color, bg]) => (
             <div
               key={label}
-              className="bg-card border-border flex items-center gap-3 rounded-2xl border p-4 transition-colors hover:border-foreground/20"
+              className="bg-card border-border hover:border-foreground/20 flex items-center gap-3 rounded-2xl border p-4 transition-colors"
             >
               <div
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${bg}`}
@@ -227,7 +227,7 @@ export default function AlertasPage() {
                 return (
                   <li
                     key={alert.id}
-                    className={`relative flex items-center gap-4 px-6 py-4 transition-colors hover:bg-muted/30 ${
+                    className={`hover:bg-muted/30 relative flex items-center gap-4 px-6 py-4 transition-colors ${
                       overdue && isActive
                         ? "before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-red-500"
                         : ""
@@ -256,7 +256,7 @@ export default function AlertasPage() {
                         </span>
                       </div>
                       <p className="text-foreground/50 mt-1 text-xs">
-                        <span className={overdue && isActive ? "text-red-500 font-medium" : ""}>
+                        <span className={overdue && isActive ? "font-medium text-red-500" : ""}>
                           {overdue && isActive ? "Vencida" : "Vence"}:{" "}
                           <strong className="font-semibold">{formatDate(alert.due_at)}</strong>
                         </span>
@@ -277,7 +277,7 @@ export default function AlertasPage() {
                           onClick={() => setStatus.mutate({ id: alert.id, status: "acknowledged" })}
                           disabled={setStatus.isPending}
                           title="Reconocer"
-                          className="border-border hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:text-emerald-600 text-foreground/70 inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-50"
+                          className="border-border text-foreground/70 inline-flex items-center justify-center rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-600 disabled:opacity-50"
                         >
                           {rowBusy ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />

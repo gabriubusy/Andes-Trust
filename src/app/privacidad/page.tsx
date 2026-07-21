@@ -164,7 +164,7 @@ export default function PrivacidadPage() {
             {highlights.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="bg-card/50 border-border rounded-2xl border p-5 backdrop-blur-sm transition-colors hover:border-secondary/40"
+                className="bg-card/50 border-border hover:border-secondary/40 rounded-2xl border p-5 backdrop-blur-sm transition-colors"
               >
                 <div className="bg-secondary/10 text-secondary mb-3 flex h-11 w-11 items-center justify-center rounded-xl">
                   <Icon className="h-5 w-5" />

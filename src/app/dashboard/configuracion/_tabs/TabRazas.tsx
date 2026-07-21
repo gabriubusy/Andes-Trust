@@ -8,6 +8,7 @@ import Pagination, { usePagination } from "@/components/Pagination";
 import { inputClass, labelClass, PURPOSE_LABELS, type Breed } from "./shared";
 import { DeleteDialog } from "./DeleteDialog";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const SPECIES_LABELS: Record<string, string> = {
   bovine: "Bovina",
@@ -119,7 +120,7 @@ function BreedModal({
                   key={opt.value}
                   type="button"
                   onClick={() => setPurpose(opt.value as typeof purpose)}
-                  className={`rounded-xl border py-2 text-xs font-medium transition-all text-left px-3 ${
+                  className={`rounded-xl border px-3 py-2 text-left text-xs font-medium transition-all ${
                     purpose === opt.value
                       ? "bg-secondary/20 text-secondary border-secondary/40"
                       : "border-border text-foreground/60 hover:border-secondary/30 hover:text-foreground"
@@ -176,7 +177,8 @@ export function TabRazas() {
   });
 
   useEffect(() => {
-    if (breedsQuery.error) toast.error("Error al cargar: " + (breedsQuery.error as Error).message);
+    if (breedsQuery.error)
+      toast.error(friendlyErrorMessage(breedsQuery.error, { fallback: "Error al cargar." }));
   }, [breedsQuery.error]);
 
   const upsertMutation = useMutation({
@@ -211,7 +213,7 @@ export function TabRazas() {
       setModal(false);
       toast.success("Guardado correctamente");
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const deleteMutation = useMutation({
@@ -224,7 +226,7 @@ export function TabRazas() {
       queryClient.invalidateQueries({ queryKey: ["breeds"] });
       setDeleteId(null);
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const breeds = breedsQuery.data ?? [];
@@ -292,7 +294,7 @@ export function TabRazas() {
         {breeds.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-foreground/50 border-border border-b text-xs uppercase tracking-wide">
+              <thead className="text-foreground/50 border-border border-b text-xs tracking-wide uppercase">
                 <tr>
                   <th className="px-5 py-3 text-left font-medium">Nombre</th>
                   <th className="px-5 py-3 text-left font-medium">Especie</th>
@@ -322,7 +324,7 @@ export function TabRazas() {
                           {SPECIES_LABELS[b.species] ?? b.species}
                         </span>
                       ) : (
-                        <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium">
+                        <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
                           Bovina
                         </span>
                       )}
@@ -342,8 +344,8 @@ export function TabRazas() {
                     </td>
 
                     {/* Actions */}
-                    <td className="pr-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="py-3.5 pr-5">
+                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           type="button"
                           onClick={() => setModal(b)}
@@ -355,7 +357,7 @@ export function TabRazas() {
                         <button
                           type="button"
                           onClick={() => setDeleteId(b.id)}
-                          className="text-foreground/50 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                          className="text-foreground/50 rounded-lg p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                           title="Eliminar"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

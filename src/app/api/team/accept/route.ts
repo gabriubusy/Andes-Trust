@@ -20,7 +20,7 @@ function getAdmin() {
     _admin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false } },
+      { auth: { persistSession: false } }
     );
   }
   return _admin;
@@ -39,7 +39,11 @@ export async function POST(req: Request) {
   }
 
   const sb = getAdmin();
-  const { data: profile } = await sb.from("profiles").select("id, email").eq("privy_did", privyDid).single();
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("id, email")
+    .eq("privy_did", privyDid)
+    .single();
   if (!profile?.email) return NextResponse.json({ error: "no_profile_email" }, { status: 400 });
 
   const body = (await req.json().catch(() => ({}))) as { token?: string };
@@ -59,13 +63,19 @@ export async function POST(req: Request) {
       await sb.from("farm_invitations").update({ status: "expired" }).eq("id", inv.id);
       continue;
     }
-    await sb.from("farm_members").upsert(
-      { farm_id: inv.farm_id, profile_id: profile.id, role: inv.role },
-      { onConflict: "farm_id,profile_id" },
-    );
+    await sb
+      .from("farm_members")
+      .upsert(
+        { farm_id: inv.farm_id, profile_id: profile.id, role: inv.role },
+        { onConflict: "farm_id,profile_id" }
+      );
     await sb
       .from("farm_invitations")
-      .update({ status: "accepted", accepted_by: profile.id, accepted_at: new Date().toISOString() })
+      .update({
+        status: "accepted",
+        accepted_by: profile.id,
+        accepted_at: new Date().toISOString(),
+      })
       .eq("id", inv.id);
     accepted++;
   }

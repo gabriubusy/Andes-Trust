@@ -12,6 +12,7 @@ import AnimalPhotoUploader from "@/components/AnimalPhotoUploader";
 import { uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const schema = z
   .object({
@@ -114,7 +115,7 @@ export default function TreatmentForm({
 
   useEffect(() => {
     if (catalogQuery.error)
-      toast.error("Error al cargar: " + (catalogQuery.error as Error).message);
+      toast.error(friendlyErrorMessage(catalogQuery.error, { fallback: "Error al cargar." }));
   }, [catalogQuery.error]);
 
   const watchTreatment = watch("treatment_id");
@@ -219,7 +220,7 @@ export default function TreatmentForm({
       });
       onDone?.();
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   return (
@@ -295,11 +296,11 @@ export default function TreatmentForm({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+      <div className="border-border bg-muted/30 rounded-lg border px-4 py-3">
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded accent-primary"
+            className="accent-primary mt-0.5 h-4 w-4 rounded"
             {...register("vet_approved")}
           />
           <span className="text-foreground text-sm">

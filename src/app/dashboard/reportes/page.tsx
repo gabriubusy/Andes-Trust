@@ -21,6 +21,7 @@ import AnchorReportButton from "@/components/AnchorReportButton";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type AnimalLite = { id: string; tag: string; name: string | null };
 type ReportRow = {
@@ -69,7 +70,7 @@ function AnimalSelector({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-foreground/55 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide">
+        <span className="text-foreground/55 flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
           Animales
           <span
             className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold normal-case tabular-nums ${
@@ -232,7 +233,7 @@ export default function ReportesPage() {
       downloadBlob(await res.blob(), `insai-${Date.now()}.pdf`);
     },
     onSuccess: () => reportsQuery.refetch(),
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const generateMilk = useMutation({
@@ -262,7 +263,7 @@ export default function ReportesPage() {
       const name = cd.match(/filename="(.+?)"/)?.[1] ?? `calidad-lactea-${Date.now()}.pdf`;
       downloadBlob(await res.blob(), name);
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
     onSuccess: () => toast.success("Reporte descargado"),
   });
 
@@ -291,14 +292,14 @@ export default function ReportesPage() {
         {/* ── Row 1: INSAI + History ── */}
         <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           {/* INSAI generator */}
-          <div className="bg-card border-border rounded-2xl border p-6 space-y-5 shadow-sm">
+          <div className="bg-card border-border space-y-5 rounded-2xl border p-6 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="from-primary/20 to-primary/5 border-primary/20 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border bg-linear-to-br">
                 <FileText className="h-5 w-5" />
               </div>
               <div>
                 <h3 className="text-foreground text-base font-bold">Reporte INSAI</h3>
-                <p className="text-foreground/50 text-xs mt-0.5">
+                <p className="text-foreground/50 mt-0.5 text-xs">
                   Inventario sanitario de animales para cumplimiento regulatorio.
                 </p>
               </div>
@@ -308,7 +309,7 @@ export default function ReportesPage() {
             <div className="border-border bg-muted/20 rounded-xl border p-4">
               <div className="mb-2.5 flex items-center gap-2">
                 <CalendarRange className="text-foreground/40 h-3.5 w-3.5" />
-                <span className="text-foreground/55 text-xs font-semibold uppercase tracking-wide">
+                <span className="text-foreground/55 text-xs font-semibold tracking-wide uppercase">
                   Rango de fechas <span className="text-foreground/35 normal-case">(opcional)</span>
                 </span>
               </div>
@@ -344,7 +345,7 @@ export default function ReportesPage() {
             <button
               onClick={() => generateInsai.mutate()}
               disabled={generateInsai.isPending}
-              className="from-primary to-primary/85 hover:to-primary inline-flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:shadow-primary/40 disabled:opacity-50 disabled:shadow-none"
+              className="from-primary to-primary/85 hover:to-primary shadow-primary/25 hover:shadow-primary/40 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all disabled:opacity-50 disabled:shadow-none"
             >
               {generateInsai.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -383,7 +384,7 @@ export default function ReportesPage() {
             )}
 
             {!reportsQuery.isLoading && (reportsQuery.data?.length ?? 0) === 0 && (
-              <div className="text-foreground/40 flex h-32 items-center justify-center rounded-xl border border-dashed border-border text-sm">
+              <div className="text-foreground/40 border-border flex h-32 items-center justify-center rounded-xl border border-dashed text-sm">
                 Sin reportes generados
               </div>
             )}
@@ -395,7 +396,7 @@ export default function ReportesPage() {
                   className="bg-muted/20 border-border hover:border-primary/30 hover:bg-muted/40 group rounded-xl border p-3 transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
                       <div className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
                         <FileText className="h-3.5 w-3.5" />
                       </div>
@@ -476,14 +477,14 @@ export default function ReportesPage() {
         </div>
 
         {/* ── Row 2: Milk Quality ── */}
-        <div className="bg-card border-border rounded-2xl border p-6 space-y-5 shadow-sm">
+        <div className="bg-card border-border space-y-5 rounded-2xl border p-6 shadow-sm">
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-linear-to-br from-blue-500/20 to-blue-500/5 text-blue-400">
               <Droplets className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-foreground text-base font-bold">Reporte de Calidad Láctea</h3>
-              <p className="text-foreground/50 text-xs mt-0.5">
+              <p className="text-foreground/50 mt-0.5 text-xs">
                 Análisis de producción, grasa %, proteína % y SCC por período. Clasifica según
                 COVENIN 903.
               </p>
@@ -496,7 +497,7 @@ export default function ReportesPage() {
               <div className="border-border bg-muted/20 rounded-xl border p-4">
                 <div className="mb-2.5 flex items-center gap-2">
                   <CalendarRange className="text-foreground/40 h-3.5 w-3.5" />
-                  <span className="text-foreground/55 text-xs font-semibold uppercase tracking-wide">
+                  <span className="text-foreground/55 text-xs font-semibold tracking-wide uppercase">
                     Rango de fechas{" "}
                     <span className="text-foreground/35 normal-case">(opcional)</span>
                   </span>

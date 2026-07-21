@@ -21,6 +21,7 @@ import CertificateForm from "@/components/CertificateForm";
 import SignAnchorButton from "@/components/SignAnchorButton";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const CERT_TYPE_LABELS: Record<string, string> = {
   origin: "Origen",
@@ -141,7 +142,8 @@ export default function CertificadosPage() {
   });
 
   useEffect(() => {
-    if (certsQuery.error) toast.error("Error al cargar: " + (certsQuery.error as Error).message);
+    if (certsQuery.error)
+      toast.error(friendlyErrorMessage(certsQuery.error, { fallback: "Error al cargar." }));
   }, [certsQuery.error]);
 
   const certs = certsQuery.data ?? [];
@@ -244,7 +246,7 @@ export default function CertificadosPage() {
 
       <div className="bg-card border-border overflow-hidden rounded-2xl border">
         {/* Toolbar */}
-        <div className="border-border border-b px-5 py-4 space-y-3">
+        <div className="border-border space-y-3 border-b px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-foreground text-base font-bold">Listado</h2>
@@ -262,7 +264,7 @@ export default function CertificadosPage() {
                 placeholder="Buscar por tipo, emisor o animal…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-muted/50 border-border text-foreground placeholder:text-foreground/30 focus:border-primary w-full rounded-xl border py-2 pr-3 pl-8 text-sm outline-none transition-colors"
+                className="bg-muted/50 border-border text-foreground placeholder:text-foreground/30 focus:border-primary w-full rounded-xl border py-2 pr-3 pl-8 text-sm transition-colors outline-none"
               />
             </div>
           </div>
@@ -339,7 +341,7 @@ export default function CertificadosPage() {
         {/* No results */}
         {!certsQuery.isLoading && certs.length > 0 && filtered.length === 0 && (
           <div className="px-5 py-12 text-center">
-            <Search className="text-foreground/20 mx-auto h-8 w-8 mb-3" />
+            <Search className="text-foreground/20 mx-auto mb-3 h-8 w-8" />
             <p className="text-foreground/60 text-sm">
               No se encontraron certificados con ese filtro.
             </p>
@@ -373,7 +375,7 @@ export default function CertificadosPage() {
         {filtered.length > 0 && (
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
-              <thead className="text-foreground/50 border-border border-b text-xs uppercase tracking-wide">
+              <thead className="text-foreground/50 border-border border-b text-xs tracking-wide uppercase">
                 <tr>
                   <th className="px-5 py-3 text-left font-medium">Tipo</th>
                   <th className="px-5 py-3 text-left font-medium">Animal</th>
@@ -418,10 +420,10 @@ export default function CertificadosPage() {
                       <td className="text-foreground/70 px-5 py-3.5 text-sm">
                         {c.issuer ?? <span className="text-foreground/30 italic">—</span>}
                       </td>
-                      <td className="text-foreground/60 px-5 py-3.5 tabular-nums text-sm">
+                      <td className="text-foreground/60 px-5 py-3.5 text-sm tabular-nums">
                         {fmt(c.issued_at)}
                       </td>
-                      <td className="px-5 py-3.5 tabular-nums text-sm">
+                      <td className="px-5 py-3.5 text-sm tabular-nums">
                         <span
                           className={
                             st === "expired"
@@ -445,7 +447,7 @@ export default function CertificadosPage() {
                           onDone={() => anchorsQuery.refetch()}
                         />
                       </td>
-                      <td className="pr-5 py-3.5 text-right">
+                      <td className="py-3.5 pr-5 text-right">
                         <Link
                           href={`/dashboard/certificados/${c.id}`}
                           className="text-primary border-primary/20 hover:bg-primary/10 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium opacity-0 transition-all group-hover:opacity-100"

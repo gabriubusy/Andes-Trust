@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const schema = z.object({
   weight_kg: z
@@ -76,7 +77,7 @@ export default function WeighingForm({ animalId, farmId, profileId, onDone }: Pr
       queryClient.invalidateQueries({ queryKey: ["animals"] });
       onDone?.();
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   return (

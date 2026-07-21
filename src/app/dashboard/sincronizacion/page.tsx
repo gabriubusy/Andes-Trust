@@ -92,7 +92,7 @@ export default function SincronizacionPage() {
 
         {items.length === 0 ? (
           <div className="bg-card border-border flex flex-col items-center justify-center gap-3 rounded-2xl border py-16">
-            <CheckCircle className="text-emerald-500 h-10 w-10" />
+            <CheckCircle className="h-10 w-10 text-emerald-500" />
             <p className="text-foreground/50 text-sm">No hay mutaciones pendientes</p>
           </div>
         ) : (
@@ -118,7 +118,7 @@ export default function SincronizacionPage() {
                         </span>
                       </div>
                       {it.last_error && (
-                        <p className="text-red-500 mt-1 text-xs">{it.last_error}</p>
+                        <p className="mt-1 text-xs text-red-500">{it.last_error}</p>
                       )}
                       <pre className="text-foreground/50 mt-1 max-h-24 overflow-y-auto text-[10px]">
                         {JSON.stringify(it.payload, null, 2)}

@@ -91,7 +91,7 @@ export default function ConfiguracionPage() {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* ── Sidebar nav ── */}
         <nav className="shrink-0 lg:w-56">
-          <p className="text-foreground/40 mb-2 px-1 text-[10px] font-semibold uppercase tracking-widest">
+          <p className="text-foreground/40 mb-2 px-1 text-[10px] font-semibold tracking-widest uppercase">
             Secciones
           </p>
           <ul className="space-y-1">
@@ -105,7 +105,7 @@ export default function ConfiguracionPage() {
                     className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all ${
                       isActive
                         ? `${t.activeBg} border`
-                        : "border-transparent hover:bg-muted hover:border-border"
+                        : "hover:bg-muted hover:border-border border-transparent"
                     }`}
                   >
                     <div
@@ -121,7 +121,7 @@ export default function ConfiguracionPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div
-                        className={`text-sm font-semibold leading-tight ${
+                        className={`text-sm leading-tight font-semibold ${
                           isActive ? t.color : "text-foreground/70 group-hover:text-foreground"
                         }`}
                       >

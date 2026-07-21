@@ -8,6 +8,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { generateLabelsPdf } from "@/lib/labels/generate-pdf";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type AnimalRow = {
   id: string;
@@ -98,7 +99,7 @@ export default function EtiquetasPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      setError((e as Error).message);
+      setError(friendlyErrorMessage(e));
     } finally {
       setGenerating(false);
     }

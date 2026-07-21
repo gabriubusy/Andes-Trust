@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Loader2, Dna } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type Breed = {
   id: string;
@@ -41,7 +42,9 @@ function BreedModal({
 }) {
   const [name, setName] = useState(breed?.name ?? "");
   const [species, setSpecies] = useState(breed?.species ?? "bovine");
-  const [purpose, setPurpose] = useState<"dairy" | "beef" | "dual" | "breeding" | "">(breed?.purpose ?? "");
+  const [purpose, setPurpose] = useState<"dairy" | "beef" | "dual" | "breeding" | "">(
+    breed?.purpose ?? ""
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -78,7 +81,9 @@ function BreedModal({
             <select
               className={inputClass}
               value={purpose}
-              onChange={(e) => setPurpose(e.target.value as "dairy" | "beef" | "dual" | "breeding" | "")}
+              onChange={(e) =>
+                setPurpose(e.target.value as "dairy" | "beef" | "dual" | "breeding" | "")
+              }
             >
               <option value="">Sin especificar</option>
               <option value="dairy">Lechero</option>
@@ -200,7 +205,7 @@ export default function RazasPage() {
 
         {breedsQuery.error && (
           <div className="text-accent px-5 py-4 text-sm">
-            Error al cargar: {(breedsQuery.error as Error).message}
+            Error al cargar: {friendlyErrorMessage(breedsQuery.error)}
           </div>
         )}
 

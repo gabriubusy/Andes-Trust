@@ -32,6 +32,7 @@ import SignAnchorButton from "@/components/SignAnchorButton";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { getSignedPhotoUrl, uploadAnimalPhoto } from "@/lib/supabase/storage";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type AnimalUpdate = {
   id: string;
@@ -63,7 +64,7 @@ type Tab = "info" | "pesajes" | "vacunas" | "tratamientos" | "leche" | "movimien
 
 function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { supabase, profileId } = useSupabase();
+  const { supabase, profileId, captureMode } = useSupabase();
   const farmQuery = useCurrentFarm();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -408,10 +409,10 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   if (!supabase || animalQuery.isPending || animalQuery.isLoading) {
     return (
       <DashboardShell title="">
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr] animate-pulse">
+        <div className="grid animate-pulse gap-6 lg:grid-cols-[280px_1fr]">
           {/* Sidebar skeleton */}
           <div className="space-y-4">
-            <div className="bg-card border-border rounded-2xl border overflow-hidden">
+            <div className="bg-card border-border overflow-hidden rounded-2xl border">
               <div className="bg-muted/40 h-64 w-full" />
               <div className="space-y-3 p-4">
                 <div className="bg-muted/60 h-4 w-20 rounded-full" />
@@ -429,7 +430,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               ))}
             </div>
             {/* Card skeleton */}
-            <div className="bg-card border-border rounded-2xl border p-6 space-y-4">
+            <div className="bg-card border-border space-y-4 rounded-2xl border p-6">
               <div className="bg-muted/60 h-4 w-32 rounded-full" />
               <div className="grid gap-4 md:grid-cols-2">
                 {[120, 96, 140, 80, 110, 100, 130, 90].map((w, i) => (
@@ -448,9 +449,18 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
   const animal = animalQuery.data;
   if (!animal) {
+    // Sin conexión el dato lo sirve el service worker desde su caché. Si esta
+    // ficha nunca se abrió con señal, no hay nada que servir — y decir "no
+    // existe" sería mentira: el animal está, es el dispositivo el que no lo
+    // tiene. La distinción importa porque la acción del usuario es distinta.
+    const offlineMiss = captureMode || !!animalQuery.error;
     return (
-      <DashboardShell title="No encontrado">
-        <p className="text-foreground/70 text-sm">El animal no existe o no tienes acceso.</p>
+      <DashboardShell title={offlineMiss ? "No disponible sin conexión" : "No encontrado"}>
+        <p className="text-foreground/70 text-sm">
+          {offlineMiss
+            ? "Esta ficha no está guardada en el dispositivo. Ábrela una vez con conexión para poder consultarla sin señal."
+            : "El animal no existe o no tienes acceso."}
+        </p>
         <Link
           href="/dashboard/animales"
           className="text-primary text-sm font-medium hover:underline"
@@ -490,7 +500,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               )}
               {/* Status badge */}
               <span
-                className={`absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide backdrop-blur-sm ${
+                className={`absolute top-3 right-3 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase backdrop-blur-sm ${
                   animal.status === "active"
                     ? "bg-emerald-500/80 text-white"
                     : animal.status === "sold"
@@ -503,7 +513,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
             </div>
 
             {/* Info del animal */}
-            <div className="p-4 space-y-3">
+            <div className="space-y-3 p-4">
               <div>
                 <div className="text-foreground font-mono text-base font-bold">{animal.tag}</div>
                 {animal.name && <div className="text-foreground/60 text-sm">{animal.name}</div>}
@@ -540,7 +550,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
               {/* Peso */}
               {animal.current_weight_kg && (
-                <div className="border-border/50 flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2">
+                <div className="border-border/50 bg-muted/30 flex items-center gap-2 rounded-xl border px-3 py-2">
                   <TrendingUp className="text-primary h-3.5 w-3.5 shrink-0" />
                   <div>
                     <div className="text-foreground text-sm font-bold">
@@ -553,7 +563,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
               {/* Fecha de nacimiento */}
               {animal.birth_date && (
-                <div className="border-border/50 flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2">
+                <div className="border-border/50 bg-muted/30 flex items-center gap-2 rounded-xl border px-3 py-2">
                   <Calendar className="text-foreground/40 h-3.5 w-3.5 shrink-0" />
                   <div>
                     <div className="text-foreground text-sm font-medium">
@@ -573,7 +583,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
           <button
             type="button"
             onClick={() => setDelModal(true)}
-            className="border-red-500/30 text-red-500 hover:bg-red-500/10 inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/30 px-4 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10"
           >
             <Trash2 className="h-4 w-4" /> Eliminar animal
           </button>
@@ -609,7 +619,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               </p>
             </div>
             <span
-              className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+              className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
                 animal.status === "active"
                   ? "bg-emerald-500/15 text-emerald-600"
                   : animal.status === "sold"
@@ -629,7 +639,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 onClick={() => setTab(t.id)}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
                   tab === t.id
-                    ? "bg-card text-primary shadow-sm border border-border"
+                    ? "bg-card text-primary border-border border shadow-sm"
                     : "text-foreground/50 hover:text-foreground hover:bg-muted/60"
                 }`}
               >
@@ -639,8 +649,22 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
             ))}
           </div>
 
+          {/* Las pestañas de captura se renderizan sólo con `farmId && profileId`.
+              Sin eso no aparecía NADA —ni botón ni aviso—, que es el síntoma de
+              "no me deja registrar". Mejor explicar por qué. */}
+          {tab !== "info" && tab !== "qr" && (!farmId || !profileId) && (
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                <span className="font-semibold">No se pudo determinar tu finca.</span>{" "}
+                {captureMode
+                  ? "Sin conexión sólo se conocen los datos guardados en el dispositivo. Abre el panel una vez con señal y podrás volver a registrar aquí sin conexión."
+                  : "Reintenta en unos segundos; si persiste, vuelve a entrar al panel."}
+              </p>
+            </div>
+          )}
+
           {tab === "info" && (
-            <div className="bg-card border-border rounded-2xl border overflow-hidden">
+            <div className="bg-card border-border overflow-hidden rounded-2xl border">
               <div className="border-border flex items-center justify-between border-b px-6 py-4">
                 <div className="flex items-center gap-2">
                   <Beef className="text-primary h-4 w-4" />
@@ -870,7 +894,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                   </div>
                   {updateMutation.error && (
                     <p className="text-accent text-xs md:col-span-2">
-                      {(updateMutation.error as Error).message}
+                      {friendlyErrorMessage(updateMutation.error)}
                     </p>
                   )}
                 </div>
@@ -1329,7 +1353,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
             </div>
           )}
           {tab === "qr" && !tokenQuery.data && !tokenQuery.isLoading && (
-            <div className="bg-card border-border rounded-2xl border p-6 text-center text-sm text-foreground/60">
+            <div className="bg-card border-border text-foreground/60 rounded-2xl border p-6 text-center text-sm">
               No se encontró un token público para este animal.
             </div>
           )}
@@ -1355,7 +1379,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 vacunas, tratamientos y demás registros asociados. Esta acción no se puede deshacer.
               </p>
               {deleteMutation.error && (
-                <p className="text-accent text-xs">{(deleteMutation.error as Error).message}</p>
+                <p className="text-accent text-xs">{friendlyErrorMessage(deleteMutation.error)}</p>
               )}
               <div className="flex justify-end gap-2">
                 <button
@@ -1391,7 +1415,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-muted/30 border-border/40 rounded-xl border px-3 py-2.5">
-      <dt className="text-foreground/45 text-[10px] font-semibold uppercase tracking-wide">
+      <dt className="text-foreground/45 text-[10px] font-semibold tracking-wide uppercase">
         {label}
       </dt>
       <dd className="text-foreground mt-0.5 text-sm font-semibold capitalize">{value}</dd>
@@ -1522,7 +1546,7 @@ function MovementForm({
 
 function MovementsList({ movements, isLoading }: { movements: MovementRow[]; isLoading: boolean }) {
   return (
-    <div className="bg-card border-border rounded-2xl border overflow-hidden">
+    <div className="bg-card border-border overflow-hidden rounded-2xl border">
       <div className="border-border flex items-center justify-between border-b px-5 py-4">
         <h3 className="text-foreground text-sm font-semibold">Historial de traslados</h3>
         <span
@@ -1534,8 +1558,8 @@ function MovementsList({ movements, isLoading }: { movements: MovementRow[]; isL
       {isLoading && (
         <div className="divide-border divide-y">
           {[1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
-              <div className="bg-muted/60 h-10 w-10 rounded-xl shrink-0" />
+            <div key={i} className="flex animate-pulse items-center gap-4 px-5 py-4">
+              <div className="bg-muted/60 h-10 w-10 shrink-0 rounded-xl" />
               <div className="flex-1 space-y-2.5">
                 <div className="bg-muted/60 h-3 w-1/3 rounded-full" />
                 <div className="bg-muted/40 h-2.5 w-1/2 rounded-full" />
@@ -1561,11 +1585,11 @@ function MovementsList({ movements, isLoading }: { movements: MovementRow[]; isL
                 key={m.id}
                 className="hover:bg-muted/20 flex items-center gap-4 px-5 py-3.5 transition-colors"
               >
-                <div className="bg-rose-500/10 text-rose-500 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
                   <MapPin className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-foreground text-sm font-medium flex items-center gap-1.5 flex-wrap">
+                  <div className="text-foreground flex flex-wrap items-center gap-1.5 text-sm font-medium">
                     {p?.location_from && (
                       <span className="text-foreground/50">{p.location_from}</span>
                     )}
@@ -1597,7 +1621,7 @@ type WeighingRow = { weight_kg: number; measured_at: string };
 function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: boolean }) {
   if (isLoading)
     return (
-      <div className="bg-card border-border rounded-2xl border p-6 animate-pulse">
+      <div className="bg-card border-border animate-pulse rounded-2xl border p-6">
         <div className="bg-muted/40 mb-4 h-4 w-36 rounded" />
         <div className="bg-muted/20 h-32 rounded-xl" />
       </div>
@@ -1650,7 +1674,7 @@ function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: bool
     ` L${pts[pts.length - 1].x},${H - PB} Z`;
 
   return (
-    <div className="bg-card border-border rounded-2xl border p-6 space-y-4">
+    <div className="bg-card border-border space-y-4 rounded-2xl border p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-foreground text-base font-bold">Tendencia de peso</h3>
@@ -1673,7 +1697,7 @@ function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: bool
           <div key={k.label} className="bg-muted/40 rounded-xl px-3 py-2.5">
             <div className="text-foreground/50 text-xs">{k.label}</div>
             <div
-              className={`text-sm font-bold mt-0.5 ${k.highlight ? "text-primary" : "text-foreground"}`}
+              className={`mt-0.5 text-sm font-bold ${k.highlight ? "text-primary" : "text-foreground"}`}
             >
               {k.value}
             </div>
@@ -1682,7 +1706,7 @@ function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: bool
       </div>
 
       {/* SVG */}
-      <div className="rounded-xl overflow-hidden bg-muted/20 px-2 pt-2 pb-0">
+      <div className="bg-muted/20 overflow-hidden rounded-xl px-2 pt-2 pb-0">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Gráfica de peso">
           <defs>
             <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1707,7 +1731,7 @@ function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: bool
           ))}
         </svg>
         {/* X axis labels */}
-        <div className="flex justify-between px-2 pb-2 mt-1">
+        <div className="mt-1 flex justify-between px-2 pb-2">
           <span className="text-foreground/40 text-[10px]">
             {new Date(first.measured_at).toLocaleDateString("es-VE", {
               day: "2-digit",
@@ -1748,7 +1772,7 @@ function RecordList({
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className="bg-card border-border rounded-2xl border overflow-hidden">
+    <div className="bg-card border-border overflow-hidden rounded-2xl border">
       <div className="border-border flex items-center justify-between border-b px-5 py-4">
         <div className="flex items-center gap-2">
           {TitleIcon && <TitleIcon className={`h-4 w-4 ${iconColor}`} />}
@@ -1764,13 +1788,13 @@ function RecordList({
       {isLoading && (
         <div className="divide-border divide-y">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
-              <div className="bg-muted/60 h-10 w-10 rounded-xl shrink-0" />
+            <div key={i} className="flex animate-pulse items-center gap-4 px-5 py-4">
+              <div className="bg-muted/60 h-10 w-10 shrink-0 rounded-xl" />
               <div className="flex-1 space-y-2.5">
                 <div className="bg-muted/60 h-3 w-1/3 rounded-full" />
                 <div className="bg-muted/40 h-2.5 w-1/2 rounded-full" />
               </div>
-              <div className="bg-muted/40 h-6 w-14 rounded-lg shrink-0" />
+              <div className="bg-muted/40 h-6 w-14 shrink-0 rounded-lg" />
             </div>
           ))}
         </div>
@@ -1793,7 +1817,7 @@ function RecordList({
             return (
               <li key={r.id} className="divide-border divide-y">
                 <div
-                  className={`flex items-center gap-4 px-5 py-3.5 transition-colors ${hasDetails ? "cursor-pointer hover:bg-muted/20" : ""}`}
+                  className={`flex items-center gap-4 px-5 py-3.5 transition-colors ${hasDetails ? "hover:bg-muted/20 cursor-pointer" : ""}`}
                   onClick={() => hasDetails && setExpandedId(isExpanded ? null : r.id)}
                 >
                   <div className="relative h-10 w-10 shrink-0">
@@ -1809,7 +1833,7 @@ function RecordList({
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-foreground text-sm font-medium">{r.primary}</span>
                       {r.badge && (
                         <span
@@ -1843,10 +1867,10 @@ function RecordList({
                           key={d.label}
                           className="bg-background border-border/50 rounded-xl border px-3 py-2.5"
                         >
-                          <dt className="text-foreground/40 text-[10px] font-semibold uppercase tracking-wider">
+                          <dt className="text-foreground/40 text-[10px] font-semibold tracking-wider uppercase">
                             {d.label}
                           </dt>
-                          <dd className="text-foreground mt-0.5 break-all text-xs font-medium">
+                          <dd className="text-foreground mt-0.5 text-xs font-medium break-all">
                             {d.value}
                           </dd>
                         </div>

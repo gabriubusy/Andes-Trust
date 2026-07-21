@@ -12,6 +12,7 @@ import AnimalPhotoUploader from "@/components/AnimalPhotoUploader";
 import { uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const schema = z
   .object({
@@ -131,7 +132,7 @@ export default function VaccinationForm({
 
   useEffect(() => {
     if (vaccinesQuery.error)
-      toast.error("Error al cargar: " + (vaccinesQuery.error as Error).message);
+      toast.error(friendlyErrorMessage(vaccinesQuery.error, { fallback: "Error al cargar." }));
   }, [vaccinesQuery.error]);
 
   const watchVaccine = watch("vaccine_id");
@@ -246,7 +247,7 @@ export default function VaccinationForm({
       });
       onDone?.();
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   return (
@@ -336,11 +337,11 @@ export default function VaccinationForm({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+      <div className="border-border bg-muted/30 rounded-lg border px-4 py-3">
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
-            className="mt-0.5 h-4 w-4 rounded accent-primary"
+            className="accent-primary mt-0.5 h-4 w-4 rounded"
             {...register("vet_approved")}
           />
           <span className="text-foreground text-sm">

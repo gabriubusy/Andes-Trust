@@ -33,6 +33,7 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -255,7 +256,7 @@ function PurchaseModal({
         onDone();
       }
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   async function scanQR() {
@@ -319,7 +320,7 @@ function PurchaseModal({
       setCryptoTx(json.tx as string);
       toast.success("Pago enviado en blockchain");
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(friendlyErrorMessage(err));
     } finally {
       setCryptoPaying(false);
     }
@@ -331,10 +332,10 @@ function PurchaseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="bg-card border-border w-full max-w-2xl rounded-2xl border p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-card border-border max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-amber-500/10 flex h-8 w-8 items-center justify-center rounded-xl">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10">
               <ShoppingCart className="h-4 w-4 text-amber-500" />
             </div>
             <h2 className="text-foreground text-base font-bold">Registrar compra</h2>
@@ -427,7 +428,7 @@ function PurchaseModal({
                   type="button"
                   onClick={scanQR}
                   title="Escanear QR"
-                  className="border-border bg-background hover:bg-muted flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm text-amber-500 whitespace-nowrap"
+                  className="border-border bg-background hover:bg-muted flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm whitespace-nowrap text-amber-500"
                 >
                   <QrCode className="h-4 w-4" />
                   <span className="hidden sm:inline">Leer QR</span>
@@ -438,25 +439,25 @@ function PurchaseModal({
 
           {/* Items */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <label className={labelCls + " mb-0"}>Animales / ítems comprados</label>
               <button
                 type="button"
                 onClick={addItem}
-                className="text-amber-500 hover:text-amber-400 text-xs font-medium flex items-center gap-1"
+                className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
               >
                 <Plus className="h-3 w-3" /> Agregar ítem
               </button>
             </div>
             <div className="space-y-2">
               {items.map((item, i) => (
-                <div key={i} className="border-border bg-muted/20 rounded-xl border p-3 space-y-2">
+                <div key={i} className="border-border bg-muted/20 space-y-2 rounded-xl border p-3">
                   <div className="flex justify-end">
                     {items.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeItem(i)}
-                        className="text-foreground/30 hover:text-red-400 p-1 rounded"
+                        className="text-foreground/30 rounded p-1 hover:text-red-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -485,7 +486,7 @@ function PurchaseModal({
                     <div>
                       <label className={labelCls}>Precio / unidad</label>
                       <div className="relative">
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30 text-sm">
+                        <span className="text-foreground/30 pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm">
                           $
                         </span>
                         <input
@@ -506,9 +507,9 @@ function PurchaseModal({
           </div>
 
           {/* Total auto-calculated */}
-          <div className="bg-muted/30 border-border rounded-xl border px-4 py-3 flex items-center justify-between">
+          <div className="bg-muted/30 border-border flex items-center justify-between rounded-xl border px-4 py-3">
             <span className="text-foreground/60 text-sm">Monto total calculado</span>
-            <span className="text-foreground font-bold text-lg">
+            <span className="text-foreground text-lg font-bold">
               ${totalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} {currency}
             </span>
           </div>
@@ -522,17 +523,17 @@ function PurchaseModal({
 
           {/* Conditions */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <div>
                 <label className={labelCls + " mb-0"}>Condiciones de pago</label>
-                <p className="text-foreground/40 text-xs mt-0.5">
+                <p className="text-foreground/40 mt-0.5 text-xs">
                   Si se cumplen, se descuentan del monto al pagar
                 </p>
               </div>
               <button
                 type="button"
                 onClick={addCondition}
-                className="text-amber-500 hover:text-amber-400 text-xs font-medium flex items-center gap-1"
+                className="flex items-center gap-1 text-xs font-medium text-amber-500 hover:text-amber-400"
               >
                 <Plus className="h-3 w-3" /> Agregar
               </button>
@@ -542,7 +543,7 @@ function PurchaseModal({
                 {conditions.map((c) => (
                   <div
                     key={c.id}
-                    className="border-border bg-muted/20 rounded-xl border p-3 grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center"
+                    className="border-border bg-muted/20 grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 rounded-xl border p-3"
                   >
                     <input
                       className={inputCls}
@@ -565,7 +566,7 @@ function PurchaseModal({
                       <option value="percent">% Porcentaje</option>
                     </select>
                     <div className="relative w-24">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30 text-sm">
+                      <span className="text-foreground/30 pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm">
                         {c.reduction_type === "percent" ? "%" : "$"}
                       </span>
                       <input
@@ -584,7 +585,7 @@ function PurchaseModal({
                     <button
                       type="button"
                       onClick={() => removeCondition(c.id)}
-                      className="text-foreground/30 hover:text-red-400 p-1 rounded"
+                      className="text-foreground/30 rounded p-1 hover:text-red-400"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -609,19 +610,19 @@ function PurchaseModal({
 
         {/* Crypto payment panel — shown after purchase is saved */}
         {savedPurchaseId && paymentMethod === "crypto" && (
-          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+          <div className="mt-4 space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
             {cryptoTx ? (
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <div>
                   <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                     Pago enviado en blockchain
                   </p>
-                  <p className="text-xs text-foreground/50 break-all mt-0.5">TX: {cryptoTx}</p>
+                  <p className="text-foreground/50 mt-0.5 text-xs break-all">TX: {cryptoTx}</p>
                   <button
                     type="button"
                     onClick={onDone}
-                    className="mt-3 bg-emerald-500 hover:bg-emerald-500/90 text-white rounded-xl px-4 py-2 text-sm font-medium"
+                    className="mt-3 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500/90"
                   >
                     Cerrar
                   </button>
@@ -631,9 +632,9 @@ function PurchaseModal({
               <>
                 <div className="flex items-center gap-2">
                   <Wallet className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm font-medium text-foreground">Pago crypto pendiente</span>
+                  <span className="text-foreground text-sm font-medium">Pago crypto pendiente</span>
                 </div>
-                <p className="text-xs text-foreground/50">
+                <p className="text-foreground/50 text-xs">
                   La compra fue guardada. Confirma la dirección y ejecuta el pago en USDC (Polygon
                   Amoy).
                 </p>
@@ -659,8 +660,8 @@ function PurchaseModal({
                 </div>
                 {/* Conditions checklist before paying */}
                 {conditions.filter((c) => c.description.trim()).length > 0 && (
-                  <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
-                    <p className="text-xs font-medium text-foreground/60">
+                  <div className="border-border bg-muted/20 space-y-2 rounded-xl border p-3">
+                    <p className="text-foreground/60 text-xs font-medium">
                       Marca las condiciones que se cumplieron (se descontarán del pago):
                     </p>
                     {conditions
@@ -674,7 +675,7 @@ function PurchaseModal({
                         return (
                           <label
                             key={c.id}
-                            className="flex items-center gap-3 cursor-pointer group"
+                            className="group flex cursor-pointer items-center gap-3"
                           >
                             <input
                               type="checkbox"
@@ -683,20 +684,20 @@ function PurchaseModal({
                               className="h-4 w-4 rounded accent-amber-500"
                             />
                             <span
-                              className={`text-sm flex-1 ${triggered ? "line-through text-foreground/40" : "text-foreground"}`}
+                              className={`flex-1 text-sm ${triggered ? "text-foreground/40 line-through" : "text-foreground"}`}
                             >
                               {c.description}
                             </span>
-                            <span className="text-xs text-red-600 dark:text-red-400 shrink-0">
+                            <span className="shrink-0 text-xs text-red-600 dark:text-red-400">
                               −${discount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                             </span>
                           </label>
                         );
                       })}
                     {conditionDiscount > 0 && (
-                      <div className="border-t border-border pt-2 flex justify-between text-xs">
+                      <div className="border-border flex justify-between border-t pt-2 text-xs">
                         <span className="text-foreground/50">Descuento aplicado</span>
-                        <span className="text-red-600 dark:text-red-400 font-medium">
+                        <span className="font-medium text-red-600 dark:text-red-400">
                           −$
                           {conditionDiscount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                         </span>
@@ -706,14 +707,14 @@ function PurchaseModal({
                 )}
 
                 {/* Final amount summary */}
-                <div className="bg-muted/30 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div className="bg-muted/30 flex items-center justify-between rounded-xl px-4 py-3">
                   <span className="text-foreground/60 text-sm">Monto a pagar</span>
-                  <span className="text-foreground font-bold text-lg">
+                  <span className="text-foreground text-lg font-bold">
                     ${finalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USDC
                   </span>
                 </div>
 
-                <div className="flex gap-2 justify-end">
+                <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={onDone}
@@ -725,7 +726,7 @@ function PurchaseModal({
                     type="button"
                     disabled={!cryptoAddress || cryptoPaying}
                     onClick={payCrypto}
-                    className="bg-amber-500 hover:bg-amber-500/90 text-white inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2 text-sm font-medium text-white hover:bg-amber-500/90 disabled:opacity-50"
                   >
                     {cryptoPaying ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -754,7 +755,7 @@ function PurchaseModal({
               type="button"
               disabled={!sellerName.trim() || mutation.isPending}
               onClick={() => mutation.mutate()}
-              className="bg-amber-500 hover:bg-amber-500/90 text-white inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2 text-sm font-medium text-white hover:bg-amber-500/90 disabled:opacity-50"
             >
               {mutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -866,7 +867,7 @@ function CryptoPayModal({
       setCryptoTx(json.tx as string);
       toast.success("Pago enviado en blockchain");
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(friendlyErrorMessage(err));
     } finally {
       setCryptoPaying(false);
     }
@@ -878,10 +879,10 @@ function CryptoPayModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="bg-card border-border w-full max-w-lg rounded-2xl border p-6 shadow-2xl space-y-4">
+      <div className="bg-card border-border w-full max-w-lg space-y-4 rounded-2xl border p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-amber-500/10 flex h-8 w-8 items-center justify-center rounded-xl">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10">
               <Wallet className="h-4 w-4 text-amber-500" />
             </div>
             <div>
@@ -899,15 +900,15 @@ function CryptoPayModal({
 
         {cryptoTx ? (
           <div className="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <div>
               <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                 Pago enviado en blockchain
               </p>
-              <p className="text-xs text-foreground/50 break-all mt-1">TX: {cryptoTx}</p>
+              <p className="text-foreground/50 mt-1 text-xs break-all">TX: {cryptoTx}</p>
               <button
                 onClick={onDone}
-                className="mt-3 bg-emerald-500 hover:bg-emerald-500/90 text-white rounded-xl px-4 py-2 text-sm font-medium"
+                className="mt-3 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500/90"
               >
                 Cerrar
               </button>
@@ -917,8 +918,8 @@ function CryptoPayModal({
           <>
             {/* Conditions checklist */}
             {conditions.filter((c) => c.description.trim()).length > 0 && (
-              <div className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
-                <p className="text-xs font-medium text-foreground/60">
+              <div className="border-border bg-muted/20 space-y-2 rounded-xl border p-3">
+                <p className="text-foreground/60 text-xs font-medium">
                   Marca las condiciones que se cumplieron:
                 </p>
                 {conditions
@@ -930,7 +931,7 @@ function CryptoPayModal({
                         ? c.reduction_value
                         : (purchase.total_amount * c.reduction_value) / 100;
                     return (
-                      <label key={c.id} className="flex items-center gap-3 cursor-pointer">
+                      <label key={c.id} className="flex cursor-pointer items-center gap-3">
                         <input
                           type="checkbox"
                           checked={triggered}
@@ -938,20 +939,20 @@ function CryptoPayModal({
                           className="h-4 w-4 rounded accent-amber-500"
                         />
                         <span
-                          className={`text-sm flex-1 ${triggered ? "line-through text-foreground/40" : "text-foreground"}`}
+                          className={`flex-1 text-sm ${triggered ? "text-foreground/40 line-through" : "text-foreground"}`}
                         >
                           {c.description}
                         </span>
-                        <span className="text-xs text-red-600 dark:text-red-400 shrink-0">
+                        <span className="shrink-0 text-xs text-red-600 dark:text-red-400">
                           −${discount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                         </span>
                       </label>
                     );
                   })}
                 {conditionDiscount > 0 && (
-                  <div className="border-t border-border pt-2 flex justify-between text-xs">
+                  <div className="border-border flex justify-between border-t pt-2 text-xs">
                     <span className="text-foreground/50">Descuento aplicado</span>
-                    <span className="text-red-600 dark:text-red-400 font-medium">
+                    <span className="font-medium text-red-600 dark:text-red-400">
                       −${conditionDiscount.toLocaleString("es-VE", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -960,7 +961,7 @@ function CryptoPayModal({
             )}
 
             {/* Amount summary */}
-            <div className="bg-muted/30 rounded-xl px-4 py-3 flex items-center justify-between">
+            <div className="bg-muted/30 flex items-center justify-between rounded-xl px-4 py-3">
               <div>
                 <p className="text-foreground/60 text-xs">Monto original</p>
                 <p className="text-foreground/40 text-sm line-through">
@@ -970,7 +971,7 @@ function CryptoPayModal({
               </div>
               <div className="text-right">
                 <p className="text-foreground/60 text-xs">Monto a pagar</p>
-                <p className="text-foreground font-bold text-lg">
+                <p className="text-foreground text-lg font-bold">
                   ${finalAmount.toLocaleString("es-VE", { minimumFractionDigits: 2 })} USDC
                 </p>
               </div>
@@ -998,7 +999,7 @@ function CryptoPayModal({
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}
@@ -1010,7 +1011,7 @@ function CryptoPayModal({
                 type="button"
                 disabled={!cryptoAddress || cryptoPaying}
                 onClick={payCrypto}
-                className="bg-amber-500 hover:bg-amber-500/90 text-white inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2 text-sm font-medium text-white hover:bg-amber-500/90 disabled:opacity-50"
               >
                 {cryptoPaying ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1073,15 +1074,15 @@ function PurchaseDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="bg-card border-border w-full max-w-lg rounded-2xl border p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
+      <div className="bg-card border-border max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl border p-6 shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-amber-500/10 flex h-10 w-10 items-center justify-center rounded-xl">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
               <User className="h-5 w-5 text-amber-500" />
             </div>
             <div>
-              <h2 className="text-foreground text-base font-bold leading-tight">
+              <h2 className="text-foreground text-base leading-tight font-bold">
                 {purchase.seller_name}
               </h2>
               <span
@@ -1101,23 +1102,23 @@ function PurchaseDetailModal({
 
         {/* Meta */}
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 text-foreground/70">
-            <Calendar className="h-4 w-4 text-foreground/40" />
+          <div className="text-foreground/70 flex items-center gap-2">
+            <Calendar className="text-foreground/40 h-4 w-4" />
             {new Date(purchase.purchased_at).toLocaleDateString("es-VE", {
               day: "2-digit",
               month: "long",
               year: "numeric",
             })}
           </div>
-          <div className="flex items-center gap-2 text-foreground/70">
-            <Wallet className="h-4 w-4 text-foreground/40" />
+          <div className="text-foreground/70 flex items-center gap-2">
+            <Wallet className="text-foreground/40 h-4 w-4" />
             {purchase.payment_method
               ? (PAYMENT_LABEL[purchase.payment_method] ?? purchase.payment_method)
               : "—"}
           </div>
           {purchase.invoice_number && (
-            <div className="flex items-center gap-2 text-foreground/70">
-              <Receipt className="h-4 w-4 text-foreground/40" />
+            <div className="text-foreground/70 flex items-center gap-2">
+              <Receipt className="text-foreground/40 h-4 w-4" />
               {purchase.invoice_number}
             </div>
           )}
@@ -1125,7 +1126,7 @@ function PurchaseDetailModal({
 
         {/* Items */}
         <div>
-          <p className="text-foreground/60 mb-2 text-xs font-semibold uppercase tracking-wider">
+          <p className="text-foreground/60 mb-2 text-xs font-semibold tracking-wider uppercase">
             Ítems comprados
           </p>
           {itemsQuery.isLoading ? (
@@ -1158,7 +1159,7 @@ function PurchaseDetailModal({
         {/* Conditions */}
         {conditions.length > 0 && (
           <div>
-            <p className="text-foreground/60 mb-2 text-xs font-semibold uppercase tracking-wider">
+            <p className="text-foreground/60 mb-2 text-xs font-semibold tracking-wider uppercase">
               Condiciones de pago
             </p>
             <ul className="space-y-1">
@@ -1168,7 +1169,7 @@ function PurchaseDetailModal({
                   className="text-foreground/70 flex items-center justify-between gap-2 text-sm"
                 >
                   <span className="truncate">{c.description || "—"}</span>
-                  <span className="text-red-600 dark:text-red-400 shrink-0 text-xs">
+                  <span className="shrink-0 text-xs text-red-600 dark:text-red-400">
                     −
                     {c.reduction_type === "percent"
                       ? `${c.reduction_value}%`
@@ -1183,7 +1184,7 @@ function PurchaseDetailModal({
         {/* Notes */}
         {purchase.notes && (
           <div>
-            <p className="text-foreground/60 mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
+            <p className="text-foreground/60 mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
               <FileText className="h-3.5 w-3.5" /> Notas
             </p>
             <p className="text-foreground/70 text-sm">{purchase.notes}</p>
@@ -1202,7 +1203,7 @@ function PurchaseDetailModal({
             href={`${EXPLORER_URL}/tx/${purchase.crypto_tx}`}
             target="_blank"
             rel="noreferrer"
-            className="text-primary hover:underline inline-flex items-center gap-1.5 text-xs"
+            className="text-primary inline-flex items-center gap-1.5 text-xs hover:underline"
           >
             <ExternalLink className="h-3.5 w-3.5" /> Ver transacción en blockchain
           </a>
@@ -1214,7 +1215,7 @@ function PurchaseDetailModal({
             <button
               type="button"
               onClick={onCancelPurchase}
-              className="border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium"
+              className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-500/10 dark:text-red-400"
             >
               <Ban className="h-4 w-4" /> Cancelar compra
             </button>
@@ -1269,7 +1270,7 @@ function ConfirmDialog({
             type="button"
             disabled={pending}
             onClick={onConfirm}
-            className="bg-red-600 hover:bg-red-600/90 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-600/90 disabled:opacity-50"
           >
             {pending && <Loader2 className="h-4 w-4 animate-spin" />}
             {confirmLabel}
@@ -1385,7 +1386,7 @@ function VentasPageInner() {
       setCancelTarget(null);
       setDetailPurchase(null);
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const allSales = salesQuery.data ?? [];
@@ -1437,7 +1438,7 @@ function VentasPageInner() {
         ) : (
           <button
             onClick={() => setShowPurchaseModal(true)}
-            className="bg-amber-500 hover:bg-amber-500/90 text-white inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500/90"
           >
             <Plus className="h-4 w-4" /> Registrar compra
           </button>
@@ -1445,12 +1446,12 @@ function VentasPageInner() {
       }
     >
       {/* ── Mode toggle ── */}
-      <div className="bg-muted/60 border border-border rounded-xl p-1 flex gap-1 w-fit">
+      <div className="bg-muted/60 border-border flex w-fit gap-1 rounded-xl border p-1">
         <button
           onClick={() => switchMode("sales")}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
             mode === "sales"
-              ? "bg-primary text-white shadow-md shadow-primary/25"
+              ? "bg-primary shadow-primary/25 text-white shadow-md"
               : "text-foreground/50 hover:text-foreground hover:bg-muted"
           }`}
         >
@@ -1465,7 +1466,7 @@ function VentasPageInner() {
         </button>
         <button
           onClick={() => switchMode("purchases")}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
             mode === "purchases"
               ? "bg-amber-500 text-white shadow-md shadow-amber-500/25"
               : "text-foreground/50 hover:text-foreground hover:bg-muted"
@@ -1524,7 +1525,7 @@ function VentasPageInner() {
                   className={`inline-flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                     filter === f.id
                       ? "border-primary text-primary"
-                      : "border-transparent text-foreground/60 hover:text-foreground"
+                      : "text-foreground/60 hover:text-foreground border-transparent"
                   }`}
                 >
                   {f.label}
@@ -1702,12 +1703,12 @@ function VentasPageInner() {
             <div className="bg-card border-border rounded-2xl border p-12 text-center">
               <ShoppingCart className="text-foreground/10 mx-auto mb-4 h-12 w-12" />
               <p className="text-foreground/60 text-sm font-medium">No hay compras registradas</p>
-              <p className="text-foreground/40 text-xs mt-1">
+              <p className="text-foreground/40 mt-1 text-xs">
                 Registra la adquisición de animales, insumos y otros gastos
               </p>
               <button
                 onClick={() => setShowPurchaseModal(true)}
-                className="bg-amber-500 hover:bg-amber-500/90 text-white mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500/90"
               >
                 <Plus className="h-4 w-4" /> Registrar primera compra
               </button>
@@ -1731,8 +1732,8 @@ function VentasPageInner() {
                     className="hover:bg-muted/30 grid items-center gap-4 px-5 py-4 transition-colors md:grid-cols-[1fr_90px_120px_90px_110px_190px]"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="bg-amber-500/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                        <User className="text-amber-500 h-4 w-4" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
+                        <User className="h-4 w-4 text-amber-500" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-foreground truncate font-medium">{p.seller_name}</div>
@@ -1747,7 +1748,7 @@ function VentasPageInner() {
                           )}
                         </div>
                         {p.notes && (
-                          <div className="text-foreground/30 truncate text-xs mt-0.5">
+                          <div className="text-foreground/30 mt-0.5 truncate text-xs">
                             {p.notes}
                           </div>
                         )}
@@ -1770,9 +1771,9 @@ function VentasPageInner() {
                         : "—"}
                     </span>
                     {/* Estado (desktop) */}
-                    <div className="hidden md:flex items-center gap-1.5 min-w-0">
+                    <div className="hidden min-w-0 items-center gap-1.5 md:flex">
                       <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center ${STATUS_CLS[p.status] ?? "bg-muted text-foreground/60"}`}
+                        className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_CLS[p.status] ?? "bg-muted text-foreground/60"}`}
                       >
                         {STATUS_LABEL[p.status] ?? p.status}
                       </span>
@@ -1790,11 +1791,11 @@ function VentasPageInner() {
                     </div>
 
                     {/* Acciones (desktop) */}
-                    <div className="hidden md:flex items-center justify-end gap-1.5">
+                    <div className="hidden items-center justify-end gap-1.5 md:flex">
                       {p.payment_method === "crypto" && p.status === "confirmed" && (
                         <button
                           onClick={() => setPayingPurchase(p)}
-                          className="bg-amber-500 hover:bg-amber-500/90 text-white shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold inline-flex items-center gap-1"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-amber-500/90"
                         >
                           <Wallet className="h-3 w-3" /> Pagar
                         </button>
@@ -1802,7 +1803,7 @@ function VentasPageInner() {
                       <button
                         onClick={() => setDetailPurchase(p)}
                         title="Ver detalles"
-                        className="border-border text-foreground/60 hover:bg-muted hover:text-foreground shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium inline-flex items-center gap-1 transition-colors"
+                        className="border-border text-foreground/60 hover:bg-muted hover:text-foreground inline-flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors"
                       >
                         <Eye className="h-3.5 w-3.5" /> Detalles
                       </button>
@@ -1810,7 +1811,7 @@ function VentasPageInner() {
                         <button
                           onClick={() => setCancelTarget(p)}
                           title="Cancelar compra"
-                          className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 shrink-0 rounded-lg p-1.5 transition-colors"
+                          className="text-foreground/40 shrink-0 rounded-lg p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                         >
                           <Ban className="h-3.5 w-3.5" />
                         </button>
@@ -1831,21 +1832,21 @@ function VentasPageInner() {
                         {p.payment_method === "crypto" && p.status === "confirmed" && (
                           <button
                             onClick={() => setPayingPurchase(p)}
-                            className="bg-amber-500 hover:bg-amber-500/90 text-white rounded-lg px-2 py-1 text-xs font-semibold inline-flex items-center gap-1"
+                            className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2 py-1 text-xs font-semibold text-white hover:bg-amber-500/90"
                           >
                             <Wallet className="h-3 w-3" /> Pagar
                           </button>
                         )}
                         <button
                           onClick={() => setDetailPurchase(p)}
-                          className="border-border text-foreground/60 hover:bg-muted rounded-lg border px-2 py-1 text-xs font-medium inline-flex items-center gap-1"
+                          className="border-border text-foreground/60 hover:bg-muted inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium"
                         >
                           <Eye className="h-3.5 w-3.5" /> Detalles
                         </button>
                         {(p.status === "draft" || p.status === "confirmed") && (
                           <button
                             onClick={() => setCancelTarget(p)}
-                            className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5"
+                            className="text-foreground/40 rounded-lg p-1.5 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                           >
                             <Ban className="h-3.5 w-3.5" />
                           </button>

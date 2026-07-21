@@ -21,6 +21,7 @@ import Pagination, { usePagination } from "@/components/Pagination";
 import { DeleteDialog } from "@/app/dashboard/configuracion/_tabs/DeleteDialog";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -191,7 +192,7 @@ export default function ReproduccionPage() {
       qc.invalidateQueries({ queryKey: ["pregnancies", farmId] });
       setDeleteInsemId(null);
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   // ── KPIs ─────────────────────────────────────────────────────────────
@@ -253,8 +254,8 @@ export default function ReproduccionPage() {
 
       {/* ── Partos próximos (alerta) ────────────────────────────────────── */}
       {dueSoon.length > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/40 dark:bg-amber-950/20">
+          <div className="mb-3 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-400">
               Partos próximos ({dueSoon.length})
@@ -267,21 +268,21 @@ export default function ReproduccionPage() {
               return (
                 <div
                   key={p.id}
-                  className="bg-white dark:bg-amber-950/30 rounded-xl px-3 py-2 flex items-center justify-between gap-2"
+                  className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 dark:bg-amber-950/30"
                 >
                   <div>
-                    <span className="text-sm font-medium text-foreground">
+                    <span className="text-foreground text-sm font-medium">
                       {animal?.tag ?? "—"}
                     </span>
                     {animal?.name && (
-                      <span className="text-foreground/50 text-xs ml-1">{animal.name}</span>
+                      <span className="text-foreground/50 ml-1 text-xs">{animal.name}</span>
                     )}
-                    <div className="text-xs text-foreground/50 mt-0.5">
+                    <div className="text-foreground/50 mt-0.5 text-xs">
                       Parto est.: {fmt(p.expected_due_at)}
                     </div>
                   </div>
                   <span
-                    className={`text-xs font-bold rounded-full px-2 py-0.5 ${d <= 7 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
+                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${d <= 7 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
                   >
                     {d === 0 ? "Hoy" : `${d} d`}
                   </span>
@@ -293,8 +294,8 @@ export default function ReproduccionPage() {
       )}
 
       {/* ── Tabs + botones ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex gap-1 bg-muted rounded-xl p-1">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-muted flex gap-1 rounded-xl p-1">
           {(["active", "history"] as const).map((t) => (
             <button
               key={t}
@@ -330,7 +331,7 @@ export default function ReproduccionPage() {
 
       {/* ── Tab: gestaciones activas ────────────────────────────────────── */}
       {tab === "active" && (
-        <div className="bg-card border-border rounded-2xl border overflow-hidden">
+        <div className="bg-card border-border overflow-hidden rounded-2xl border">
           {activePregnancies.length === 0 ? (
             <div className="text-foreground/50 py-16 text-center text-sm">
               No hay gestaciones activas registradas.
@@ -339,19 +340,19 @@ export default function ReproduccionPage() {
             <table className="hidden w-full text-sm md:table">
               <thead>
                 <tr className="border-border border-b">
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase">
                     Animal
                   </th>
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">
+                  <th className="text-foreground/50 hidden px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase sm:table-cell">
                     Confirmada
                   </th>
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase">
                     Parto estimado
                   </th>
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider hidden md:table-cell">
+                  <th className="text-foreground/50 hidden px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase md:table-cell">
                     Días restantes
                   </th>
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase">
                     Estado
                   </th>
                   <th className="px-4 py-3" />
@@ -365,7 +366,7 @@ export default function ReproduccionPage() {
                   return (
                     <tr
                       key={p.id}
-                      className="border-border hover:bg-muted/30 border-b last:border-0 transition-colors"
+                      className="border-border hover:bg-muted/30 border-b transition-colors last:border-0"
                     >
                       <td className="px-4 py-3">
                         <span className="font-medium">{animal?.tag ?? "—"}</span>
@@ -373,11 +374,11 @@ export default function ReproduccionPage() {
                           <span className="text-foreground/50 ml-1 text-xs">{animal.name}</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-foreground/70 hidden sm:table-cell">
+                      <td className="text-foreground/70 hidden px-4 py-3 sm:table-cell">
                         {fmt(p.confirmed_at)}
                       </td>
                       <td className="px-4 py-3 font-medium">{fmt(p.expected_due_at)}</td>
-                      <td className="px-4 py-3 hidden md:table-cell">
+                      <td className="hidden px-4 py-3 md:table-cell">
                         {days === null ? (
                           "—"
                         ) : (
@@ -494,7 +495,7 @@ export default function ReproduccionPage() {
 
       {/* ── Tab: historial inseminaciones ───────────────────────────────── */}
       {tab === "history" && (
-        <div className="bg-card border-border rounded-2xl border overflow-hidden">
+        <div className="bg-card border-border overflow-hidden rounded-2xl border">
           {allInsem.length === 0 ? (
             <div className="text-foreground/50 py-16 text-center text-sm">
               No hay inseminaciones registradas aún.
@@ -503,19 +504,19 @@ export default function ReproduccionPage() {
             <table className="hidden w-full text-sm md:table">
               <thead>
                 <tr className="border-border border-b">
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase">
                     Animal
                   </th>
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">
+                  <th className="text-foreground/50 hidden px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase sm:table-cell">
                     Método
                   </th>
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase">
                     Fecha
                   </th>
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider hidden md:table-cell">
+                  <th className="text-foreground/50 hidden px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase md:table-cell">
                     Toro / Semen
                   </th>
-                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                  <th className="text-foreground/50 px-4 py-3 text-left text-xs font-semibold tracking-wider uppercase">
                     Resultado
                   </th>
                   <th className="px-4 py-3" />
@@ -529,7 +530,7 @@ export default function ReproduccionPage() {
                   return (
                     <tr
                       key={i.id}
-                      className="border-border hover:bg-muted/30 border-b last:border-0 transition-colors"
+                      className="border-border hover:bg-muted/30 border-b transition-colors last:border-0"
                     >
                       <td className="px-4 py-3">
                         <span className="font-medium">{animal?.tag ?? "—"}</span>
@@ -537,11 +538,11 @@ export default function ReproduccionPage() {
                           <span className="text-foreground/50 ml-1 text-xs">{animal.name}</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-foreground/70 hidden sm:table-cell">
+                      <td className="text-foreground/70 hidden px-4 py-3 sm:table-cell">
                         {METHOD_LABELS[i.method] ?? i.method}
                       </td>
-                      <td className="px-4 py-3 text-foreground/70">{fmt(i.performed_at)}</td>
-                      <td className="px-4 py-3 text-foreground/70 hidden md:table-cell">
+                      <td className="text-foreground/70 px-4 py-3">{fmt(i.performed_at)}</td>
+                      <td className="text-foreground/70 hidden px-4 py-3 md:table-cell">
                         {sire
                           ? `${sire.tag}${sire.name ? ` · ${sire.name}` : ""}`
                           : (i.sire_external ?? "—")}
@@ -553,7 +554,7 @@ export default function ReproduccionPage() {
                         <button
                           onClick={() => setDeleteInsemId(i.id)}
                           title="Eliminar inseminación"
-                          className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                          className="text-foreground/40 rounded-lg p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -586,7 +587,7 @@ export default function ReproduccionPage() {
                         <button
                           onClick={() => setDeleteInsemId(i.id)}
                           title="Eliminar inseminación"
-                          className="text-foreground/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg p-1.5 transition-colors"
+                          className="text-foreground/40 rounded-lg p-1.5 transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -925,13 +926,13 @@ function InseminationModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none resize-none"
+              className="border-border bg-background text-foreground w-full resize-none rounded-lg border px-3 py-2 text-sm outline-none"
             />
           </div>
         </div>
 
         {mutation.isError && (
-          <p className="mt-3 text-xs text-red-500">{(mutation.error as Error).message}</p>
+          <p className="mt-3 text-xs text-red-500">{friendlyErrorMessage(mutation.error)}</p>
         )}
 
         <div className="mt-5 flex justify-end gap-2">
@@ -1003,7 +1004,7 @@ function PregnancyModal({
       toast.success("Gestación registrada");
       onDone();
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   return (
@@ -1093,13 +1094,13 @@ function PregnancyModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="border-border bg-background text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none resize-none"
+              className="border-border bg-background text-foreground w-full resize-none rounded-lg border px-3 py-2 text-sm outline-none"
             />
           </div>
         </div>
 
         {mutation.isError && (
-          <p className="mt-3 text-xs text-red-500">{(mutation.error as Error).message}</p>
+          <p className="mt-3 text-xs text-red-500">{friendlyErrorMessage(mutation.error)}</p>
         )}
 
         <div className="mt-5 flex justify-end gap-2">

@@ -38,6 +38,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { cacheStorage } from "@/lib/cache/storage";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type Variant = "primary" | "secondary" | "accent";
 
@@ -89,7 +90,7 @@ function ChartSkeleton({ h = 180 }: { h?: number }) {
 function MilkTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border-border rounded-xl border px-3 py-2 shadow-lg text-xs">
+    <div className="bg-card border-border rounded-xl border px-3 py-2 text-xs shadow-lg">
       <div className="text-foreground/60 mb-1">{label}</div>
       <div className="text-secondary font-bold">{payload[0]?.value?.toFixed(1)} L</div>
     </div>
@@ -100,7 +101,7 @@ function MilkTooltip({ active, payload, label }: any) {
 function WeightTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border-border rounded-xl border px-3 py-2 shadow-lg text-xs">
+    <div className="bg-card border-border rounded-xl border px-3 py-2 text-xs shadow-lg">
       <div className="text-foreground/60 mb-1">{label}</div>
       <div className="text-accent font-bold">{payload[0]?.value?.toFixed(1)} kg</div>
     </div>
@@ -389,15 +390,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (summary.error)
-      toast.error("Error al cargar el resumen: " + (summary.error as Error).message);
+      toast.error(friendlyErrorMessage(summary.error, { fallback: "Error al cargar el resumen." }));
   }, [summary.error]);
   useEffect(() => {
     if (recentAnimals.error)
-      toast.error("Error al cargar animales recientes: " + (recentAnimals.error as Error).message);
+      toast.error(
+        friendlyErrorMessage(recentAnimals.error, {
+          fallback: "Error al cargar animales recientes.",
+        })
+      );
   }, [recentAnimals.error]);
   useEffect(() => {
     if (upcomingEvents.error)
-      toast.error("Error al cargar próximas vacunas: " + (upcomingEvents.error as Error).message);
+      toast.error(
+        friendlyErrorMessage(upcomingEvents.error, {
+          fallback: "Error al cargar próximas vacunas.",
+        })
+      );
   }, [upcomingEvents.error]);
 
   const totalSpecies = (speciesChart.data ?? []).reduce((a, b) => a + b.value, 0);
@@ -482,7 +491,7 @@ export default function DashboardPage() {
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h2 className="text-foreground text-base font-bold">Producción de leche</h2>
-              <p className="text-foreground/50 text-xs mt-0.5">Últimos 7 días · litros/día</p>
+              <p className="text-foreground/50 mt-0.5 text-xs">Últimos 7 días · litros/día</p>
             </div>
             <Link
               href="/dashboard/produccion"
@@ -545,7 +554,7 @@ export default function DashboardPage() {
         <div className="bg-card border-border rounded-2xl border p-6">
           <div className="mb-5">
             <h2 className="text-foreground text-base font-bold">Composición del hato</h2>
-            <p className="text-foreground/50 text-xs mt-0.5">Por raza · animales activos</p>
+            <p className="text-foreground/50 mt-0.5 text-xs">Por raza · animales activos</p>
           </div>
           {speciesChart.isLoading ? (
             <ChartSkeleton h={200} />
@@ -609,7 +618,7 @@ export default function DashboardPage() {
         <div className="bg-card border-border rounded-2xl border p-6">
           <div className="mb-5">
             <h2 className="text-foreground text-base font-bold">Tendencia de peso</h2>
-            <p className="text-foreground/50 text-xs mt-0.5">Últimos registros · kg</p>
+            <p className="text-foreground/50 mt-0.5 text-xs">Últimos registros · kg</p>
           </div>
           {weightChart.isLoading ? (
             <ChartSkeleton h={180} />
@@ -674,7 +683,7 @@ export default function DashboardPage() {
                   <Activity className="h-3.5 w-3.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-foreground text-sm font-medium truncate">
+                  <div className="text-foreground truncate text-sm font-medium">
                     {a.tag}
                     {a.name ? ` · ${a.name}` : ""}
                   </div>
@@ -737,7 +746,7 @@ export default function DashboardPage() {
                     </div>
                     {daysUntil !== null && (
                       <div
-                        className={`text-[10px] font-semibold mt-0.5 ${daysUntil <= 2 ? "text-red-600 dark:text-red-400" : daysUntil <= 4 ? "text-amber-600 dark:text-amber-400" : "text-emerald-500"}`}
+                        className={`mt-0.5 text-[10px] font-semibold ${daysUntil <= 2 ? "text-red-600 dark:text-red-400" : daysUntil <= 4 ? "text-amber-600 dark:text-amber-400" : "text-emerald-500"}`}
                       >
                         {daysUntil === 0
                           ? "Hoy"

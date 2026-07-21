@@ -144,13 +144,22 @@ export default function Footer() {
               © 2025 Finca El Progreso. Todos los derechos reservados.
             </p>
             <div className="flex gap-6">
-              <Link href="/privacidad" className="text-foreground/50 hover:text-primary text-sm transition-colors">
+              <Link
+                href="/privacidad"
+                className="text-foreground/50 hover:text-primary text-sm transition-colors"
+              >
                 Privacidad
               </Link>
-              <Link href="/terminos" className="text-foreground/50 hover:text-primary text-sm transition-colors">
+              <Link
+                href="/terminos"
+                className="text-foreground/50 hover:text-primary text-sm transition-colors"
+              >
                 Términos
               </Link>
-              <Link href="/cookies" className="text-foreground/50 hover:text-primary text-sm transition-colors">
+              <Link
+                href="/cookies"
+                className="text-foreground/50 hover:text-primary text-sm transition-colors"
+              >
                 Cookies
               </Link>
             </div>

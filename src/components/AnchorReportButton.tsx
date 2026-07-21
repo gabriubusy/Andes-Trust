@@ -6,6 +6,7 @@ import { ShieldCheck, Loader2, ShieldAlert, ExternalLink, WifiOff } from "lucide
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import Modal from "@/components/Modal";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 type Props = {
   /** id del reporte en regulatory_reports */
@@ -59,7 +60,7 @@ export default function AnchorReportButton({ reportId, txHash, disabled = false,
         onDone?.(data.anchor_tx);
       }
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const resolvedTxHash = mut.isSuccess ? mut.data?.anchor_tx : txHash;
@@ -71,7 +72,7 @@ export default function AnchorReportButton({ reportId, txHash, disabled = false,
         target="_blank"
         rel="noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium"
+        className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 px-2 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
         title="Ver transacción en blockchain"
       >
         <ShieldCheck className="h-3.5 w-3.5" />
@@ -99,7 +100,7 @@ export default function AnchorReportButton({ reportId, txHash, disabled = false,
         type="button"
         onClick={() => (online ? mut.mutate() : setShowOfflineModal(true))}
         disabled={mut.isPending || mut.isSuccess}
-        title={mut.isError ? (mut.error as Error).message : "Anclar en blockchain"}
+        title={mut.isError ? friendlyErrorMessage(mut.error) : "Anclar en blockchain"}
         className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors ${
           mut.isError
             ? "border-red-500/40 text-red-500"

@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
 import { toast } from "sonner";
+import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const schema = z.object({
   liters: z
@@ -87,7 +88,7 @@ export default function MilkForm({ animalId, farmId, profileId, onDone }: Props)
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       onDone?.();
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   return (

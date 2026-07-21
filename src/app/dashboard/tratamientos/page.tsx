@@ -108,7 +108,7 @@ function WithdrawalTile({
           : "border-emerald-500/20 bg-emerald-500/5"
       }`}
     >
-      <div className="text-foreground/50 mb-0.5 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide">
+      <div className="text-foreground/50 mb-0.5 flex items-center gap-1 text-[10px] font-medium tracking-wide uppercase">
         <Icon className="h-3 w-3" /> {label}
       </div>
       <div
@@ -173,10 +173,10 @@ function WithdrawalBar({
       <div className="flex items-center gap-2 text-xs">
         <span className="text-[13px]">{emoji}</span>
         <span className="text-muted-foreground w-12 shrink-0">{label}</span>
-        <div className="bg-emerald-500/20 h-1.5 flex-1 overflow-hidden rounded-full">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-emerald-500/20">
           <div className="h-full w-full rounded-full bg-emerald-500" />
         </div>
-        <span className="text-emerald-600 dark:text-emerald-400 w-16 text-right font-medium">
+        <span className="w-16 text-right font-medium text-emerald-600 dark:text-emerald-400">
           Cumplido
         </span>
       </div>
@@ -347,7 +347,7 @@ export default function TratamientosPage() {
             className={`inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t.id
                 ? "border-primary text-primary"
-                : "border-transparent text-foreground/60 hover:text-foreground"
+                : "text-foreground/60 hover:text-foreground border-transparent"
             }`}
           >
             <t.icon className="h-4 w-4" />
@@ -411,11 +411,11 @@ export default function TratamientosPage() {
                   }`}
                 />
 
-                <div className="pl-5 pr-4 py-4">
+                <div className="py-4 pr-4 pl-5">
                   {/* Top row: drug info + animal meta */}
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     {/* Left: drug */}
-                    <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex min-w-0 items-start gap-3">
                       <div
                         className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
                           inWithdrawal ? "bg-amber-500/10" : "bg-primary/10"
@@ -453,7 +453,7 @@ export default function TratamientosPage() {
                     </div>
 
                     {/* Right: animal + dates */}
-                    <div className="text-right text-xs shrink-0">
+                    <div className="shrink-0 text-right text-xs">
                       {t.animals ? (
                         <Link
                           href={`/dashboard/animales/${t.animals.id}`}
@@ -505,7 +505,7 @@ export default function TratamientosPage() {
                   )}
 
                   {t.notes && (
-                    <p className="text-muted-foreground mt-2 border-t border-border/40 pt-2 text-xs italic">
+                    <p className="text-muted-foreground border-border/40 mt-2 border-t pt-2 text-xs italic">
                       {t.notes}
                     </p>
                   )}
@@ -737,7 +737,7 @@ export default function TratamientosPage() {
                       className="bg-card border-border hover:border-primary/30 relative overflow-hidden rounded-2xl border p-4 pl-5 transition-colors hover:shadow-sm"
                     >
                       {/* Barra de acento por tipo */}
-                      <span className={`absolute left-0 top-0 h-full w-1 ${accent.bar}`} />
+                      <span className={`absolute top-0 left-0 h-full w-1 ${accent.bar}`} />
 
                       <div className="mb-3 flex items-start justify-between gap-2">
                         <div className="flex items-start gap-2">

@@ -47,13 +47,13 @@ export default async function VerifyPage({
 
   if (!data) {
     return (
-      <main className="min-h-screen bg-neutral-950 flex items-center justify-center p-6">
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 text-center max-w-sm w-full">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 mx-auto mb-4">
+      <main className="flex min-h-screen items-center justify-center bg-neutral-950 p-6">
+        <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
             <ShieldX className="h-7 w-7 text-red-500" />
           </div>
-          <h1 className="text-white text-lg font-bold mb-1">Registro no encontrado</h1>
-          <p className="text-neutral-400 text-sm">No existe un registro con ese identificador.</p>
+          <h1 className="mb-1 text-lg font-bold text-white">Registro no encontrado</h1>
+          <p className="text-sm text-neutral-400">No existe un registro con ese identificador.</p>
         </div>
       </main>
     );
@@ -100,37 +100,37 @@ export default async function VerifyPage({
       : "bg-neutral-500/10";
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white p-4 md:p-8">
-      <div className="max-w-xl mx-auto space-y-4">
+    <main className="min-h-screen bg-neutral-950 p-4 text-white md:p-8">
+      <div className="mx-auto max-w-xl space-y-4">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2 pt-2 pb-1 opacity-80">
           <Image src="/logo.png" alt="Logo" width={96} height={28} className="h-5 w-auto" />
         </div>
 
         {/* Header */}
-        <div className="text-center pb-1">
-          <p className="text-neutral-500 text-[11px] font-medium uppercase tracking-[0.2em] mb-1.5">
+        <div className="pb-1 text-center">
+          <p className="mb-1.5 text-[11px] font-medium tracking-[0.2em] text-neutral-500 uppercase">
             Verificación de trazabilidad
           </p>
-          <h1 className="text-white text-2xl font-bold tracking-tight">{data.summary.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white">{data.summary.title}</h1>
           {data.summary.subtitle && (
-            <p className="text-neutral-400 text-sm mt-1">{data.summary.subtitle}</p>
+            <p className="mt-1 text-sm text-neutral-400">{data.summary.subtitle}</p>
           )}
-          <div className="inline-flex items-center gap-1.5 mt-2.5 bg-neutral-900 border border-neutral-800 rounded-full px-2.5 py-1">
-            <span className="text-neutral-400 text-[10px] font-medium">{label}</span>
+          <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-1">
+            <span className="text-[10px] font-medium text-neutral-400">{label}</span>
             <span className="text-neutral-700">·</span>
-            <code className="text-neutral-500 text-[10px] font-mono">{shortId(id)}</code>
+            <code className="font-mono text-[10px] text-neutral-500">{shortId(id)}</code>
           </div>
         </div>
 
         {/* Status card — la prueba de confianza, arriba y prominente */}
         <div className={`relative overflow-hidden rounded-2xl border p-7 ${statusBg} text-center`}>
           <div
-            className={`pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 h-40 w-40 rounded-full blur-3xl ${statusGlow}`}
+            className={`pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full blur-3xl ${statusGlow}`}
           />
           <div className="relative">
             <div
-              className={`flex h-16 w-16 items-center justify-center rounded-full mx-auto mb-3 bg-neutral-950/50 ring-1 ring-inset ${
+              className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-950/50 ring-1 ring-inset ${
                 data.integrity_ok
                   ? "ring-emerald-500/40"
                   : hasSignatures || hasAnchors
@@ -140,8 +140,8 @@ export default async function VerifyPage({
             >
               <StatusIcon className={`h-8 w-8 ${statusColor}`} />
             </div>
-            <h2 className={`text-lg font-bold mb-1.5 ${statusColor}`}>{statusText}</h2>
-            <p className="text-neutral-400 text-xs leading-relaxed max-w-xs mx-auto">
+            <h2 className={`mb-1.5 text-lg font-bold ${statusColor}`}>{statusText}</h2>
+            <p className="mx-auto max-w-xs text-xs leading-relaxed text-neutral-400">
               {statusDesc}
             </p>
           </div>
@@ -149,56 +149,56 @@ export default async function VerifyPage({
 
         {/* Resumen legible */}
         {data.summary.fields.length > 0 && (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 grid grid-cols-3 gap-3 text-center divide-x divide-neutral-800">
+          <div className="grid grid-cols-3 gap-3 divide-x divide-neutral-800 rounded-2xl border border-neutral-800 bg-neutral-900 p-4 text-center">
             {data.summary.fields.map((f, i) => (
               <div key={i} className="px-1">
-                <p className="text-neutral-600 text-[10px] uppercase tracking-wide mb-1">
+                <p className="mb-1 text-[10px] tracking-wide text-neutral-600 uppercase">
                   {f.label}
                 </p>
-                <p className="text-neutral-100 text-sm font-semibold">{f.value}</p>
+                <p className="text-sm font-semibold text-neutral-100">{f.value}</p>
               </div>
             ))}
           </div>
         )}
 
         {/* Current hash */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
+          <div className="mb-2 flex items-center gap-2">
             <Hash className="h-3.5 w-3.5 text-neutral-500" />
-            <span className="text-neutral-400 text-xs font-medium uppercase tracking-wide">
+            <span className="text-xs font-medium tracking-wide text-neutral-400 uppercase">
               Hash actual del registro
             </span>
           </div>
-          <code className="text-neutral-300 text-xs font-mono break-all">{data.current_hash}</code>
+          <code className="font-mono text-xs break-all text-neutral-300">{data.current_hash}</code>
         </div>
 
         {/* Signatures */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
+        <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900">
+          <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
             <div className="flex items-center gap-2">
               <User className="h-3.5 w-3.5 text-neutral-500" />
-              <span className="text-neutral-300 text-xs font-semibold">Firmas digitales</span>
+              <span className="text-xs font-semibold text-neutral-300">Firmas digitales</span>
             </div>
-            <span className="bg-neutral-800 text-neutral-400 text-[10px] font-bold rounded-full px-2 py-0.5">
+            <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] font-bold text-neutral-400">
               {data.signatures.length}
             </span>
           </div>
           {!hasSignatures ? (
-            <div className="px-4 py-7 flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1.5 px-4 py-7">
               <User className="h-4 w-4 text-neutral-700" />
-              <p className="text-neutral-600 text-xs">Sin firmas registradas</p>
+              <p className="text-xs text-neutral-600">Sin firmas registradas</p>
             </div>
           ) : (
             <div className="divide-y divide-neutral-800">
               {data.signatures.map((s, i) => (
-                <div key={i} className="px-4 py-3 space-y-1.5">
+                <div key={i} className="space-y-1.5 px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <code className="text-neutral-300 text-xs font-mono">
+                    <code className="font-mono text-xs text-neutral-300">
                       {shortAddr(s.signer)}
                     </code>
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                           s.signature_valid
                             ? "bg-emerald-500/10 text-emerald-400"
                             : "bg-red-500/10 text-red-400"
@@ -207,7 +207,7 @@ export default async function VerifyPage({
                         {s.signature_valid ? "✓ Firma válida" : "✗ Firma inválida"}
                       </span>
                       <span
-                        className={`text-[10px] rounded-full px-2 py-0.5 ${
+                        className={`rounded-full px-2 py-0.5 text-[10px] ${
                           s.hash_matches_current
                             ? "bg-emerald-500/10 text-emerald-400"
                             : "bg-amber-500/10 text-amber-400"
@@ -228,32 +228,32 @@ export default async function VerifyPage({
         </div>
 
         {/* Blockchain anchors */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
+        <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900">
+          <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-3.5 w-3.5 text-neutral-500" />
-              <span className="text-neutral-300 text-xs font-semibold">Anclas blockchain</span>
+              <span className="text-xs font-semibold text-neutral-300">Anclas blockchain</span>
             </div>
-            <span className="bg-neutral-800 text-neutral-400 text-[10px] font-bold rounded-full px-2 py-0.5">
+            <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] font-bold text-neutral-400">
               {data.anchors.length}
             </span>
           </div>
           {!hasAnchors ? (
-            <div className="px-4 py-7 flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1.5 px-4 py-7">
               <ShieldCheck className="h-4 w-4 text-neutral-700" />
-              <p className="text-neutral-600 text-xs">Sin registros en blockchain</p>
+              <p className="text-xs text-neutral-600">Sin registros en blockchain</p>
             </div>
           ) : (
             <div className="divide-y divide-neutral-800">
               {data.anchors.map((a, i) => (
-                <div key={i} className="px-4 py-3 space-y-1.5">
+                <div key={i} className="space-y-1.5 px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
-                      <span className="bg-violet-500/10 text-violet-400 text-[10px] font-semibold rounded-full px-2 py-0.5 uppercase">
+                      <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-400 uppercase">
                         {a.network}
                       </span>
                       <span
-                        className={`text-[10px] rounded-full px-2 py-0.5 ${
+                        className={`rounded-full px-2 py-0.5 text-[10px] ${
                           a.matches_current
                             ? "bg-emerald-500/10 text-emerald-400"
                             : "bg-amber-500/10 text-amber-400"
@@ -266,13 +266,13 @@ export default async function VerifyPage({
                       href={`${EXPLORER}/tx/${a.tx_hash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-neutral-500 hover:text-violet-400 transition-colors"
+                      className="text-neutral-500 transition-colors hover:text-violet-400"
                       title="Ver en explorador"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </div>
-                  <code className="text-neutral-500 text-[10px] font-mono">
+                  <code className="font-mono text-[10px] text-neutral-500">
                     {shortHash(a.tx_hash)}
                   </code>
                   <div className="flex items-center gap-1 text-neutral-600">
@@ -285,7 +285,7 @@ export default async function VerifyPage({
           )}
         </div>
 
-        <p className="text-center text-neutral-700 text-[10px] pb-6">
+        <p className="pb-6 text-center text-[10px] text-neutral-700">
           Verificación criptográfica · Finca El Progreso
         </p>
       </div>
