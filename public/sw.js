@@ -26,13 +26,37 @@ const SHELL_CACHE   = `shell-${VERSION}`;
 const STATIC_CACHE  = `static-${VERSION}`;
 const PHOTOS_CACHE  = `photos-${VERSION}`;
 const API_CACHE     = `api-${VERSION}`;
+const RSC_CACHE     = `rsc-${VERSION}`;
 
-const SHELL_URLS = ["/", "/dashboard", "/login", "/manifest.webmanifest", "/logo.png"];
+// Secciones que deben poder abrirse (y recargarse) sin señal.
+const SHELL_URLS = [
+  "/",
+  "/dashboard",
+  "/dashboard/animales",
+  "/dashboard/produccion",
+  "/dashboard/alertas",
+  "/dashboard/tratamientos",
+  "/dashboard/sincronizacion",
+  "/login",
+  "/manifest.webmanifest",
+  "/logo.png",
+];
 
 // ── Install: pre-cache shell ──────────────────────────────────────────
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(SHELL_CACHE).then((c) => c.addAll(SHELL_URLS)).catch(() => null)
+    caches.open(SHELL_CACHE).then(async (c) => {
+      // Uno a uno, NO con addAll(): addAll es atómico, así que una sola URL
+      // que falle (p. ej. /dashboard redirige por sesión) tiraba abajo TODO
+      // el precacheo en silencio y dejaba la app sin shell offline.
+      await Promise.all(
+        SHELL_URLS.map((u) =>
+          fetch(u)
+            .then((res) => (res.ok ? c.put(u, res) : null))
+            .catch(() => null)
+        )
+      );
+    })
   );
   self.skipWaiting();
 });
@@ -121,6 +145,23 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin !== self.location.origin) return;
 
+  // Navegación cliente del App Router. Next.js NO hace peticiones con
+  // `mode: "navigate"` al moverse entre secciones: pide el payload RSC con
+  // `?_rsc=…` (o cabecera `RSC: 1`) mediante fetch normal. Sin cachear esto,
+  // offline la shell existe pero cambiar de sección falla — que es justo el
+  // síntoma de "no puedo navegar".
+  if (req.headers.get("RSC") === "1" || url.searchParams.has("_rsc")) {
+    event.respondWith(networkFirst(req, RSC_CACHE, TTL_SUPABASE));
+    return;
+  }
+
+  // Imágenes optimizadas por Next (/_next/image?url=…) → CacheFirst.
+  // No caen en /_next/static/, así que sin esto quedan rotas offline.
+  if (url.pathname.startsWith("/_next/image")) {
+    event.respondWith(cacheFirst(req, STATIC_CACHE));
+    return;
+  }
+
   // Estáticos Next.js → CacheFirst (hash en nombre = inmutable)
   if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
     event.respondWith(cacheFirst(req, STATIC_CACHE));
@@ -144,8 +185,22 @@ self.addEventListener("fetch", (event) => {
           return res;
         })
         .catch(async () => {
-          const cached = await caches.match(req);
-          return cached || caches.match("/dashboard");
+          // Cadena de respaldo: la propia ruta → la shell del panel → la raíz.
+          // `caches.match` puede resolver a undefined, y devolver undefined
+          // desde respondWith provoca un error de red: de ahí el último
+          // recurso con una respuesta propia.
+          const cached =
+            (await caches.match(req)) ||
+            (await caches.match("/dashboard")) ||
+            (await caches.match("/"));
+          if (cached) return cached;
+          return new Response(
+            "<!doctype html><meta charset='utf-8'><title>Sin conexión</title>" +
+              "<body style=\"font-family:system-ui;background:#0b1220;color:#e6edf7;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px;text-align:center\">" +
+              "<div><h1 style='font-size:1.1rem;margin:0 0 .5rem'>Sin conexión</h1>" +
+              "<p style='opacity:.7;font-size:.875rem;margin:0'>Esta sección aún no se había abierto con señal, así que no está guardada en el dispositivo.</p></div>",
+            { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
+          );
         })
     );
   }
