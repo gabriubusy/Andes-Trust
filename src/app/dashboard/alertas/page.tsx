@@ -16,6 +16,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { canWrite } from "@/lib/permissions";
 import { SkeletonList } from "@/components/ui/Skeleton";
 
 type AlertRow = {
@@ -77,6 +78,7 @@ export default function AlertasPage() {
   const { supabase } = useSupabase();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
+  const canEdit = canWrite(farmQuery.data?.role);
   const qc = useQueryClient();
 
   const [typeFilter, setTypeFilter] = useState<"all" | AlertRow["type"]>("all");
@@ -271,7 +273,7 @@ export default function AlertasPage() {
                         )}
                       </p>
                     </div>
-                    {alert.status === "open" && (
+                    {alert.status === "open" && canEdit && (
                       <div className="flex shrink-0 gap-2">
                         <button
                           onClick={() => setStatus.mutate({ id: alert.id, status: "acknowledged" })}

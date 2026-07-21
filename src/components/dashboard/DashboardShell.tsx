@@ -76,7 +76,7 @@ const navItems: {
     label: "Certificados",
     href: "/dashboard/certificados",
     matches: ["/dashboard/certificados"],
-    roles: ["owner", "admin", "vet", "viewer", "regulator"],
+    roles: ["owner", "admin", "vet", "regulator"],
   },
   {
     icon: BarChart3,
@@ -125,6 +125,7 @@ const navItems: {
     label: "Sincronización",
     href: "/dashboard/sincronizacion",
     matches: ["/dashboard/sincronizacion"],
+    roles: ["owner", "admin", "operator", "vet", "regulator"],
   },
   {
     icon: Settings,

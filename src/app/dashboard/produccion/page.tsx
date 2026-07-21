@@ -38,6 +38,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { canWrite } from "@/lib/permissions";
 import { toast } from "sonner";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
@@ -832,6 +833,7 @@ export default function ProduccionPage() {
   const { supabase, profileId } = useSupabase();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
+  const canEdit = canWrite(farmQuery.data?.role);
   const queryClient = useQueryClient();
   const { getAccessToken } = usePrivy();
 
@@ -983,7 +985,7 @@ export default function ProduccionPage() {
       title="Producción de leche"
       subtitle="Producción"
       action={
-        profileId && farmId ? (
+        profileId && farmId && canEdit ? (
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1317,12 +1319,14 @@ export default function ProduccionPage() {
                       )}
                     </td>
                     <td className="px-3 py-3.5 text-right">
-                      <button
-                        onClick={() => setEditRecord(r)}
-                        className="text-foreground/40 hover:text-primary hover:bg-primary/10 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors"
-                      >
-                        <Pencil className="h-3 w-3" /> Editar
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => setEditRecord(r)}
+                          className="text-foreground/40 hover:text-primary hover:bg-primary/10 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors"
+                        >
+                          <Pencil className="h-3 w-3" /> Editar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -1383,12 +1387,14 @@ export default function ProduccionPage() {
                       </span>
                     </span>
                   </div>
-                  <button
-                    onClick={() => setEditRecord(r)}
-                    className="text-foreground/60 border-border hover:text-primary hover:bg-primary/10 inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
-                  >
-                    <Pencil className="h-3 w-3" /> Editar
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => setEditRecord(r)}
+                      className="text-foreground/60 border-border hover:text-primary hover:bg-primary/10 inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+                    >
+                      <Pencil className="h-3 w-3" /> Editar
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

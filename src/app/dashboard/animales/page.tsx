@@ -24,6 +24,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
+import { canWrite } from "@/lib/permissions";
 import { ANIMAL_PHOTOS_BUCKET } from "@/lib/supabase/storage";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
@@ -103,7 +104,7 @@ export default function AnimalesListPage() {
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
   const currentRole = farmQuery.data?.role ?? "viewer";
-  const canEdit = ["owner", "admin", "operator", "vet"].includes(currentRole);
+  const canEdit = canWrite(currentRole);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");

@@ -39,6 +39,7 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { cacheStorage } from "@/lib/cache/storage";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
+import { canWrite } from "@/lib/permissions";
 
 type Variant = "primary" | "secondary" | "accent";
 
@@ -62,8 +63,22 @@ const variantIcon: Record<Variant, string> = {
 
 const CHART_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#a855f7", "#06b6d4"];
 
-const quickActions: { icon: LucideIcon; label: string; href: string; variant: Variant }[] = [
-  { icon: Plus, label: "Registrar animal", href: "/dashboard/animales/nuevo", variant: "primary" },
+// `write: true` = la acción crea o modifica datos, así que no se le muestra
+// a quien no puede escribir: acabaría en una pantalla que RLS le va a negar.
+const quickActions: {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+  variant: Variant;
+  write?: boolean;
+}[] = [
+  {
+    icon: Plus,
+    label: "Registrar animal",
+    href: "/dashboard/animales/nuevo",
+    variant: "primary",
+    write: true,
+  },
   {
     icon: QrCode,
     label: "Etiquetas QR",
@@ -76,6 +91,7 @@ const quickActions: { icon: LucideIcon; label: string; href: string; variant: Va
     label: "Generar certificado",
     href: "/dashboard/certificados/nuevo",
     variant: "primary",
+    write: true,
   },
 ];
 
@@ -112,6 +128,7 @@ export default function DashboardPage() {
   const { supabase } = useSupabase();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
+  const canEdit = canWrite(farmQuery.data?.role);
 
   type SummaryData = {
     activeAnimals: number;
@@ -469,18 +486,20 @@ export default function DashboardPage() {
       <div className="bg-card border-border rounded-2xl border p-5">
         <h2 className="text-foreground mb-4 text-base font-bold">Acciones rápidas</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {quickActions.map((action) => (
-            <Link
-              key={action.label}
-              href={action.href}
-              className={`group flex items-center gap-3 rounded-xl border bg-linear-to-br p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${variantQuick[action.variant]}`}
-            >
-              <div className="bg-background/60 flex h-9 w-9 items-center justify-center rounded-lg">
-                <action.icon className={`h-4 w-4 ${variantIcon[action.variant]}`} />
-              </div>
-              <span className="text-foreground text-sm font-medium">{action.label}</span>
-            </Link>
-          ))}
+          {quickActions
+            .filter((action) => !action.write || canEdit)
+            .map((action) => (
+              <Link
+                key={action.label}
+                href={action.href}
+                className={`group flex items-center gap-3 rounded-xl border bg-linear-to-br p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${variantQuick[action.variant]}`}
+              >
+                <div className="bg-background/60 flex h-9 w-9 items-center justify-center rounded-lg">
+                  <action.icon className={`h-4 w-4 ${variantIcon[action.variant]}`} />
+                </div>
+                <span className="text-foreground text-sm font-medium">{action.label}</span>
+              </Link>
+            ))}
         </div>
       </div>
 
