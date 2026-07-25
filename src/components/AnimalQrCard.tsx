@@ -119,7 +119,7 @@ export default function AnimalQrCard({ slug, animalTag, animalName }: Props) {
             </div>
 
             {/* Nota de verificación */}
-            <p className="text-foreground/30 text-[11px]">
+            <p className="text-foreground/30 text-[12px]">
               Verificado · Finca El Progreso · Sistema de trazabilidad bovino
             </p>
           </div>

@@ -749,7 +749,7 @@ export default function DashboardPage() {
                     <div className="text-foreground text-base leading-none font-bold">
                       {date?.getDate() ?? "—"}
                     </div>
-                    <div className="text-foreground/60 text-[10px] font-semibold tracking-wider uppercase">
+                    <div className="text-foreground/60 text-[11px] font-semibold tracking-wider uppercase">
                       {date ? monthFormat.format(date) : ""}
                     </div>
                   </div>
@@ -765,7 +765,7 @@ export default function DashboardPage() {
                     </div>
                     {daysUntil !== null && (
                       <div
-                        className={`mt-0.5 text-[10px] font-semibold ${daysUntil <= 2 ? "text-red-600 dark:text-red-400" : daysUntil <= 4 ? "text-amber-600 dark:text-amber-400" : "text-emerald-500"}`}
+                        className={`mt-0.5 text-[11px] font-semibold ${daysUntil <= 2 ? "text-red-600 dark:text-red-400" : daysUntil <= 4 ? "text-amber-600 dark:text-amber-400" : "text-emerald-500"}`}
                       >
                         {daysUntil === 0
                           ? "Hoy"

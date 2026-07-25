@@ -252,7 +252,7 @@ export default function AlertasPage() {
                           </span>
                         )}
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_BADGE[alert.status]}`}
+                          className={`rounded-full px-2 py-0.5 text-[12px] font-medium ${STATUS_BADGE[alert.status]}`}
                         >
                           {STATUS_LABEL[alert.status]}
                         </span>

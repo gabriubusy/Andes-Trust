@@ -372,7 +372,7 @@ function PurchaseModal({
               />
             </div>
             <div>
-              <label className={labelCls}>N° factura / recibo</label>
+              <label className={labelCls}>N° nota de entrega / recibo</label>
               <input
                 className={inputCls}
                 value={invoiceNumber}
@@ -1458,7 +1458,7 @@ function VentasPageInner() {
           <TrendingUp className="h-4 w-4" /> Ventas
           {allSales.length > 0 && (
             <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${mode === "sales" ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground/60"}`}
+              className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${mode === "sales" ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground/60"}`}
             >
               {allSales.length}
             </span>
@@ -1475,7 +1475,7 @@ function VentasPageInner() {
           <ShoppingCart className="h-4 w-4" /> Compras
           {allPurchases.length > 0 && (
             <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${mode === "purchases" ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground/60"}`}
+              className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${mode === "purchases" ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground/60"}`}
             >
               {allPurchases.length}
             </span>
@@ -1530,7 +1530,7 @@ function VentasPageInner() {
                 >
                   {f.label}
                   {count > 0 && (
-                    <span className="bg-muted text-foreground/50 rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+                    <span className="bg-muted text-foreground/50 rounded-full px-1.5 py-0.5 text-[11px] font-semibold">
                       {count}
                     </span>
                   )}
@@ -1620,11 +1620,11 @@ function VentasPageInner() {
                       </span>
                       <div className="space-y-2 md:hidden">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[11px]">
+                          <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[12px]">
                             {sale._item_count} animal{sale._item_count !== 1 ? "es" : ""}
                           </span>
                           {sale.payment_method && (
-                            <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[11px]">
+                            <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[12px]">
                               {PAYMENT_LABEL[sale.payment_method] ?? sale.payment_method}
                             </span>
                           )}

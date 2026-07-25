@@ -15,6 +15,33 @@
   --color-muted: #f8fafc;
   --color-muted-foreground: #64748b;
 
+  /* ── Escala tipográfica subida un nivel ──────────────────────────────
+     Cada token toma el tamaño (y su interlineado) del nivel siguiente de la
+     escala por defecto de Tailwind: text-xs pasa a rendir como el antiguo sm,
+     sm como base, y así hasta 6xl. Así toda la app crece un paso sin tocar los
+     ~1200 usos de `text-*` en el código.
+     Para revertir: borra este bloque y vuelve a la escala por defecto. */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.5rem;
+  --text-base: 1.125rem;
+  --text-base--line-height: 1.75rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 2rem;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 2.25rem;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 2.5rem;
+  --text-4xl: 3rem;
+  --text-4xl--line-height: 1;
+  --text-5xl: 3.75rem;
+  --text-5xl--line-height: 1;
+  --text-6xl: 4.5rem;
+  --text-6xl--line-height: 1;
+
   --animate-fade-in: fade-in 0.5s ease-out forwards;
   --animate-slide-up: slide-up 0.6s ease-out forwards;
   --animate-slide-down: slide-down 0.6s ease-out forwards;

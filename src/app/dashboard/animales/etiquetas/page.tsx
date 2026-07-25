@@ -218,7 +218,7 @@ export default function EtiquetasPage() {
                           <div className="text-foreground mt-0.5 truncate text-sm">
                             {a.name ?? "—"}
                           </div>
-                          <div className="text-foreground/60 mt-1 truncate font-mono text-[11px]">
+                          <div className="text-foreground/60 mt-1 truncate font-mono text-[12px]">
                             {slug ?? <span className="text-accent">sin token</span>}
                           </div>
                         </div>

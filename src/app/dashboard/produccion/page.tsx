@@ -722,7 +722,7 @@ function CertifyModal({
               if (data.length < 2) return null;
               return (
                 <div className="bg-muted/30 rounded-xl p-3">
-                  <p className="text-foreground/40 mb-2 text-[10px] font-medium tracking-wider uppercase">
+                  <p className="text-foreground/40 mb-2 text-[11px] font-medium tracking-wider uppercase">
                     Producción del período · {periodRecords.length} registros
                   </p>
                   <ResponsiveContainer width="100%" height={100}>
@@ -1477,7 +1477,7 @@ export default function ProduccionPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`text-xs font-semibold ${g.text}`}>{g.label}</span>
                       {cert.tx_hash ? (
-                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500">
+                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-bold text-emerald-500">
                           <ShieldCheck className="h-2.5 w-2.5" /> On-chain
                         </span>
                       ) : (
@@ -1486,7 +1486,7 @@ export default function ProduccionPage() {
                           onClick={() => retryAnchor.mutate(cert.id)}
                           disabled={retryAnchor.isPending}
                           title="Reintentar anclaje en blockchain"
-                          className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-amber-600 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <RotateCw
                             className={`h-2.5 w-2.5 ${retryAnchor.isPending && retryAnchor.variables === cert.id ? "animate-spin" : ""}`}
@@ -1498,7 +1498,7 @@ export default function ProduccionPage() {
                     <p className="text-foreground/40 mt-0.5 text-xs">
                       {fmtPeriod(cert.period_start)} — {fmtPeriod(cert.period_end)}
                     </p>
-                    <div className="text-foreground/35 mt-1 flex items-center gap-3 text-[10px]">
+                    <div className="text-foreground/35 mt-1 flex items-center gap-3 text-[11px]">
                       {cert.total_liters != null && (
                         <span>{Number(cert.total_liters).toFixed(1)} L</span>
                       )}

@@ -18,9 +18,11 @@ import {
   ChevronsUpDown,
   Eye,
   Pencil,
+  Syringe,
 } from "lucide-react";
 import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import BatchApplyModal from "@/components/BatchApplyModal";
 import Pagination, { usePagination } from "@/components/Pagination";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
@@ -88,12 +90,13 @@ function SortIcon({ col, sortKey, dir }: { col: SortKey; sortKey: SortKey; dir: 
 }
 
 export default function AnimalesListPage() {
-  const { supabase } = useSupabase();
+  const { supabase, profileId } = useSupabase();
   const farmQuery = useCurrentFarm();
   const farmId = farmQuery.data?.id;
   const currentRole = farmQuery.data?.role ?? "viewer";
   const canEdit = canWrite(currentRole);
 
+  const [showVacBatch, setShowVacBatch] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sexFilter, setSexFilter] = useState<string>("all");
@@ -190,6 +193,16 @@ export default function AnimalesListPage() {
           >
             <QrCode className="h-4 w-4" /> Etiquetas QR
           </Link>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setShowVacBatch(true)}
+              className="border-border text-foreground/80 hover:bg-muted inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors"
+            >
+              <Syringe className="h-4 w-4" />
+              <span className="hidden sm:inline">Vacunar por lote</span>
+            </button>
+          )}
           <Link
             href="/dashboard/animales/nuevo"
             className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium"
@@ -527,7 +540,7 @@ export default function AnimalesListPage() {
                         {a.tag}
                       </span>
                       <span
-                        className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${
+                        className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[12px] font-medium capitalize ${
                           STATUS_STYLES[a.status] ?? "bg-muted text-foreground/60 border-border"
                         }`}
                       >
@@ -544,7 +557,7 @@ export default function AnimalesListPage() {
 
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-medium ${
                           a.sex === "female"
                             ? "bg-pink-500/10 text-pink-600 dark:text-pink-400"
                             : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
@@ -559,13 +572,13 @@ export default function AnimalesListPage() {
                       </span>
 
                       {breedNames(a) && (
-                        <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[11px]">
+                        <span className="bg-muted/60 text-foreground/70 rounded-lg px-2 py-0.5 text-[12px]">
                           {breedNames(a)}
                         </span>
                       )}
 
                       {a.current_weight_kg && (
-                        <span className="text-foreground/70 bg-muted/60 rounded-lg px-2 py-0.5 text-[11px] tabular-nums">
+                        <span className="text-foreground/70 bg-muted/60 rounded-lg px-2 py-0.5 text-[12px] tabular-nums">
                           {a.current_weight_kg} kg
                         </span>
                       )}
@@ -628,6 +641,15 @@ export default function AnimalesListPage() {
           </div>
         )}
       </div>
+
+      {showVacBatch && (
+        <BatchApplyModal
+          kind="vaccination"
+          farmId={farmId}
+          profileId={profileId ?? undefined}
+          onClose={() => setShowVacBatch(false)}
+        />
+      )}
     </DashboardShell>
   );
 }

@@ -73,7 +73,7 @@ function AnimalSelector({
         <span className="text-foreground/55 flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
           Animales
           <span
-            className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold normal-case tabular-nums ${
+            className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold normal-case tabular-nums ${
               selected.size === 0 ? "bg-muted text-foreground/50" : "bg-primary/10 text-primary"
             }`}
           >
@@ -130,7 +130,7 @@ function AnimalSelector({
                 onChange={() => onToggle(a.id)}
               />
               <span
-                className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold ${
+                className={`rounded px-1.5 py-0.5 font-mono text-[12px] font-semibold ${
                   checked ? "bg-primary/15 text-primary" : "bg-muted/70 text-foreground/70"
                 }`}
               >
@@ -408,14 +408,14 @@ export default function ReportesPage() {
                         })}
                       </span>
                     </div>
-                    <span className="bg-muted text-foreground/60 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums">
+                    <span className="bg-muted text-foreground/60 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium tabular-nums">
                       <Users className="h-3 w-3" />
                       {r.animal_ids.length}
                     </span>
                   </div>
 
                   {(r.date_from || r.date_to) && (
-                    <div className="text-foreground/50 mt-2 flex items-center gap-1.5 text-[11px]">
+                    <div className="text-foreground/50 mt-2 flex items-center gap-1.5 text-[12px]">
                       <CalendarRange className="text-foreground/30 h-3 w-3 shrink-0" />
                       {r.date_from ?? "—"} → {r.date_to ?? "—"}
                     </div>
@@ -427,14 +427,14 @@ export default function ReportesPage() {
                       title={`Hash de integridad: ${r.payload_hash}`}
                     >
                       <ShieldCheck className="h-3 w-3 shrink-0" />
-                      <code className="truncate font-mono text-[10px]">
+                      <code className="truncate font-mono text-[11px]">
                         {r.payload_hash.slice(0, 20)}…
                       </code>
                     </div>
                   )}
 
                   <div className="border-border/60 mt-2.5 flex items-center justify-between gap-2 border-t pt-2.5">
-                    <span className="text-foreground/40 text-[10px]">Trazabilidad on-chain</span>
+                    <span className="text-foreground/40 text-[11px]">Trazabilidad on-chain</span>
                     <AnchorReportButton
                       reportId={r.id}
                       txHash={anchorsQuery.data?.[r.id] ?? null}

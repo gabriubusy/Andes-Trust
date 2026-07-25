@@ -303,7 +303,7 @@ export function TabTratamientos() {
         {items.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-foreground/40 text-[11px] tracking-wide uppercase">
+              <thead className="bg-muted/40 text-foreground/40 text-[12px] tracking-wide uppercase">
                 <tr>
                   <th className="px-5 py-2.5 text-left font-semibold">Nombre</th>
                   <th className="px-5 py-2.5 text-left font-semibold">Tipo</th>
@@ -336,7 +336,7 @@ export function TabTratamientos() {
                     <td className="px-5 py-3">
                       {t.kind ? (
                         <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize ${KIND_STYLES[t.kind] ?? "bg-muted text-foreground/60 border-border"}`}
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-medium capitalize ${KIND_STYLES[t.kind] ?? "bg-muted text-foreground/60 border-border"}`}
                         >
                           {t.kind}
                         </span>

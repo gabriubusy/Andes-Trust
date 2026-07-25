@@ -228,7 +228,7 @@ export default function PrivacidadPage() {
                       <ul className="mt-4 space-y-2.5">
                         {items.map((item, i) => (
                           <li key={i} className="flex items-start gap-3">
-                            <span className="bg-secondary/15 text-secondary mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold">
+                            <span className="bg-secondary/15 text-secondary mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold">
                               {String.fromCharCode(97 + i)}
                             </span>
                             <span className="text-foreground/70 leading-relaxed">{item}</span>

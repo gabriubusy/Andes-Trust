@@ -72,7 +72,7 @@ export default function AnchorReportButton({ reportId, txHash, disabled = false,
         target="_blank"
         rel="noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 px-2 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
+        className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 px-2 py-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400"
         title="Ver transacción en blockchain"
       >
         <ShieldCheck className="h-3.5 w-3.5" />
@@ -86,7 +86,7 @@ export default function AnchorReportButton({ reportId, txHash, disabled = false,
     return (
       <span
         title="El reporte no tiene hash de integridad para anclar"
-        className="border-border text-foreground/30 inline-flex cursor-not-allowed items-center gap-1 rounded-lg border px-2 py-1 text-[11px]"
+        className="border-border text-foreground/30 inline-flex cursor-not-allowed items-center gap-1 rounded-lg border px-2 py-1 text-[12px]"
       >
         <ShieldAlert className="h-3.5 w-3.5" />
         Anclar
@@ -101,7 +101,7 @@ export default function AnchorReportButton({ reportId, txHash, disabled = false,
         onClick={() => (online ? mut.mutate() : setShowOfflineModal(true))}
         disabled={mut.isPending || mut.isSuccess}
         title={mut.isError ? friendlyErrorMessage(mut.error) : "Anclar en blockchain"}
-        className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors ${
+        className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[12px] font-medium transition-colors ${
           mut.isError
             ? "border-red-500/40 text-red-500"
             : "border-border text-foreground/50 hover:border-primary/40 hover:text-primary"

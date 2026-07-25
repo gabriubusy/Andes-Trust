@@ -148,12 +148,12 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ sale_id: id }),
       });
-      if (!res.ok) throw new Error("Error generando la factura");
+      if (!res.ok) throw new Error("Error generando la nota de entrega");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `factura-${id.slice(0, 8)}.pdf`;
+      a.download = `nota-entrega-${id.slice(0, 8)}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -286,7 +286,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
                   </span>
                   {sale.invoice_number && (
                     <span className="text-muted-foreground text-xs">
-                      Factura: {sale.invoice_number}
+                      Nota de entrega: {sale.invoice_number}
                     </span>
                   )}
                 </div>
@@ -503,10 +503,10 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             </dl>
           </div>
 
-          {/* Facturas */}
+          {/* Nota de entrega */}
           <div className="bg-card border-border rounded-2xl border p-6">
             <h3 className="text-foreground mb-1 flex items-center gap-2 text-base font-bold">
-              <Receipt className="text-primary h-4 w-4" /> Factura
+              <Receipt className="text-primary h-4 w-4" /> Nota de entrega
             </h3>
             <p className="text-foreground/40 mb-4 text-xs">
               {sale.invoice_number
@@ -524,7 +524,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
               ) : (
                 <Download className="h-4 w-4" />
               )}
-              Descargar factura (PDF)
+              Descargar nota de entrega (PDF)
             </button>
           </div>
         </div>

@@ -91,7 +91,7 @@ export default function ConfiguracionPage() {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* ── Sidebar nav ── */}
         <nav className="shrink-0 lg:w-56">
-          <p className="text-foreground/40 mb-2 px-1 text-[10px] font-semibold tracking-widest uppercase">
+          <p className="text-foreground/40 mb-2 px-1 text-[11px] font-semibold tracking-widest uppercase">
             Secciones
           </p>
           <ul className="space-y-1">
@@ -127,7 +127,7 @@ export default function ConfiguracionPage() {
                       >
                         {t.label}
                       </div>
-                      <div className="text-foreground/40 truncate text-[11px] leading-tight">
+                      <div className="text-foreground/40 truncate text-[12px] leading-tight">
                         {t.description}
                       </div>
                     </div>

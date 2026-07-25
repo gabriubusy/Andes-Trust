@@ -109,7 +109,7 @@ export default async function VerifyPage({
 
         {/* Header */}
         <div className="pb-1 text-center">
-          <p className="mb-1.5 text-[11px] font-medium tracking-[0.2em] text-neutral-500 uppercase">
+          <p className="mb-1.5 text-[12px] font-medium tracking-[0.2em] text-neutral-500 uppercase">
             Verificación de trazabilidad
           </p>
           <h1 className="text-2xl font-bold tracking-tight text-white">{data.summary.title}</h1>
@@ -117,9 +117,9 @@ export default async function VerifyPage({
             <p className="mt-1 text-sm text-neutral-400">{data.summary.subtitle}</p>
           )}
           <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-1">
-            <span className="text-[10px] font-medium text-neutral-400">{label}</span>
+            <span className="text-[11px] font-medium text-neutral-400">{label}</span>
             <span className="text-neutral-700">·</span>
-            <code className="font-mono text-[10px] text-neutral-500">{shortId(id)}</code>
+            <code className="font-mono text-[11px] text-neutral-500">{shortId(id)}</code>
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export default async function VerifyPage({
           <div className="grid grid-cols-3 gap-3 divide-x divide-neutral-800 rounded-2xl border border-neutral-800 bg-neutral-900 p-4 text-center">
             {data.summary.fields.map((f, i) => (
               <div key={i} className="px-1">
-                <p className="mb-1 text-[10px] tracking-wide text-neutral-600 uppercase">
+                <p className="mb-1 text-[11px] tracking-wide text-neutral-600 uppercase">
                   {f.label}
                 </p>
                 <p className="text-sm font-semibold text-neutral-100">{f.value}</p>
@@ -179,7 +179,7 @@ export default async function VerifyPage({
               <User className="h-3.5 w-3.5 text-neutral-500" />
               <span className="text-xs font-semibold text-neutral-300">Firmas digitales</span>
             </div>
-            <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] font-bold text-neutral-400">
+            <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[11px] font-bold text-neutral-400">
               {data.signatures.length}
             </span>
           </div>
@@ -198,7 +198,7 @@ export default async function VerifyPage({
                     </code>
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                           s.signature_valid
                             ? "bg-emerald-500/10 text-emerald-400"
                             : "bg-red-500/10 text-red-400"
@@ -207,7 +207,7 @@ export default async function VerifyPage({
                         {s.signature_valid ? "✓ Firma válida" : "✗ Firma inválida"}
                       </span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] ${
+                        className={`rounded-full px-2 py-0.5 text-[11px] ${
                           s.hash_matches_current
                             ? "bg-emerald-500/10 text-emerald-400"
                             : "bg-amber-500/10 text-amber-400"
@@ -219,7 +219,7 @@ export default async function VerifyPage({
                   </div>
                   <div className="flex items-center gap-1 text-neutral-600">
                     <Clock className="h-3 w-3" />
-                    <span className="text-[10px]">{fmtDate(s.signed_at)}</span>
+                    <span className="text-[11px]">{fmtDate(s.signed_at)}</span>
                   </div>
                 </div>
               ))}
@@ -234,7 +234,7 @@ export default async function VerifyPage({
               <ShieldCheck className="h-3.5 w-3.5 text-neutral-500" />
               <span className="text-xs font-semibold text-neutral-300">Anclas blockchain</span>
             </div>
-            <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] font-bold text-neutral-400">
+            <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[11px] font-bold text-neutral-400">
               {data.anchors.length}
             </span>
           </div>
@@ -249,11 +249,11 @@ export default async function VerifyPage({
                 <div key={i} className="space-y-1.5 px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
-                      <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-400 uppercase">
+                      <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-semibold text-violet-400 uppercase">
                         {a.network}
                       </span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] ${
+                        className={`rounded-full px-2 py-0.5 text-[11px] ${
                           a.matches_current
                             ? "bg-emerald-500/10 text-emerald-400"
                             : "bg-amber-500/10 text-amber-400"
@@ -272,12 +272,12 @@ export default async function VerifyPage({
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </div>
-                  <code className="font-mono text-[10px] text-neutral-500">
+                  <code className="font-mono text-[11px] text-neutral-500">
                     {shortHash(a.tx_hash)}
                   </code>
                   <div className="flex items-center gap-1 text-neutral-600">
                     <Clock className="h-3 w-3" />
-                    <span className="text-[10px]">{fmtDate(a.anchored_at)}</span>
+                    <span className="text-[11px]">{fmtDate(a.anchored_at)}</span>
                   </div>
                 </div>
               ))}
@@ -285,7 +285,7 @@ export default async function VerifyPage({
           )}
         </div>
 
-        <p className="pb-6 text-center text-[10px] text-neutral-700">
+        <p className="pb-6 text-center text-[11px] text-neutral-700">
           Verificación criptográfica · Finca El Progreso
         </p>
       </div>

@@ -135,7 +135,7 @@ export function TabFinca() {
         <div className="space-y-6 p-6">
           {/* Section: Identidad */}
           <div>
-            <p className="text-foreground/40 mb-3 flex items-center gap-1.5 text-[10px] font-semibold tracking-widest uppercase">
+            <p className="text-foreground/40 mb-3 flex items-center gap-1.5 text-[11px] font-semibold tracking-widest uppercase">
               <Building2 className="h-3 w-3" /> Identidad
             </p>
             <div className="space-y-3">
@@ -180,7 +180,7 @@ export function TabFinca() {
 
           {/* Section: Ubicación */}
           <div>
-            <p className="text-foreground/40 mb-3 flex items-center gap-1.5 text-[10px] font-semibold tracking-widest uppercase">
+            <p className="text-foreground/40 mb-3 flex items-center gap-1.5 text-[11px] font-semibold tracking-widest uppercase">
               <MapPin className="h-3 w-3" /> Ubicación
             </p>
             <div className="space-y-3">
@@ -287,7 +287,7 @@ export function TabFinca() {
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-1.5">
               <FileText className="text-foreground/20 h-3.5 w-3.5" />
-              <span className="text-foreground/20 text-[10px]">Certificados · INSAI · Fichas</span>
+              <span className="text-foreground/20 text-[11px]">Certificados · INSAI · Fichas</span>
             </div>
           </div>
         </div>

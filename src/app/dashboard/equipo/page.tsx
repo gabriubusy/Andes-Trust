@@ -484,12 +484,12 @@ export default function EquipoPage() {
                       <div className="text-foreground truncate text-sm font-medium">{i.email}</div>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${ROLE_TINT[i.role]}`}
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${ROLE_TINT[i.role]}`}
                         >
                           {ROLE_LABEL[i.role]}
                         </span>
                         <span
-                          className={`text-[10px] ${daysLeft <= 3 ? "text-red-400" : "text-foreground/40"}`}
+                          className={`text-[11px] ${daysLeft <= 3 ? "text-red-400" : "text-foreground/40"}`}
                         >
                           · {daysLeft}d restantes
                         </span>

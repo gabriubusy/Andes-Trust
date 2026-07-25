@@ -20,6 +20,7 @@ import {
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import Pagination, { usePagination } from "@/components/Pagination";
 import RegisterTreatmentModal from "@/components/RegisterTreatmentModal";
+import BatchApplyModal from "@/components/BatchApplyModal";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { SkeletonCard, SkeletonTable } from "@/components/ui/Skeleton";
@@ -82,7 +83,7 @@ function KindBadge({ kind }: { kind: string | null }) {
   const cls = KIND_BADGE[kind] ?? "bg-muted text-foreground/60";
   return (
     <span
-      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${cls}`}
+      className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${cls}`}
     >
       {kind}
     </span>
@@ -108,7 +109,7 @@ function WithdrawalTile({
           : "border-emerald-500/20 bg-emerald-500/5"
       }`}
     >
-      <div className="text-foreground/50 mb-0.5 flex items-center gap-1 text-[10px] font-medium tracking-wide uppercase">
+      <div className="text-foreground/50 mb-0.5 flex items-center gap-1 text-[11px] font-medium tracking-wide uppercase">
         <Icon className="h-3 w-3" /> {label}
       </div>
       <div
@@ -137,7 +138,7 @@ function WithdrawalChip({ label, date }: { label: string; date: string | null })
   const urgent = days <= 3;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
         urgent
           ? "bg-red-500/15 text-red-600 dark:text-red-400"
           : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
@@ -171,7 +172,7 @@ function WithdrawalBar({
   if (days < 0) {
     return (
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-[13px]">{emoji}</span>
+        <span className="text-[14px]">{emoji}</span>
         <span className="text-muted-foreground w-12 shrink-0">{label}</span>
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-emerald-500/20">
           <div className="h-full w-full rounded-full bg-emerald-500" />
@@ -192,7 +193,7 @@ function WithdrawalBar({
 
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-[13px]">{emoji}</span>
+      <span className="text-[14px]">{emoji}</span>
       <span className="text-muted-foreground w-12 shrink-0">{label}</span>
       <div className={`${trackColor} h-1.5 flex-1 overflow-hidden rounded-full`}>
         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
@@ -217,6 +218,7 @@ export default function TratamientosPage() {
   const [catalogSearch, setCatalogSearch] = useState("");
   const [kindFilter, setKindFilter] = useState<string>("all");
   const [showRegister, setShowRegister] = useState(false);
+  const [showBatch, setShowBatch] = useState(false);
 
   // tratamientos activos (withdrawal aún vigente o sin fecha de fin)
   const activeQuery = useQuery<ActiveTreatment[]>({
@@ -328,6 +330,14 @@ export default function TratamientosPage() {
           </Link>
           <button
             type="button"
+            onClick={() => setShowBatch(true)}
+            className="border-border text-foreground/70 hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium"
+          >
+            <FlaskConical className="h-4 w-4" />
+            <span className="hidden sm:inline">Por lote</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setShowRegister(true)}
             className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
           >
@@ -353,7 +363,7 @@ export default function TratamientosPage() {
             <t.icon className="h-4 w-4" />
             {t.label}
             {t.count !== undefined && t.count > 0 && (
-              <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-500">
+              <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[11px] font-bold text-red-500">
                 {t.count}
               </span>
             )}
@@ -438,7 +448,7 @@ export default function TratamientosPage() {
                           <KindBadge kind={t.treatments_catalog?.kind ?? null} />
                           {inWithdrawal && (
                             <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                                 urgentWithdrawal
                                   ? "bg-red-500/15 text-red-600 dark:text-red-400"
                                   : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
@@ -815,6 +825,19 @@ export default function TratamientosPage() {
           onClose={() => setShowRegister(false)}
           onDone={() => {
             setShowRegister(false);
+            qc.invalidateQueries({ queryKey: ["treatments-active", farmId] });
+            qc.invalidateQueries({ queryKey: ["treatments-history", farmId] });
+          }}
+        />
+      )}
+
+      {showBatch && (
+        <BatchApplyModal
+          kind="treatment"
+          farmId={farmId}
+          profileId={profileId ?? undefined}
+          onClose={() => setShowBatch(false)}
+          onDone={() => {
             qc.invalidateQueries({ queryKey: ["treatments-active", farmId] });
             qc.invalidateQueries({ queryKey: ["treatments-history", farmId] });
           }}

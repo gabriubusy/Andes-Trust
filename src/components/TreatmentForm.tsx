@@ -17,9 +17,21 @@ import { friendlyErrorMessage } from "@/lib/errors/friendly";
 const schema = z
   .object({
     treatment_id: z.string().uuid("Selecciona un tratamiento").optional().or(z.literal("")),
-    started_at: z.string().optional(),
+    started_at: z.string().min(1, "La fecha de inicio es obligatoria."),
     ended_at: z.string().optional(),
-    dose: z.string().max(120).optional(),
+    // Obligatoria y con cantidad: texto libre ("5 ml/kg", "10 ml") pero debe
+    // contener un número mayor que cero. Una dosis vacía, "0" o sin cifra no vale.
+    dose: z
+      .string()
+      .min(1, "La dosis es obligatoria.")
+      .max(120)
+      .refine(
+        (v) => {
+          const m = v.match(/\d+(\.\d+)?/); // primera cifra del texto
+          return m !== null && Number(m[0]) > 0;
+        },
+        { message: "La dosis debe incluir una cantidad mayor que cero." }
+      ),
     notes: z.string().max(500).optional(),
     vet_approved: z.boolean().refine((v) => v === true, {
       message: "Se requiere aprobación veterinaria antes de registrar.",
@@ -96,7 +108,11 @@ export default function TreatmentForm({
   } = useForm<Values>({
     resolver: zodResolver(schema),
     mode: "onChange",
-    defaultValues: { vet_approved: false, treatment_id: presetTreatmentId ?? "" },
+    defaultValues: {
+      vet_approved: false,
+      treatment_id: presetTreatmentId ?? "",
+      started_at: new Date().toISOString().slice(0, 10),
+    },
   });
 
   const catalogQuery = useQuery<CatalogRow[]>({
@@ -277,7 +293,9 @@ export default function TreatmentForm({
         ) : null}
 
         <div>
-          <label className={labelClass}>Inicio</label>
+          <label className={labelClass}>
+            Inicio <span className="text-accent">*</span>
+          </label>
           <input
             type="date"
             className={inputClass}
@@ -295,8 +313,11 @@ export default function TreatmentForm({
           {errors.ended_at && <p className="text-accent mt-1 text-xs">{errors.ended_at.message}</p>}
         </div>
         <div>
-          <label className={labelClass}>Dosis</label>
+          <label className={labelClass}>
+            Dosis <span className="text-accent">*</span>
+          </label>
           <input className={inputClass} placeholder="Ej. 5 ml/kg" {...register("dose")} />
+          {errors.dose && <p className="text-accent mt-1 text-xs">{errors.dose.message}</p>}
         </div>
         <div>
           <label className={labelClass}>Notas</label>

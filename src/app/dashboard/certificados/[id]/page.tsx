@@ -291,7 +291,7 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
 
               {cert.metadata?.notes && (
                 <div className="bg-muted/40 border-border mt-5 rounded-xl border p-4">
-                  <p className="text-foreground/50 mb-1 text-[10px] font-semibold tracking-wider uppercase">
+                  <p className="text-foreground/50 mb-1 text-[11px] font-semibold tracking-wider uppercase">
                     Notas
                   </p>
                   <p className="text-foreground/80 text-sm">{cert.metadata.notes}</p>
@@ -415,7 +415,7 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
                   )}
                 </div>
                 {verifyUrl && (
-                  <p className="text-foreground/50 w-full truncate text-center font-mono text-[10px]">
+                  <p className="text-foreground/50 w-full truncate text-center font-mono text-[11px]">
                     {verifyUrl}
                   </p>
                 )}
@@ -457,7 +457,7 @@ export default function CertificadoDetailPage({ params }: { params: Promise<{ id
 function DataTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="bg-muted/30 border-border/50 rounded-xl border px-3 py-2.5">
-      <dt className="text-foreground/45 text-[10px] font-semibold tracking-wider uppercase">
+      <dt className="text-foreground/45 text-[11px] font-semibold tracking-wider uppercase">
         {label}
       </dt>
       <dd className="text-foreground mt-1 text-sm font-medium">{children}</dd>

@@ -202,7 +202,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
 
           {/* Nombre sobre la imagen */}
           <div className="absolute right-0 bottom-0 left-0 mx-auto max-w-5xl px-6 pb-8">
-            <p className="mb-1 text-[10px] font-bold tracking-widest text-white/50 uppercase">
+            <p className="mb-1 text-[11px] font-bold tracking-widest text-white/50 uppercase">
               Ficha pública de trazabilidad
             </p>
             <h1 className="text-4xl leading-tight font-bold text-white drop-shadow-lg">
@@ -232,7 +232,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
               <Beef className="text-primary/70 h-11 w-11" />
             </div>
 
-            <p className="text-foreground/50 mb-1.5 text-[10px] font-bold tracking-widest uppercase">
+            <p className="text-foreground/50 mb-1.5 text-[11px] font-bold tracking-widest uppercase">
               Ficha pública de trazabilidad
             </p>
             <h1 className="text-foreground text-4xl leading-tight font-bold">
@@ -335,7 +335,7 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
                           </span>
                           {delta !== null && (
                             <span
-                              className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${delta >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"}`}
+                              className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${delta >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"}`}
                             >
                               {delta >= 0 ? "+" : ""}
                               {delta.toFixed(1)} kg
@@ -390,12 +390,12 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
                                 {cat?.name ?? "Vacuna"}
                               </span>
                               {isDue ? (
-                                <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-500">
+                                <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-500">
                                   <AlertTriangle className="h-2.5 w-2.5" />
                                   Refuerzo pendiente
                                 </span>
                               ) : (
-                                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
+                                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-600">
                                   Al día
                                 </span>
                               )}
@@ -456,15 +456,15 @@ export default async function PublicAnimalPage({ params }: { params: Promise<{ s
                               {CERT_TYPE_LABELS[c.type] ?? c.type}
                             </span>
                             {expired ? (
-                              <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">
+                              <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-red-500">
                                 <AlertTriangle className="h-2.5 w-2.5" /> Vencido
                               </span>
                             ) : nearExpiry ? (
-                              <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">
+                              <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-amber-600">
                                 <AlertTriangle className="h-2.5 w-2.5" /> Por vencer
                               </span>
                             ) : (
-                              <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+                              <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-600">
                                 Vigente
                               </span>
                             )}
@@ -524,7 +524,7 @@ function StatCard({
         <Icon className={`${color} h-4 w-4`} />
       </div>
       <div>
-        <p className="text-foreground/40 text-[10px] font-semibold tracking-wider uppercase">
+        <p className="text-foreground/40 text-[11px] font-semibold tracking-wider uppercase">
           {label}
         </p>
         <p className="text-foreground mt-0.5 text-base font-bold">{value}</p>

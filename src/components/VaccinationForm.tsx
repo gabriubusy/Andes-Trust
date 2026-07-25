@@ -17,12 +17,12 @@ import { friendlyErrorMessage } from "@/lib/errors/friendly";
 const schema = z
   .object({
     vaccine_id: z.string().uuid("Selecciona una vacuna"),
-    applied_at: z.string().optional(),
+    applied_at: z.string().min(1, "La fecha de aplicación es obligatoria."),
     dose_ml: z
       .string()
-      .optional()
-      .refine((v) => !v || (!Number.isNaN(Number(v)) && Number(v) > 0), {
-        message: "Dosis inválida",
+      .min(1, "La dosis es obligatoria.")
+      .refine((v) => !Number.isNaN(Number(v)) && Number(v) > 0, {
+        message: "La dosis (ml) debe ser un número mayor que cero.",
       }),
     batch_number: z.string().max(60).optional(),
     next_due_at: z.string().optional(),
@@ -113,7 +113,7 @@ export default function VaccinationForm({
   } = useForm<Values>({
     resolver: zodResolver(schema),
     mode: "onChange",
-    defaultValues: { vet_approved: false },
+    defaultValues: { vet_approved: false, applied_at: new Date().toISOString().slice(0, 10) },
   });
 
   const vaccinesQuery = useQuery<VaccineRow[]>({
@@ -286,7 +286,7 @@ export default function VaccinationForm({
         </div>
         <div>
           <label htmlFor="applied_at" className={labelClass}>
-            Aplicada el
+            Aplicada el <span className="text-accent">*</span>
           </label>
           <input
             id="applied_at"
@@ -311,7 +311,7 @@ export default function VaccinationForm({
 
         <div>
           <label htmlFor="dose_ml" className={labelClass}>
-            Dosis (ml)
+            Dosis (ml) <span className="text-accent">*</span>
           </label>
           <input
             id="dose_ml"
@@ -321,6 +321,7 @@ export default function VaccinationForm({
             className={inputClass}
             {...register("dose_ml")}
           />
+          {errors.dose_ml && <p className="text-accent mt-1 text-xs">{errors.dose_ml.message}</p>}
         </div>
         <div>
           <label htmlFor="batch_number" className={labelClass}>

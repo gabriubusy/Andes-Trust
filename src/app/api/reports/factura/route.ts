@@ -1,6 +1,8 @@
 // POST /api/reports/factura
 // body: { sale_id: string }
-// Genera el PDF de factura de una venta.
+// Genera el PDF de nota de entrega de una venta.
+// (La ruta conserva el nombre `factura` por compatibilidad; el documento
+//  que produce es una nota de entrega.)
 
 import { readFile } from "fs/promises";
 import path from "path";
@@ -210,7 +212,7 @@ export async function POST(req: Request) {
   const page = pdf.addPage([W, H]);
   const right = W - MARGIN;
 
-  // ── Cabecera: logo + nombre finca a la izquierda, "FACTURA" a la derecha ──
+  // ── Cabecera: logo + nombre finca a la izquierda, "NOTA DE ENTREGA" a la derecha ──
   let headTop = H - MARGIN;
   const logoSize = 42;
   if (logoImg) {
@@ -229,7 +231,9 @@ export async function POST(req: Request) {
     page.drawText(farmLegal, { x: textX, y: headTop - 28, size: 8.5, font, color: C.mid });
   }
 
-  drawRightText(page, "FACTURA", right, headTop - 8, 22, fontBold, C.primary);
+  // Tamaño menor que el de "FACTURA": el texto es más largo y a 22pt se
+  // montaba sobre el nombre de la finca en la esquina izquierda.
+  drawRightText(page, "NOTA DE ENTREGA", right, headTop - 6, 15, fontBold, C.primary);
   const invoiceLabel = sale.invoice_number ?? sale.id.slice(0, 8).toUpperCase();
   drawRightText(page, `N.° ${invoiceLabel}`, right, headTop - 26, 10, fontBold, C.ink);
   drawRightText(page, fmtDate(sale.sold_at), right, headTop - 39, 9, font, C.mid);
@@ -243,7 +247,7 @@ export async function POST(req: Request) {
   });
   y -= 26;
 
-  // ── Tarjetas: Emite / Facturar a ──────────────────────────────────────────
+  // ── Tarjetas: Emite / Entregar a ──────────────────────────────────────────
   const cardGap = 16;
   const cardW = (right - MARGIN - cardGap) / 2;
   const cardTop = y;
@@ -287,7 +291,7 @@ export async function POST(req: Request) {
     page.drawText(line as string, { x: MARGIN + cardPad, y: ly, size: 8.5, font, color: C.mid });
   }
 
-  // caja derecha: FACTURAR A
+  // caja derecha: ENTREGAR A
   const rightCardX = MARGIN + cardW + cardGap;
   page.drawRectangle({
     x: rightCardX,
@@ -306,7 +310,7 @@ export async function POST(req: Request) {
     color: C.amber,
   });
   let ry = cardTop - cardPad - 2;
-  page.drawText("FACTURAR A", {
+  page.drawText("ENTREGAR A", {
     x: rightCardX + cardPad,
     y: ry,
     size: 7.5,
@@ -556,7 +560,7 @@ export async function POST(req: Request) {
   );
 
   const pdfBytes = await pdf.save();
-  const filename = `factura-${invoiceLabel}.pdf`;
+  const filename = `nota-entrega-${invoiceLabel}.pdf`;
 
   return new NextResponse(new Uint8Array(pdfBytes), {
     status: 200,

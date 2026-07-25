@@ -29,6 +29,7 @@ import MilkForm from "@/components/MilkForm";
 import TreatmentForm from "@/components/TreatmentForm";
 import AnimalQrCard from "@/components/AnimalQrCard";
 import SignAnchorButton from "@/components/SignAnchorButton";
+import Lightbox from "@/components/Lightbox";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { getSignedPhotoUrl, uploadAnimalPhoto } from "@/lib/supabase/storage";
@@ -514,7 +515,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               )}
               {/* Status badge */}
               <span
-                className={`absolute top-3 right-3 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase backdrop-blur-sm ${
+                className={`absolute top-3 right-3 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide uppercase backdrop-blur-sm ${
                   animal.status === "active"
                     ? "bg-emerald-500/80 text-white"
                     : animal.status === "sold"
@@ -535,14 +536,14 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 
               {/* Chips raza / sexo */}
               <div className="flex flex-wrap gap-1.5">
-                <span className="bg-muted text-foreground/70 rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                <span className="bg-muted text-foreground/70 rounded-full px-2.5 py-0.5 text-[12px] font-medium">
                   {animal.sex === "female" ? "♀ Hembra" : "♂ Macho"}
                 </span>
                 {(animal.animal_breeds ?? [])
                   .map((ab) => ab.breeds?.name)
                   .filter(Boolean)
                   .join(", ") && (
-                  <span className="bg-muted text-foreground/70 rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                  <span className="bg-muted text-foreground/70 rounded-full px-2.5 py-0.5 text-[12px] font-medium">
                     {(animal.animal_breeds ?? [])
                       .map((ab) => ab.breeds?.name)
                       .filter(Boolean)
@@ -550,7 +551,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                   </span>
                 )}
                 {animal.purpose && (
-                  <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize">
+                  <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-[12px] font-medium capitalize">
                     {animal.purpose === "dairy"
                       ? "Lechero"
                       : animal.purpose === "beef"
@@ -570,7 +571,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     <div className="text-foreground text-sm font-bold">
                       {animal.current_weight_kg} kg
                     </div>
-                    <div className="text-foreground/40 text-[10px]">Peso actual</div>
+                    <div className="text-foreground/40 text-[11px]">Peso actual</div>
                   </div>
                 </div>
               )}
@@ -587,7 +588,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                         year: "numeric",
                       })}
                     </div>
-                    <div className="text-foreground/40 text-[10px]">Fecha de nacimiento</div>
+                    <div className="text-foreground/40 text-[11px]">Fecha de nacimiento</div>
                   </div>
                 </div>
               )}
@@ -633,7 +634,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
               </p>
             </div>
             <span
-              className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
+              className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide uppercase ${
                 animal.status === "active"
                   ? "bg-emerald-500/15 text-emerald-600"
                   : animal.status === "sold"
@@ -904,7 +905,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                           }}
                           className="text-foreground/70 file:bg-muted file:text-foreground hover:file:bg-muted/70 block w-full text-xs file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-medium"
                         />
-                        <p className="text-foreground/40 mt-1 text-[10px]">
+                        <p className="text-foreground/40 mt-1 text-[11px]">
                           JPG, PNG o WebP · máx. 8 MB
                         </p>
                         {photoError && <p className="text-accent mt-1 text-xs">{photoError}</p>}
@@ -1432,7 +1433,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-muted/30 border-border/40 rounded-xl border px-3 py-2.5">
-      <dt className="text-foreground/45 text-[10px] font-semibold tracking-wide uppercase">
+      <dt className="text-foreground/45 text-[11px] font-semibold tracking-wide uppercase">
         {label}
       </dt>
       <dd className="text-foreground mt-0.5 text-sm font-semibold capitalize">{value}</dd>
@@ -1749,13 +1750,13 @@ function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: bool
         </svg>
         {/* X axis labels */}
         <div className="mt-1 flex justify-between px-2 pb-2">
-          <span className="text-foreground/40 text-[10px]">
+          <span className="text-foreground/40 text-[11px]">
             {new Date(first.measured_at).toLocaleDateString("es-VE", {
               day: "2-digit",
               month: "short",
             })}
           </span>
-          <span className="text-foreground/40 text-[10px]">
+          <span className="text-foreground/40 text-[11px]">
             {new Date(last.measured_at).toLocaleDateString("es-VE", {
               day: "2-digit",
               month: "short",
@@ -1787,6 +1788,7 @@ function RecordList({
   titleIcon?: typeof Beef;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [zoomSrc, setZoomSrc] = useState<string | null>(null);
 
   return (
     <div className="bg-card border-border overflow-hidden rounded-2xl border">
@@ -1839,8 +1841,22 @@ function RecordList({
                 >
                   <div className="relative h-10 w-10 shrink-0">
                     {r.photo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.photo} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomSrc(r.photo!);
+                        }}
+                        className="focus-visible:ring-primary group/thumb block h-10 w-10 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2"
+                        aria-label="Ampliar imagen"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={r.photo}
+                          alt=""
+                          className="h-10 w-10 object-cover transition-transform group-hover/thumb:scale-110"
+                        />
+                      </button>
                     ) : (
                       <div
                         className={`${iconBg} ${iconColor} flex h-10 w-10 items-center justify-center rounded-xl`}
@@ -1854,7 +1870,7 @@ function RecordList({
                       <span className="text-foreground text-sm font-medium">{r.primary}</span>
                       {r.badge && (
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.badgeColor ?? "bg-muted text-foreground/60"}`}
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${r.badgeColor ?? "bg-muted text-foreground/60"}`}
                         >
                           {r.badge}
                         </span>
@@ -1884,7 +1900,7 @@ function RecordList({
                           key={d.label}
                           className="bg-background border-border/50 rounded-xl border px-3 py-2.5"
                         >
-                          <dt className="text-foreground/40 text-[10px] font-semibold tracking-wider uppercase">
+                          <dt className="text-foreground/40 text-[11px] font-semibold tracking-wider uppercase">
                             {d.label}
                           </dt>
                           <dd className="text-foreground mt-0.5 text-xs font-medium break-all">
@@ -1900,6 +1916,8 @@ function RecordList({
           })}
         </ul>
       )}
+
+      {zoomSrc && <Lightbox src={zoomSrc} onClose={() => setZoomSrc(null)} />}
     </div>
   );
 }

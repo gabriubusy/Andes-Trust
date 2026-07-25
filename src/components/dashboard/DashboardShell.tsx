@@ -365,7 +365,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
         </div>
         {!sidebarCollapsed && (
           <div className="border-border shrink-0 border-b px-4 py-3">
-            <div className="text-foreground/60 text-[10px] font-semibold tracking-wider uppercase">
+            <div className="text-foreground/60 text-[11px] font-semibold tracking-wider uppercase">
               Finca
             </div>
             <div className="text-foreground truncate text-sm font-semibold">{farmName}</div>
@@ -395,7 +395,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
                   <>
                     <span className="flex-1">{item.label}</span>
                     {item.href === "/dashboard/alertas" && openAlerts > 0 && (
-                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-500">
+                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-semibold text-red-500">
                         {openAlerts}
                       </span>
                     )}
@@ -407,7 +407,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
 
           {comingSoonItems.length > 0 && (
             <div className="border-border/50 mt-4 border-t pt-4">
-              <p className="text-foreground/40 px-3 pb-2 text-[10px] font-semibold tracking-wider uppercase">
+              <p className="text-foreground/40 px-3 pb-2 text-[11px] font-semibold tracking-wider uppercase">
                 Próximamente
               </p>
               {comingSoonItems.map((item) => (
@@ -431,7 +431,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
               <div className="min-w-0 flex-1">
                 <div className="text-foreground truncate text-sm font-medium">{displayName}</div>
                 <div className="text-foreground/60 truncate text-xs">{email ?? "Sin email"}</div>
-                <span className="bg-primary/10 text-primary mt-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold">
+                <span className="bg-primary/10 text-primary mt-1 inline-block rounded-md px-1.5 py-0.5 text-[11px] font-semibold">
                   {ROLE_LABEL[currentRole]}
                 </span>
               </div>
@@ -482,7 +482,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
               >
                 <Bell className="h-4 w-4" />
                 {openAlerts > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[11px] font-bold text-white">
                     {openAlerts > 9 ? "9+" : openAlerts}
                   </span>
                 )}
@@ -493,7 +493,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
                   <div className="border-border flex items-center justify-between border-b px-4 py-3">
                     <span className="text-foreground text-sm font-semibold">Notificaciones</span>
                     {openAlerts > 0 && (
-                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-500">
+                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-semibold text-red-500">
                         {openAlerts} pendiente{openAlerts !== 1 ? "s" : ""}
                       </span>
                     )}
@@ -595,7 +595,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
             <Link
               key={href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium ${
+              className={`flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[12px] font-medium ${
                 active ? "text-primary" : "text-foreground/60"
               }`}
             >
@@ -607,7 +607,7 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="text-foreground/60 flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium"
+          className="text-foreground/60 flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[12px] font-medium"
         >
           <MoreHorizontal className="h-5 w-5" />
           Más

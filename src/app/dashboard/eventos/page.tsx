@@ -555,7 +555,7 @@ export default function EventosPage() {
                   <Icon className="h-3 w-3" />
                   {meta.label}
                   {count > 0 && (
-                    <span className={`ml-0.5 text-[10px] ${active ? "opacity-70" : "opacity-40"}`}>
+                    <span className={`ml-0.5 text-[11px] ${active ? "opacity-70" : "opacity-40"}`}>
                       {count}
                     </span>
                   )}
@@ -601,7 +601,7 @@ export default function EventosPage() {
                     <span className="text-foreground/60 text-xs font-semibold">{group.label}</span>
                   </div>
                   <div className="border-border flex-1 border-t" />
-                  <span className="bg-muted text-foreground/40 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                  <span className="bg-muted text-foreground/40 rounded-full px-2 py-0.5 text-[11px] font-medium">
                     {group.events.length} evento{group.events.length !== 1 ? "s" : ""}
                   </span>
                 </div>
@@ -669,7 +669,7 @@ export default function EventosPage() {
                                 {chips.map((c) => (
                                   <span
                                     key={c.label}
-                                    className="bg-muted/60 text-foreground/50 rounded-lg px-2 py-0.5 text-[11px]"
+                                    className="bg-muted/60 text-foreground/50 rounded-lg px-2 py-0.5 text-[12px]"
                                   >
                                     <span className="text-foreground/30">{c.label}:</span>{" "}
                                     <span className="text-foreground/60 font-medium">
@@ -682,7 +682,7 @@ export default function EventosPage() {
                           </div>
 
                           {/* Time */}
-                          <time className="text-foreground/30 shrink-0 pt-0.5 text-[11px] font-medium">
+                          <time className="text-foreground/30 shrink-0 pt-0.5 text-[12px] font-medium">
                             {fmtTime(event.occurred_at)}
                           </time>
                         </div>

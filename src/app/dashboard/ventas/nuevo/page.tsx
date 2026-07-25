@@ -424,7 +424,7 @@ export default function NuevaVentaPage() {
             </div>
             <div>
               <label htmlFor="invoice_number" className={labelClass}>
-                N° de factura / documento
+                N° de nota de entrega / documento
               </label>
               <input
                 id="invoice_number"

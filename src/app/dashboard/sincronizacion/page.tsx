@@ -145,7 +145,7 @@ export default function SincronizacionPage() {
                       {it.last_error && (
                         <p className="mt-1 text-xs text-red-500">{it.last_error}</p>
                       )}
-                      <pre className="text-foreground/50 mt-1 max-h-24 overflow-y-auto text-[10px]">
+                      <pre className="text-foreground/50 mt-1 max-h-24 overflow-y-auto text-[11px]">
                         {JSON.stringify(it.payload, null, 2)}
                       </pre>
                     </div>

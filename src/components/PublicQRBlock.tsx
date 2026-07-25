@@ -33,7 +33,7 @@ function QrCard({
       </div>
       <div className="text-center">
         <p className={`text-xs font-semibold ${accent}`}>{label}</p>
-        <p className="text-foreground/40 mt-0.5 text-[10px]">{sublabel}</p>
+        <p className="text-foreground/40 mt-0.5 text-[11px]">{sublabel}</p>
       </div>
     </div>
   );
