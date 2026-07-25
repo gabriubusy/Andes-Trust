@@ -36,6 +36,10 @@ import { getSignedPhotoUrl, uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
 import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
 import OfflineWriteNotice, { useOnline } from "@/components/OfflineWriteNotice";
+import EditAnimalRecordModal, {
+  type EditKind,
+  type EditableRecord,
+} from "@/components/EditAnimalRecordModal";
 import { toast } from "sonner";
 
 type AnimalUpdate = {
@@ -83,6 +87,10 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const [treatModal, setTreatModal] = useState(false);
   const [milkModal, setMilkModal] = useState(false);
   const [movModal, setMovModal] = useState(false);
+  // Edición de un registro (pesaje/vacuna/tratamiento). null = cerrado.
+  const [editRecord, setEditRecord] = useState<{ kind: EditKind; record: EditableRecord } | null>(
+    null
+  );
   const [editValues, setEditValues] = useState<Partial<Animal>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -133,7 +141,19 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
         .order("measured_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      if (!rows.length) return rows;
+      // Pesajes anclables (SignAnchorButton soporta "weighings"): si alguno se
+      // ancló, no debe poder editarse. Se trae su tx_hash para bloquear la edición.
+      const ids = rows.map((r) => r.id as string);
+      const { data: brs } = await supabase
+        .from("blockchain_records")
+        .select("entity_id, tx_hash")
+        .eq("entity_type", "weighings")
+        .in("entity_id", ids);
+      const brMap: Record<string, string> = {};
+      for (const br of brs ?? []) brMap[br.entity_id as string] = br.tx_hash as string;
+      return rows.map((r) => ({ ...r, tx_hash: brMap[r.id as string] ?? null }));
     },
   });
 
@@ -144,7 +164,9 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       if (!supabase) return [];
       const { data, error } = await supabase
         .from("vaccinations")
-        .select("id, applied_at, dose_ml, batch_number, next_due_at, notes, vaccines_catalog(name)")
+        .select(
+          "id, vaccine_id, applied_at, dose_ml, batch_number, next_due_at, notes, vaccines_catalog(name)"
+        )
         .eq("animal_id", id)
         .order("applied_at", { ascending: false })
         .limit(50);
@@ -281,7 +303,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       const { data, error } = await supabase
         .from("treatments")
         .select(
-          "id, started_at, ended_at, dose, notes, withdrawal_until_meat, withdrawal_until_milk, treatments_catalog(name, kind)"
+          "id, treatment_id, started_at, ended_at, dose, notes, withdrawal_until_meat, withdrawal_until_milk, treatments_catalog(name, kind)"
         )
         .eq("animal_id", id)
         .order("started_at", { ascending: false })
@@ -1002,6 +1024,21 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                             ? "bg-emerald-500/10 text-emerald-600"
                             : "bg-red-500/10 text-red-500",
                       icon: TrendingUp,
+                      action: (w as { tx_hash?: string | null }).tx_hash ? undefined : (
+                        <RecordEditButton
+                          onClick={() =>
+                            setEditRecord({
+                              kind: "weighing",
+                              record: {
+                                id: w.id as string,
+                                weight_kg: w.weight_kg as number,
+                                measured_at: w.measured_at as string,
+                                notes: (w.notes as string | null) ?? null,
+                              },
+                            })
+                          }
+                        />
+                      ),
                     };
                   })}
                 />
@@ -1095,11 +1132,32 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     photo: vacDocsQuery.data?.[v.id as string] ?? null,
                     details,
                     action: (
-                      <SignAnchorButton
-                        entityType="vaccinations"
-                        entityId={v.id as string}
-                        txHash={(v as unknown as { tx_hash?: string | null }).tx_hash ?? null}
-                      />
+                      <div className="flex items-center gap-1.5">
+                        {!(v as unknown as { tx_hash?: string | null }).tx_hash && (
+                          <RecordEditButton
+                            onClick={() =>
+                              setEditRecord({
+                                kind: "vaccination",
+                                record: {
+                                  id: v.id as string,
+                                  vaccine_id:
+                                    (v as { vaccine_id?: string | null }).vaccine_id ?? null,
+                                  applied_at: v.applied_at as string,
+                                  dose_ml: (v.dose_ml as number | null) ?? null,
+                                  batch_number: (v.batch_number as string | null) ?? null,
+                                  next_due_at: (v.next_due_at as string | null) ?? null,
+                                  notes: (v.notes as string | null) ?? null,
+                                },
+                              })
+                            }
+                          />
+                        )}
+                        <SignAnchorButton
+                          entityType="vaccinations"
+                          entityId={v.id as string}
+                          txHash={(v as unknown as { tx_hash?: string | null }).tx_hash ?? null}
+                        />
+                      </div>
                     ),
                   };
                 })}
@@ -1212,11 +1270,31 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                     photo: treatDocsQuery.data?.[t.id as string] ?? null,
                     details,
                     action: (
-                      <SignAnchorButton
-                        entityType="treatments"
-                        entityId={t.id as string}
-                        txHash={(t as unknown as { tx_hash?: string | null }).tx_hash ?? null}
-                      />
+                      <div className="flex items-center gap-1.5">
+                        {!(t as unknown as { tx_hash?: string | null }).tx_hash && (
+                          <RecordEditButton
+                            onClick={() =>
+                              setEditRecord({
+                                kind: "treatment",
+                                record: {
+                                  id: t.id as string,
+                                  treatment_id:
+                                    (t as { treatment_id?: string | null }).treatment_id ?? null,
+                                  started_at: t.started_at as string,
+                                  ended_at: (t.ended_at as string | null) ?? null,
+                                  dose: (t.dose as string | null) ?? null,
+                                  notes: (t.notes as string | null) ?? null,
+                                },
+                              })
+                            }
+                          />
+                        )}
+                        <SignAnchorButton
+                          entityType="treatments"
+                          entityId={t.id as string}
+                          txHash={(t as unknown as { tx_hash?: string | null }).tx_hash ?? null}
+                        />
+                      </div>
                     ),
                   };
                 })}
@@ -1376,6 +1454,15 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
           )}
         </div>
       </div>
+
+      {editRecord && (
+        <EditAnimalRecordModal
+          kind={editRecord.kind}
+          record={editRecord.record}
+          animalId={id}
+          onClose={() => setEditRecord(null)}
+        />
+      )}
 
       {delModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1765,6 +1852,21 @@ function WeightChart({ rows, isLoading }: { rows: WeighingRow[]; isLoading: bool
         </div>
       </div>
     </div>
+  );
+}
+
+/** Botón "Editar" para una fila de registro (mismo look que SignAnchorButton). */
+function RecordEditButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Editar registro"
+      className="border-border text-foreground/50 hover:border-primary/40 hover:text-primary inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors"
+    >
+      <Pencil className="h-3.5 w-3.5" />
+      Editar
+    </button>
   );
 }
 

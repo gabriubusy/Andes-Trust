@@ -1,12 +1,11 @@
-import { createPublicClient, createWalletClient, encodeFunctionData, http } from "viem";
+import { createPublicClient, createWalletClient, encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { polygonAmoy } from "viem/chains";
-
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology";
+import { amoyTransport } from "./transport";
 
 let _public: ReturnType<typeof createPublicClient> | null = null;
 function getPublicClient() {
-  if (!_public) _public = createPublicClient({ chain: polygonAmoy, transport: http(RPC_URL) });
+  if (!_public) _public = createPublicClient({ chain: polygonAmoy, transport: amoyTransport() });
   return _public;
 }
 
@@ -15,7 +14,7 @@ function getWalletClient() {
   if (!pk) throw new Error("RELAYER_PRIVATE_KEY not configured");
   const key = pk.startsWith("0x") ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`);
   const account = privateKeyToAccount(key);
-  return createWalletClient({ account, chain: polygonAmoy, transport: http(RPC_URL) });
+  return createWalletClient({ account, chain: polygonAmoy, transport: amoyTransport() });
 }
 
 export function getRelayerAddress(): `0x${string}` {

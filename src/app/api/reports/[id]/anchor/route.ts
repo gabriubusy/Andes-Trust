@@ -15,7 +15,8 @@
 import { NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { createPublicClient, http } from "viem";
+import { createPublicClient } from "viem";
+import { amoyTransport } from "@/lib/blockchain/transport";
 import { polygonAmoy } from "viem/chains";
 import { relayContractWrite } from "@/lib/blockchain/relayer";
 
@@ -147,7 +148,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const publicClient = createPublicClient({
       chain: polygonAmoy,
-      transport: http(process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc-amoy.polygon.technology"),
+      transport: amoyTransport(),
     });
     const receipt = await publicClient.waitForTransactionReceipt({ hash: anchorTx });
 

@@ -97,6 +97,14 @@ class OfflineDB extends Dexie {
         "Hay otra pestaña de la app abierta con una versión anterior. " +
         "Ciérrala y recarga esta página para poder guardar sin conexión.";
     });
+
+    // La otra mitad del bloqueo entre pestañas: cuando OTRA pestaña quiere
+    // migrar a una versión nueva, ESTA debe soltar su conexión para no
+    // bloquearla. Sin este handler, una pestaña vieja dejada abierta congela
+    // el guardado sin conexión de la nueva. Al cerrar aquí, la nueva migra.
+    this.on("versionchange", () => {
+      this.close();
+    });
   }
 }
 
@@ -107,6 +115,11 @@ export function getOfflineDb(): OfflineDB {
   }
   if (!_db) {
     _db = new OfflineDB();
+    // Calentar la apertura cuanto antes: así el coste único de abrir y migrar
+    // la base no lo paga la PRIMERA escritura bajo el timeout de 5 s (el caso
+    // en que el guardado sí completaba pero el modal no se cerraba). Los
+    // errores de apertura no se tragan: reaparecen al escribir.
+    _db.open().catch(() => {});
   }
   return _db;
 }
@@ -134,6 +147,11 @@ export class EnqueueError extends Error {
  */
 const ENQUEUE_TIMEOUT_MS = 5_000;
 
+// Abrir y migrar la base es un coste ÚNICO por sesión y puede tardar más que
+// una escritura (sobre todo en móviles de campo). Se le da su propio margen,
+// aparte del de escritura, para no fallar un guardado que sí iba a completar.
+const OPEN_TIMEOUT_MS = 12_000;
+
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     p,
@@ -155,6 +173,13 @@ export async function enqueueMutation(
 ): Promise<number> {
   try {
     const db = getOfflineDb();
+    // Primero asegurar que la base está abierta, con su propio margen amplio.
+    // Así el timeout de escritura (corto) sólo mide la escritura, no el coste
+    // único de abrir/migrar: antes ese coste tiraba el timeout y el modal se
+    // quedaba abierto aunque el registro sí quedaba encolado.
+    if (!db.isOpen()) {
+      await withTimeout(db.open(), OPEN_TIMEOUT_MS);
+    }
     return await withTimeout(
       db.pending.add({
         table,
