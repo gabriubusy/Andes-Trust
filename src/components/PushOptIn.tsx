@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
-import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -13,6 +12,25 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   const out = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
   return out;
+}
+
+/** Traduce el fallo real (DOMException del navegador o marcador propio). */
+function describePushError(e: unknown): string {
+  const name = (e as { name?: string })?.name;
+  const message = (e as { message?: string })?.message ?? "";
+
+  if (message === "sw_timeout")
+    return "El service worker no está activo. Recarga la página e intenta de nuevo.";
+  if (message === "vapid_missing")
+    return "El servidor no tiene configuradas las claves VAPID. Revisa el despliegue.";
+  if (message === "save_failed") return "No se pudo guardar la suscripción en el servidor.";
+  if (/failed to fetch|networkerror/i.test(message))
+    return "Sin conexión con el servidor. Revisa tu red.";
+  if (name === "NotSupportedError") return "Este navegador no soporta notificaciones push.";
+  if (name === "NotAllowedError") return "El permiso de notificaciones fue rechazado.";
+  if (name === "AbortError")
+    return "El servicio de push del navegador rechazó la suscripción. Reintenta en unos segundos.";
+  return message || "Error desconocido al suscribirse.";
 }
 
 export default function PushOptIn() {
@@ -36,12 +54,30 @@ export default function PushOptIn() {
 
   const subscribe = async () => {
     if (!authenticated) return;
+
+    // Web Push exige contexto seguro. Abrir la app por http://IP-local (no
+    // https, no localhost) hace fallar `subscribe` con errores opacos; mejor
+    // decirlo claro antes de intentarlo.
+    if (!window.isSecureContext) {
+      toast.error("Las notificaciones requieren HTTPS", {
+        description: "Abre la app por su dirección https://, no por una IP local.",
+      });
+      return;
+    }
+
     setBusy(true);
     try {
-      const reg = await navigator.serviceWorker.ready;
+      // `serviceWorker.ready` se queda colgado para siempre si no hay SW
+      // registrado (p. ej. en desarrollo se desregistra a propósito). Con un
+      // límite de tiempo damos un mensaje útil en vez de un spinner eterno.
+      const reg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error("sw_timeout")), 8000)),
+      ]);
+
       const keyRes = await fetch("/api/push/subscribe");
-      const { vapid_public_key } = await keyRes.json();
-      if (!vapid_public_key) throw new Error("VAPID key no configurada en servidor");
+      const { vapid_public_key } = (await keyRes.json()) as { vapid_public_key?: string };
+      if (!vapid_public_key) throw new Error("vapid_missing");
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -49,7 +85,7 @@ export default function PushOptIn() {
       });
 
       const token = await getAccessToken();
-      await fetch("/api/push/subscribe", {
+      const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -58,11 +94,21 @@ export default function PushOptIn() {
           user_agent: navigator.userAgent,
         }),
       });
+      if (!res.ok) throw new Error("save_failed");
       setStatus("subscribed");
+      toast.success("Notificaciones activadas");
     } catch (e) {
-      console.error(e);
-      toast.error(friendlyErrorMessage(e));
-      if (Notification.permission === "denied") setStatus("denied");
+      console.error("[push] subscribe failed", e);
+      if (Notification.permission === "denied") {
+        setStatus("denied");
+        toast.error("Permiso de notificaciones bloqueado", {
+          description: "Actívalo en los ajustes del navegador para este sitio.",
+        });
+        return;
+      }
+      toast.error("No se pudieron activar las notificaciones", {
+        description: describePushError(e),
+      });
     } finally {
       setBusy(false);
     }
