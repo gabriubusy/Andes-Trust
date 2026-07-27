@@ -36,6 +36,7 @@ import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { useSupabase } from "@/hooks/use-supabase";
 import { useCatalogPrefetch } from "@/hooks/use-catalog-prefetch";
 import { clearCacheOnLogout } from "@/lib/cache/clear-on-logout";
+import PushOptIn from "@/components/PushOptIn";
 import ThemeToggle from "@/components/ThemeToggle";
 
 type FarmRole = "owner" | "admin" | "operator" | "vet" | "viewer" | "regulator";
@@ -552,15 +553,16 @@ export default function DashboardShell({ title, subtitle, children, action }: Pr
                     })}
                   </div>
 
-                  <div className="border-border border-t px-4 py-2">
+                  <div className="border-border flex items-center justify-between gap-2 border-t px-4 py-2">
                     <Link
                       href="/dashboard/alertas"
                       onClick={() => setNotifOpen(false)}
-                      className="text-primary hover:text-primary/80 flex items-center justify-center gap-1.5 text-xs font-medium"
+                      className="text-primary hover:text-primary/80 flex items-center gap-1.5 text-xs font-medium"
                     >
                       Ver todas las alertas
                       <ExternalLink className="h-3 w-3" />
                     </Link>
+                    <PushOptIn />
                   </div>
                 </div>
               )}

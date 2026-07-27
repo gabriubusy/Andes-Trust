@@ -219,3 +219,43 @@ self.addEventListener("message", (event) => {
     // no-op intencionado (ver arriba)
   }
 });
+
+// ── Notificaciones push ───────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    // Si el payload no es JSON, se muestra un aviso genérico.
+    data = { body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "Finca El Progreso";
+  const options = {
+    body: data.body || "",
+    icon: "/logo.png",
+    badge: "/logo.png",
+    tag: data.tag,
+    data: { url: data.url || "/dashboard/alertas" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/dashboard/alertas";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      // Si ya hay una pestaña de la app, la enfoca (y navega si puede) en vez
+      // de abrir una nueva.
+      for (const w of wins) {
+        if (w.url.includes(url) && "focus" in w) return w.focus();
+      }
+      const anyWin = wins.find((w) => "focus" in w);
+      if (anyWin) {
+        if ("navigate" in anyWin) anyWin.navigate(url).catch(() => {});
+        return anyWin.focus();
+      }
+      return clients.openWindow(url);
+    })
+  );
+});

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeCanvas } from "qrcode.react";
-import { ShieldCheck, Shield, ExternalLink, ScanLine } from "lucide-react";
+import { ShieldCheck, Shield, ScanLine } from "lucide-react";
 import { useSupabase } from "@/hooks/use-supabase";
 
 type Props = {
@@ -126,31 +126,16 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
         </div>
 
         <div className="flex gap-2">
+          {/* Sin "Abrir ficha": este bloque se muestra dentro de la propia
+              ficha pública, así que ese botón llevaba a donde ya estás. */}
           <a
             href={verifyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-              hasProof
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "border-border text-foreground/70 hover:bg-muted border"
-            }`}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
           >
             <ScanLine className="h-3.5 w-3.5" />
             {hasProof ? "Verificar firma" : "Ver verificación"}
-          </a>
-          <a
-            href={fichaUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
-              hasProof
-                ? "border-border text-foreground/70 hover:bg-muted border"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
-            }`}
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            Abrir ficha
           </a>
         </div>
       </div>
