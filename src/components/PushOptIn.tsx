@@ -29,7 +29,7 @@ function describePushError(e: unknown): string {
   if (name === "NotSupportedError") return "Este navegador no soporta notificaciones push.";
   if (name === "NotAllowedError") return "El permiso de notificaciones fue rechazado.";
   if (name === "AbortError")
-    return "El servicio de push del navegador rechazó la suscripción. Reintenta en unos segundos.";
+    return "El navegador rechazó la suscripción. Si usas Brave, activa «Usar Google para mensajería push» en brave://settings/privacy. Si no, revisa tu conexión y reintenta.";
   return message || "Error desconocido al suscribirse.";
 }
 
@@ -79,10 +79,28 @@ export default function PushOptIn() {
       const { vapid_public_key } = (await keyRes.json()) as { vapid_public_key?: string };
       if (!vapid_public_key) throw new Error("vapid_missing");
 
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapid_public_key) as BufferSource,
-      });
+      // Una suscripción previa creada con OTRA clave VAPID hace que subscribe()
+      // falle con AbortError. Se limpia antes para partir de cero.
+      const prev = await reg.pushManager.getSubscription();
+      if (prev) await prev.unsubscribe();
+
+      const appKey = urlBase64ToUint8Array(vapid_public_key) as BufferSource;
+      const doSubscribe = () =>
+        reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+
+      let sub;
+      try {
+        sub = await doSubscribe();
+      } catch (err) {
+        // AbortError suele ser transitorio (el servicio de push tarda en
+        // responder): un reintento tras una breve pausa lo resuelve a menudo.
+        if ((err as { name?: string })?.name === "AbortError") {
+          await new Promise((r) => setTimeout(r, 1500));
+          sub = await doSubscribe();
+        } else {
+          throw err;
+        }
+      }
 
       const token = await getAccessToken();
       const res = await fetch("/api/push/subscribe", {
