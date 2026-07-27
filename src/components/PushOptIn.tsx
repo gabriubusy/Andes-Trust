@@ -114,6 +114,32 @@ export default function PushOptIn() {
     }
   };
 
+  const sendTest = async () => {
+    setBusy(true);
+    try {
+      const token = await getAccessToken();
+      const res = await fetch("/api/push/test", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await res.json()) as { sent?: number };
+      if (data.sent && data.sent > 0) {
+        toast.success("Notificación de prueba enviada", {
+          description: "Debería llegar en unos segundos.",
+        });
+      } else {
+        toast.error("No se envió ninguna notificación", {
+          description:
+            "No hay una suscripción activa en este dispositivo o faltan las claves VAPID en el servidor.",
+        });
+      }
+    } catch {
+      toast.error("No se pudo enviar la prueba.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const unsubscribe = async () => {
     setBusy(true);
     try {
@@ -142,21 +168,41 @@ export default function PushOptIn() {
     );
   }
 
+  if (status === "subscribed") {
+    return (
+      <div className="inline-flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={sendTest}
+          disabled={busy}
+          title="Enviar una notificación de prueba"
+          className="border-primary/40 text-primary hover:bg-primary/10 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
+          Probar
+        </button>
+        <button
+          type="button"
+          onClick={unsubscribe}
+          disabled={busy}
+          title="Desactivar notificaciones"
+          className="border-border text-foreground/50 hover:text-foreground inline-flex items-center rounded-lg border px-2 py-1 text-xs disabled:opacity-50"
+        >
+          <BellOff className="h-3 w-3" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
-      onClick={status === "subscribed" ? unsubscribe : subscribe}
+      onClick={subscribe}
       disabled={busy}
       className="border-border hover:border-primary/40 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs disabled:opacity-50"
     >
-      {busy ? (
-        <Loader2 className="h-3 w-3 animate-spin" />
-      ) : status === "subscribed" ? (
-        <Bell className="h-3 w-3" />
-      ) : (
-        <BellOff className="h-3 w-3" />
-      )}
-      {status === "subscribed" ? "Notificaciones activas" : "Activar push"}
+      {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <BellOff className="h-3 w-3" />}
+      Activar push
     </button>
   );
 }
