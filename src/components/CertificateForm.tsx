@@ -11,6 +11,7 @@ import {
   Building2,
   CalendarDays,
   StickyNote,
+  Info,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -21,12 +22,36 @@ import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
 
 const CERT_TYPES = [
-  { value: "origin", label: "Origen" },
-  { value: "health", label: "Sanidad" },
-  { value: "organic", label: "Orgánico" },
-  { value: "welfare", label: "Bienestar animal" },
-  { value: "export", label: "Exportación" },
-  { value: "other", label: "Otro" },
+  {
+    value: "origin",
+    label: "Origen",
+    desc: "Acredita la procedencia del animal o producto: de qué finca proviene y su trazabilidad de origen.",
+  },
+  {
+    value: "health",
+    label: "Sanidad",
+    desc: "Certifica el estado sanitario: vacunaciones y tratamientos al día y ausencia de las enfermedades que exige la normativa.",
+  },
+  {
+    value: "organic",
+    label: "Orgánico",
+    desc: "Acredita producción orgánica: sin químicos, antibióticos ni hormonas prohibidas, según los estándares orgánicos.",
+  },
+  {
+    value: "welfare",
+    label: "Bienestar animal",
+    desc: "Certifica que los animales se crían bajo estándares de bienestar: espacio, manejo y trato adecuados.",
+  },
+  {
+    value: "export",
+    label: "Exportación",
+    desc: "Documento sanitario oficial exigido para exportar animales o sus productos a otro país.",
+  },
+  {
+    value: "other",
+    label: "Otro",
+    desc: "Cualquier otro certificado que no encaje en las categorías anteriores. Descríbelo en las notas.",
+  },
 ] as const;
 
 const schema = z.object({
@@ -167,6 +192,18 @@ export default function CertificateForm({ onSuccess, onCancel }: Props) {
           ))}
         </div>
         {errors.type && <p className={errorCls}>{errors.type.message}</p>}
+
+        {/* Explicación del tipo seleccionado, para que quede claro qué acredita cada uno. */}
+        {(() => {
+          const desc = CERT_TYPES.find((t) => t.value === certType)?.desc;
+          if (!desc) return null;
+          return (
+            <div className="border-border bg-muted/20 mt-3 flex items-start gap-2 rounded-xl border px-3.5 py-2.5">
+              <Info className="text-primary/70 mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <p className="text-foreground/60 text-xs leading-relaxed">{desc}</p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Bloque: emisor */}

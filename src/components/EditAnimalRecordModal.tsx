@@ -22,7 +22,7 @@ import { friendlyErrorMessage } from "@/lib/errors/friendly";
 import OfflineWriteNotice, { useOnline } from "@/components/OfflineWriteNotice";
 import { toast } from "sonner";
 
-export type EditKind = "weighing" | "vaccination" | "treatment";
+export type EditKind = "weighing" | "vaccination" | "treatment" | "milk";
 
 export type EditableRecord = {
   id: string;
@@ -41,6 +41,12 @@ export type EditableRecord = {
   started_at?: string;
   ended_at?: string | null;
   dose?: string | null;
+  // milk
+  liters?: number;
+  shift?: "am" | "pm" | "midday";
+  recorded_on?: string;
+  fat_pct?: number | null;
+  protein_pct?: number | null;
   // común
   notes?: string | null;
 };
@@ -77,7 +83,14 @@ const TITLES: Record<EditKind, string> = {
   weighing: "Editar pesaje",
   vaccination: "Editar vacuna",
   treatment: "Editar tratamiento",
+  milk: "Editar producción",
 };
+
+const SHIFTS: { value: "am" | "midday" | "pm"; label: string }[] = [
+  { value: "am", label: "Mañana" },
+  { value: "midday", label: "Mediodía" },
+  { value: "pm", label: "Tarde" },
+];
 
 export default function EditAnimalRecordModal({ kind, record, animalId, onClose, onSaved }: Props) {
   const { supabase } = useSupabase();
@@ -102,6 +115,13 @@ export default function EditAnimalRecordModal({ kind, record, animalId, onClose,
   const [startedAt, setStartedAt] = useState((record.started_at ?? "").slice(0, 10));
   const [endedAt, setEndedAt] = useState((record.ended_at ?? "").slice(0, 10));
   const [doseText, setDoseText] = useState(record.dose ?? "");
+  const [liters, setLiters] = useState(record.liters != null ? String(record.liters) : "");
+  const [shift, setShift] = useState<"am" | "midday" | "pm">(record.shift ?? "am");
+  const [recordedOn, setRecordedOn] = useState((record.recorded_on ?? "").slice(0, 10));
+  const [fatPct, setFatPct] = useState(record.fat_pct != null ? String(record.fat_pct) : "");
+  const [proteinPct, setProteinPct] = useState(
+    record.protein_pct != null ? String(record.protein_pct) : ""
+  );
   const [notes, setNotes] = useState(record.notes ?? "");
   const [error, setError] = useState<string | null>(null);
 
@@ -156,6 +176,17 @@ export default function EditAnimalRecordModal({ kind, record, animalId, onClose,
         return "La dosis debe incluir una cantidad mayor que cero.";
       if (endedAt && endedAt < startedAt) return "La fecha de fin no puede ser anterior al inicio.";
     }
+    if (kind === "milk") {
+      const l = Number(liters);
+      if (!liters || Number.isNaN(l) || l <= 0)
+        return "Los litros deben ser un número mayor que cero.";
+      if (!recordedOn) return "La fecha es obligatoria.";
+      if (recordedOn > today) return "La fecha no puede ser futura.";
+      if (fatPct && (Number.isNaN(Number(fatPct)) || Number(fatPct) < 0))
+        return "El % de grasa no es válido.";
+      if (proteinPct && (Number.isNaN(Number(proteinPct)) || Number(proteinPct) < 0))
+        return "El % de proteína no es válido.";
+    }
     return null;
   }
 
@@ -188,7 +219,7 @@ export default function EditAnimalRecordModal({ kind, record, animalId, onClose,
           })
           .eq("id", record.id);
         if (error) throw error;
-      } else {
+      } else if (kind === "treatment") {
         // Tratamiento: si cambia el producto o la fecha, se recalcula el retiro.
         const t = catalog.find((c) => c.id === treatmentId) as
           | { withdrawal_meat_days?: number | null; withdrawal_milk_days?: number | null }
@@ -213,15 +244,40 @@ export default function EditAnimalRecordModal({ kind, record, animalId, onClose,
           })
           .eq("id", record.id);
         if (error) throw error;
+      } else {
+        // Leche.
+        const { error } = await supabase
+          .from("milk_records")
+          .update({
+            liters: Number(liters),
+            shift,
+            recorded_on: recordedOn,
+            fat_pct: fatPct ? Number(fatPct) : null,
+            protein_pct: proteinPct ? Number(proteinPct) : null,
+            notes: notes || null,
+          })
+          .eq("id", record.id);
+        if (error) throw error;
       }
     },
     onSuccess: () => {
       toast.success("Registro actualizado");
-      // Invalida la lista del tab y, en pesaje, el peso actual del animal.
-      const key =
-        kind === "weighing" ? "weighings" : kind === "vaccination" ? "vaccinations" : "treatments";
-      queryClient.invalidateQueries({ queryKey: [key, animalId] });
+      // Invalida la lista del tab. La clave es la misma que usa cada query de
+      // la ficha del animal (`["milk", id]`, `["weighings", id]`, …).
+      const KEY_BY_KIND: Record<EditKind, string> = {
+        weighing: "weighings",
+        vaccination: "vaccinations",
+        treatment: "treatments",
+        milk: "milk",
+      };
+      queryClient.invalidateQueries({ queryKey: [KEY_BY_KIND[kind], animalId] });
+      // El pesaje cambia el peso actual del animal (trigger); la leche alimenta
+      // los paneles de producción.
       if (kind === "weighing") queryClient.invalidateQueries({ queryKey: ["animal", animalId] });
+      if (kind === "milk") {
+        queryClient.invalidateQueries({ queryKey: ["milk-production"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      }
       onSaved?.();
       onClose();
     },
@@ -402,6 +458,74 @@ export default function EditAnimalRecordModal({ kind, record, animalId, onClose,
                   placeholder="Ej. 5 ml/kg"
                   value={doseText}
                   onChange={(e) => setDoseText(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {kind === "milk" && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className={labelClass}>
+                  Litros <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className={inputClass}
+                  value={liters}
+                  onChange={(e) => setLiters(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Turno <span className="text-accent">*</span>
+                </label>
+                <select
+                  className={inputClass}
+                  value={shift}
+                  onChange={(e) => setShift(e.target.value as "am" | "midday" | "pm")}
+                >
+                  {SHIFTS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Fecha <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="date"
+                  className={inputClass}
+                  max={today}
+                  value={recordedOn}
+                  onChange={(e) => setRecordedOn(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>% Grasa</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className={inputClass}
+                  value={fatPct}
+                  onChange={(e) => setFatPct(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>% Proteína</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className={inputClass}
+                  value={proteinPct}
+                  onChange={(e) => setProteinPct(e.target.value)}
                 />
               </div>
             </div>

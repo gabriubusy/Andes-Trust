@@ -129,6 +129,24 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
     },
   });
 
+  // Anclaje del animal en sí (no de sus registros): su tx_hash decide si el
+  // botón muestra "Anclar" o "Anclado", y es lo que hace que la ficha pública
+  // pase a "verificado".
+  const animalAnchorQuery = useQuery<string | null>({
+    queryKey: ["animal-anchor", id],
+    enabled: !!supabase,
+    queryFn: async () => {
+      if (!supabase) return null;
+      const { data } = await supabase
+        .from("blockchain_records")
+        .select("tx_hash")
+        .eq("entity_type", "animals")
+        .eq("entity_id", id)
+        .maybeSingle();
+      return (data?.tx_hash as string | null) ?? null;
+    },
+  });
+
   const weighingsQuery = useQuery({
     queryKey: ["weighings", id],
     enabled: !!supabase && tab === "pesajes",
@@ -379,7 +397,7 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       if (!supabase) return [];
       const { data, error } = await supabase
         .from("milk_records")
-        .select("id, recorded_on, shift, liters, fat_pct, protein_pct")
+        .select("id, recorded_on, shift, liters, fat_pct, protein_pct, notes")
         .eq("animal_id", id)
         .order("recorded_on", { ascending: false })
         .limit(50);
@@ -1380,6 +1398,24 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                           ? "bg-indigo-500/10 text-indigo-500"
                           : "bg-blue-500/10 text-blue-500",
                     icon: Milk,
+                    action: (
+                      <RecordEditButton
+                        onClick={() =>
+                          setEditRecord({
+                            kind: "milk",
+                            record: {
+                              id: m.id as string,
+                              liters: m.liters as number,
+                              shift: m.shift as "am" | "pm" | "midday",
+                              recorded_on: m.recorded_on as string,
+                              fat_pct: (m.fat_pct as number | null) ?? null,
+                              protein_pct: (m.protein_pct as number | null) ?? null,
+                              notes: (m.notes as string | null) ?? null,
+                            },
+                          })
+                        }
+                      />
+                    ),
                   };
                 })}
               />
@@ -1445,6 +1481,24 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                 Imprime o comparte este código para que cualquier persona pueda verificar el
                 historial sanitario y de trazabilidad de este animal.
               </p>
+
+              {/* Anclaje del animal: sin esto la ficha pública queda "sin firma". */}
+              <div className="bg-card border-border flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border p-5 text-center">
+                <p className="text-foreground text-sm font-semibold">
+                  Firma y anclaje en blockchain
+                </p>
+                <p className="text-foreground/50 text-xs leading-relaxed">
+                  {animalAnchorQuery.data
+                    ? "Este animal está anclado. Su ficha pública muestra el sello de verificación."
+                    : "Ancla la identidad del animal para que su ficha pública aparezca como verificada. La plataforma paga el gas."}
+                </p>
+                <SignAnchorButton
+                  entityType="animals"
+                  entityId={animal.id}
+                  txHash={animalAnchorQuery.data ?? null}
+                  onDone={() => queryClient.invalidateQueries({ queryKey: ["animal-anchor", id] })}
+                />
+              </div>
             </div>
           )}
           {tab === "qr" && !tokenQuery.data && !tokenQuery.isLoading && (

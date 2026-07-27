@@ -159,7 +159,7 @@ export default function ReportesPage() {
   const [milkTo, setMilkTo] = useState("");
   const [milkSelected, setMilkSelected] = useState<Set<string>>(new Set());
 
-  const HISTORY_PAGE_SIZE = 5;
+  const HISTORY_PAGE_SIZE = 3;
   const [historyPage, setHistoryPage] = useState(1);
 
   const animalsQuery = useQuery<AnimalLite[]>({

@@ -13,6 +13,8 @@ import {
   SlidersHorizontal,
   Award,
   X,
+  Copy,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import DashboardShell from "@/components/dashboard/DashboardShell";
@@ -105,6 +107,23 @@ export default function CertificadosPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
+
+  // Origen para armar la URL pública de verificación. En efecto, no en el
+  // render inicial, para no desincronizar el HTML del servidor con el cliente.
+  const [origin, setOrigin] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  async function copyVerify(certId: string) {
+    if (!origin) return;
+    // Mismo formato que la ficha del certificado: /verify/certifications/:id
+    await navigator.clipboard.writeText(`${origin}/verify/certifications/${certId}`);
+    setCopiedId(certId);
+    toast.success("Enlace de verificación copiado");
+    setTimeout(() => setCopiedId((cur) => (cur === certId ? null : cur)), 2000);
+  }
 
   const certsQuery = useQuery<CertRow[]>({
     queryKey: ["certifications", farmId],
@@ -448,12 +467,29 @@ export default function CertificadosPage() {
                         />
                       </td>
                       <td className="py-3.5 pr-5 text-right">
-                        <Link
-                          href={`/dashboard/certificados/${c.id}`}
-                          className="text-primary border-primary/20 hover:bg-primary/10 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium opacity-0 transition-all group-hover:opacity-100"
-                        >
-                          Ver →
-                        </Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => copyVerify(c.id)}
+                            title="Copiar URL de verificación"
+                            className="border-border text-foreground/50 hover:border-primary/40 hover:text-primary inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors"
+                          >
+                            {copiedId === c.id ? (
+                              <Check className="h-3.5 w-3.5 text-emerald-500" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                            <span className="hidden lg:inline">
+                              {copiedId === c.id ? "Copiado" : "Verificar"}
+                            </span>
+                          </button>
+                          <Link
+                            href={`/dashboard/certificados/${c.id}`}
+                            className="text-primary border-primary/20 hover:bg-primary/10 inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium opacity-0 transition-all group-hover:opacity-100"
+                          >
+                            Ver →
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -534,12 +570,27 @@ export default function CertificadosPage() {
                       disabledTitle="No se puede anclar un certificado vencido"
                       onDone={() => anchorsQuery.refetch()}
                     />
-                    <Link
-                      href={`/dashboard/certificados/${c.id}`}
-                      className="text-primary border-primary/20 hover:bg-primary/10 inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium"
-                    >
-                      Ver →
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copyVerify(c.id)}
+                        title="Copiar URL de verificación"
+                        className="border-border text-foreground/60 hover:border-primary/40 hover:text-primary inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+                      >
+                        {copiedId === c.id ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                        {copiedId === c.id ? "Copiado" : "Verificar"}
+                      </button>
+                      <Link
+                        href={`/dashboard/certificados/${c.id}`}
+                        className="text-primary border-primary/20 hover:bg-primary/10 inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium"
+                      >
+                        Ver →
+                      </Link>
+                    </div>
                   </div>
                 </li>
               );
