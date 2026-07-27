@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Stethoscope,
@@ -153,6 +153,36 @@ export default function AsistenteTratamientoPage() {
 
   const weightKg = weight ? Number(weight.replace(",", ".")) : null;
   const validWeight = weightKg != null && weightKg > 0 ? weightKg : null;
+
+  // Recuerda síntomas y peso al salir y volver, para no reseleccionar todo. Es
+  // un borrador de trabajo local, no un caso guardado: se conserva por perfil
+  // en este dispositivo. `ready` evita que el primer guardado (con el estado
+  // inicial vacío) pise lo que había antes de terminar de hidratar.
+  const storageKey = `asistente-tratamiento:${profileId ?? "anon"}`;
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const saved = JSON.parse(raw) as { ids?: string[]; weight?: string };
+        setSelected(new Set(saved.ids ?? []));
+        setWeight(typeof saved.weight === "string" ? saved.weight : "");
+      }
+    } catch {
+      // almacenamiento no disponible (modo privado): se empieza en blanco
+    }
+    setReady(true);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ ids: [...selected], weight }));
+    } catch {
+      // cuota llena / modo privado: no bloquea el uso, sólo no persiste
+    }
+  }, [selected, weight, ready, storageKey]);
 
   const symptomsQuery = useQuery<Symptom[]>({
     queryKey: ["symptoms-catalog"],

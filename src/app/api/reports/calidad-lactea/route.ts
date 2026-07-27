@@ -6,6 +6,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from "pdf
 import { PrivyClient } from "@privy-io/server-auth";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
+import { hashPayload } from "@/lib/crypto/sign";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -1013,11 +1014,44 @@ export async function POST(req: Request) {
   const pdfBytes = await pdf.save();
   const filename = `calidad-lactea-${body.date_from ?? "inicio"}-${body.date_to ?? "hoy"}.pdf`;
 
+  // Persistir el reporte para que aparezca en el historial de Calidad Láctea.
+  // Mismo esquema que INSAI pero con kind='milk_quality', para no mezclar
+  // ambos historiales. Si falla, no se bloquea la descarga: el PDF ya existe.
+  const payloadHash = hashPayload({
+    farm_id: body.farm_id,
+    kind: "milk_quality",
+    date_from: body.date_from ?? null,
+    date_to: body.date_to ?? null,
+    animal_ids: body.animal_ids ?? [],
+    records: rows.length,
+  });
+  let reportId = "";
+  try {
+    const { data: report } = await sb
+      .from("regulatory_reports")
+      .insert({
+        farm_id: body.farm_id,
+        kind: "milk_quality",
+        animal_ids: body.animal_ids ?? [],
+        date_from: body.date_from ?? null,
+        date_to: body.date_to ?? null,
+        payload_hash: payloadHash,
+        generated_by: profile?.id ?? null,
+      })
+      .select("id")
+      .single();
+    reportId = report?.id ?? "";
+  } catch (err) {
+    console.error("[calidad-lactea] no se pudo persistir el reporte", err);
+  }
+
   return new NextResponse(new Uint8Array(pdfBytes), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,
+      "X-Report-Id": reportId,
+      "X-Report-Hash": payloadHash,
     },
   });
 }

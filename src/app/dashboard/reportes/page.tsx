@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { usePrivy } from "@privy-io/react-auth";
 import {
@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Users,
+  Search,
 } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import AnchorReportButton from "@/components/AnchorReportButton";
@@ -58,13 +59,29 @@ function AnimalSelector({
   onToggle: (id: string) => void;
   onClear: () => void;
 }) {
-  const allSelected = animals.length > 0 && selected.size === animals.length;
+  const [query, setQuery] = useState("");
+
+  // Filtra por arete o nombre. Al buscar, "Seleccionar todo" y el conteo se
+  // refieren a lo VISIBLE: seleccionar todo debe marcar lo que estás viendo,
+  // no todo el hato oculto tras el filtro.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return animals;
+    return animals.filter(
+      (a) => a.tag.toLowerCase().includes(q) || (a.name ?? "").toLowerCase().includes(q)
+    );
+  }, [animals, query]);
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((a) => selected.has(a.id));
   const toggleAll = () => {
-    if (allSelected) onClear();
-    else
-      animals.forEach((a) => {
-        if (!selected.has(a.id)) onToggle(a.id);
-      });
+    // Marca/desmarca sólo lo filtrado, para no pisar selecciones fuera del filtro.
+    filtered.forEach((a) => {
+      if (allFilteredSelected) {
+        if (selected.has(a.id)) onToggle(a.id);
+      } else if (!selected.has(a.id)) {
+        onToggle(a.id);
+      }
+    });
   };
 
   return (
@@ -81,12 +98,12 @@ function AnimalSelector({
           </span>
         </span>
         <div className="flex items-center gap-1.5">
-          {animals.length > 0 && (
+          {filtered.length > 0 && (
             <button
               onClick={toggleAll}
               className="text-primary hover:bg-primary/10 rounded-md px-2 py-1 text-xs font-medium transition-colors"
             >
-              {allSelected ? "Quitar todo" : "Seleccionar todo"}
+              {allFilteredSelected ? "Quitar todo" : "Seleccionar todo"}
             </button>
           )}
           {selected.size > 0 && (
@@ -99,13 +116,32 @@ function AnimalSelector({
           )}
         </div>
       </div>
+
+      {/* Buscador: útil cuando el hato es grande y desplazarse es tedioso. */}
+      {animals.length > 0 && (
+        <div className="relative mb-2">
+          <Search className="text-foreground/30 pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por arete o nombre…"
+            className="border-border bg-muted/40 text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-primary/20 w-full rounded-xl border py-2 pr-3 pl-8 text-sm outline-none transition focus:ring-2"
+          />
+        </div>
+      )}
+
       <div className="border-border bg-muted/20 max-h-52 space-y-0.5 overflow-y-auto rounded-xl border p-1.5">
         {animals.length === 0 && (
           <div className="text-foreground/40 px-4 py-6 text-center text-sm">
             Sin animales registrados
           </div>
         )}
-        {animals.map((a) => {
+        {animals.length > 0 && filtered.length === 0 && (
+          <div className="text-foreground/40 px-4 py-6 text-center text-sm">
+            Ningún animal coincide con «{query.trim()}»
+          </div>
+        )}
+        {filtered.map((a) => {
           const checked = selected.has(a.id);
           return (
             <label
@@ -184,8 +220,26 @@ export default function ReportesPage() {
         .from("regulatory_reports")
         .select("id, created_at, date_from, date_to, payload_hash, animal_ids")
         .eq("farm_id", farmId!)
+        .eq("kind", "insai")
         .order("created_at", { ascending: false })
         .limit(50);
+      if (error) throw error;
+      return (data ?? []) as ReportRow[];
+    },
+  });
+
+  // Historial de reportes de Calidad Láctea (mismo esquema, kind distinto).
+  const milkReportsQuery = useQuery<ReportRow[]>({
+    queryKey: ["milk-reports", farmId],
+    enabled: !!supabase && !!farmId,
+    queryFn: async () => {
+      const { data, error } = await supabase!
+        .from("regulatory_reports")
+        .select("id, created_at, date_from, date_to, payload_hash, animal_ids")
+        .eq("farm_id", farmId!)
+        .eq("kind", "milk_quality")
+        .order("created_at", { ascending: false })
+        .limit(30);
       if (error) throw error;
       return (data ?? []) as ReportRow[];
     },
@@ -264,7 +318,10 @@ export default function ReportesPage() {
       downloadBlob(await res.blob(), name);
     },
     onError: (err) => toast.error(friendlyErrorMessage(err)),
-    onSuccess: () => toast.success("Reporte descargado"),
+    onSuccess: () => {
+      toast.success("Reporte descargado");
+      milkReportsQuery.refetch();
+    },
   });
 
   const toggle = (id: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
@@ -551,6 +608,57 @@ export default function ReportesPage() {
               onClear={() => setMilkSelected(new Set())}
             />
           </div>
+
+          {/* Historial horizontal de reportes de calidad láctea generados */}
+          {(milkReportsQuery.data?.length ?? 0) > 0 && (
+            <div className="border-border border-t pt-5">
+              <div className="mb-3 flex items-center gap-2">
+                <History className="text-foreground/40 h-4 w-4" />
+                <h4 className="text-foreground text-sm font-semibold">Reportes generados</h4>
+                <span className="rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[11px] font-bold text-blue-500 tabular-nums">
+                  {milkReportsQuery.data!.length}
+                </span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {milkReportsQuery.data!.map((r) => (
+                  <div
+                    key={r.id}
+                    className="bg-muted/20 border-border w-56 shrink-0 rounded-xl border p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-foreground inline-flex items-center gap-1.5 text-xs font-semibold">
+                        <Droplets className="h-3.5 w-3.5 text-blue-400" />
+                        {new Date(r.created_at).toLocaleDateString("es-CO", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span className="bg-muted text-foreground/60 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums">
+                        <Users className="h-3 w-3" />
+                        {r.animal_ids.length || "Todos"}
+                      </span>
+                    </div>
+                    <div className="text-foreground/50 mt-2 flex items-center gap-1.5 text-[11px]">
+                      <CalendarRange className="text-foreground/30 h-3 w-3 shrink-0" />
+                      {r.date_from ?? "Inicio"} → {r.date_to ?? "Hoy"}
+                    </div>
+                    {r.payload_hash && (
+                      <div
+                        className="mt-2 flex items-center gap-1.5 text-emerald-600/80 dark:text-emerald-400/80"
+                        title={`Hash de integridad: ${r.payload_hash}`}
+                      >
+                        <ShieldCheck className="h-3 w-3 shrink-0" />
+                        <code className="truncate font-mono text-[11px]">
+                          {r.payload_hash.slice(0, 18)}…
+                        </code>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardShell>
