@@ -34,6 +34,7 @@ import { useSupabase } from "@/hooks/use-supabase";
 import { useCurrentFarm } from "@/hooks/use-current-farm";
 import { getSignedPhotoUrl, uploadAnimalPhoto } from "@/lib/supabase/storage";
 import { friendlyErrorMessage } from "@/lib/errors/friendly";
+import { canAdmin } from "@/lib/permissions";
 import { submitOrQueue, submitToastMessage } from "@/lib/offline/submit";
 import OfflineWriteNotice, { useOnline } from "@/components/OfflineWriteNotice";
 import EditAnimalRecordModal, {
@@ -75,6 +76,8 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { supabase, profileId, captureMode } = useSupabase();
   const online = useOnline();
   const farmQuery = useCurrentFarm();
+  // Solo el patrón/administrador puede borrar registros sanitarios.
+  const isAdmin = canAdmin(farmQuery.data?.role);
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -91,6 +94,14 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const [editRecord, setEditRecord] = useState<{ kind: EditKind; record: EditableRecord } | null>(
     null
   );
+  // Borrado de un registro. Guarda la tabla, el id y la clave de query a
+  // invalidar; null = sin confirmación abierta.
+  const [deleteRecord, setDeleteRecord] = useState<{
+    table: "weighings" | "vaccinations" | "treatments" | "milk_records";
+    id: string;
+    queryKey: string;
+    label: string;
+  } | null>(null);
   const [editValues, setEditValues] = useState<Partial<Animal>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -272,6 +283,31 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
       queryClient.invalidateQueries({ queryKey: ["animals"] });
       router.push("/dashboard/animales");
     },
+  });
+
+  // Borrado de un registro sanitario (pesaje/vacuna/tratamiento/leche). Es
+  // online-only, solo admin, y la UI ya oculta el botón en registros anclados;
+  // aquí se comprueba de nuevo el anclaje como segunda barrera no es posible
+  // (no tenemos el tx_hash), así que la garantía real es que el botón no
+  // aparece para anclados.
+  const deleteRecordMutation = useMutation({
+    mutationFn: async () => {
+      if (!supabase) throw new Error("Sesión no lista.");
+      if (!deleteRecord) return;
+      const { error } = await supabase.from(deleteRecord.table).delete().eq("id", deleteRecord.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      if (deleteRecord) {
+        queryClient.invalidateQueries({ queryKey: [deleteRecord.queryKey, id] });
+        // El pesaje afecta al peso actual del animal.
+        if (deleteRecord.table === "weighings")
+          queryClient.invalidateQueries({ queryKey: ["animal", id] });
+      }
+      toast.success("Registro eliminado");
+      setDeleteRecord(null);
+    },
+    onError: (err) => toast.error(friendlyErrorMessage(err)),
   });
 
   const addMovement = useMutation({
@@ -1043,19 +1079,33 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                             : "bg-red-500/10 text-red-500",
                       icon: TrendingUp,
                       action: (w as { tx_hash?: string | null }).tx_hash ? undefined : (
-                        <RecordEditButton
-                          onClick={() =>
-                            setEditRecord({
-                              kind: "weighing",
-                              record: {
-                                id: w.id as string,
-                                weight_kg: w.weight_kg as number,
-                                measured_at: w.measured_at as string,
-                                notes: (w.notes as string | null) ?? null,
-                              },
-                            })
-                          }
-                        />
+                        <div className="flex items-center gap-1.5">
+                          <RecordEditButton
+                            onClick={() =>
+                              setEditRecord({
+                                kind: "weighing",
+                                record: {
+                                  id: w.id as string,
+                                  weight_kg: w.weight_kg as number,
+                                  measured_at: w.measured_at as string,
+                                  notes: (w.notes as string | null) ?? null,
+                                },
+                              })
+                            }
+                          />
+                          {isAdmin && (
+                            <RecordDeleteButton
+                              onClick={() =>
+                                setDeleteRecord({
+                                  table: "weighings",
+                                  id: w.id as string,
+                                  queryKey: "weighings",
+                                  label: `pesaje de ${w.weight_kg} kg`,
+                                })
+                              }
+                            />
+                          )}
+                        </div>
                       ),
                     };
                   })}
@@ -1166,6 +1216,18 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                                   next_due_at: (v.next_due_at as string | null) ?? null,
                                   notes: (v.notes as string | null) ?? null,
                                 },
+                              })
+                            }
+                          />
+                        )}
+                        {isAdmin && !(v as unknown as { tx_hash?: string | null }).tx_hash && (
+                          <RecordDeleteButton
+                            onClick={() =>
+                              setDeleteRecord({
+                                table: "vaccinations",
+                                id: v.id as string,
+                                queryKey: "vaccinations",
+                                label: `vacuna ${name ?? ""}`.trim(),
                               })
                             }
                           />
@@ -1307,6 +1369,18 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                             }
                           />
                         )}
+                        {isAdmin && !(t as unknown as { tx_hash?: string | null }).tx_hash && (
+                          <RecordDeleteButton
+                            onClick={() =>
+                              setDeleteRecord({
+                                table: "treatments",
+                                id: t.id as string,
+                                queryKey: "treatments",
+                                label: `tratamiento ${name ?? "libre"}`,
+                              })
+                            }
+                          />
+                        )}
                         <SignAnchorButton
                           entityType="treatments"
                           entityId={t.id as string}
@@ -1399,22 +1473,36 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
                           : "bg-blue-500/10 text-blue-500",
                     icon: Milk,
                     action: (
-                      <RecordEditButton
-                        onClick={() =>
-                          setEditRecord({
-                            kind: "milk",
-                            record: {
-                              id: m.id as string,
-                              liters: m.liters as number,
-                              shift: m.shift as "am" | "pm" | "midday",
-                              recorded_on: m.recorded_on as string,
-                              fat_pct: (m.fat_pct as number | null) ?? null,
-                              protein_pct: (m.protein_pct as number | null) ?? null,
-                              notes: (m.notes as string | null) ?? null,
-                            },
-                          })
-                        }
-                      />
+                      <div className="flex items-center gap-1.5">
+                        <RecordEditButton
+                          onClick={() =>
+                            setEditRecord({
+                              kind: "milk",
+                              record: {
+                                id: m.id as string,
+                                liters: m.liters as number,
+                                shift: m.shift as "am" | "pm" | "midday",
+                                recorded_on: m.recorded_on as string,
+                                fat_pct: (m.fat_pct as number | null) ?? null,
+                                protein_pct: (m.protein_pct as number | null) ?? null,
+                                notes: (m.notes as string | null) ?? null,
+                              },
+                            })
+                          }
+                        />
+                        {isAdmin && (
+                          <RecordDeleteButton
+                            onClick={() =>
+                              setDeleteRecord({
+                                table: "milk_records",
+                                id: m.id as string,
+                                queryKey: "milk",
+                                label: `producción de ${m.liters} L`,
+                              })
+                            }
+                          />
+                        )}
+                      </div>
                     ),
                   };
                 })}
@@ -1516,6 +1604,52 @@ function AnimalDetailContent({ params }: { params: Promise<{ id: string }> }) {
           animalId={id}
           onClose={() => setEditRecord(null)}
         />
+      )}
+
+      {deleteRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !deleteRecordMutation.isPending && setDeleteRecord(null)}
+          />
+          <div className="bg-card border-border relative z-10 w-full max-w-md rounded-2xl border shadow-2xl">
+            <div className="border-border flex items-center gap-2 border-b px-6 py-4">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              <h2 className="text-foreground text-base font-bold">Eliminar registro</h2>
+            </div>
+            <div className="space-y-4 p-6">
+              <p className="text-foreground/70 text-sm">
+                ¿Seguro que quieres eliminar el{" "}
+                <span className="text-foreground font-semibold">{deleteRecord.label}</span>? Esta
+                acción no se puede deshacer.
+              </p>
+              {!online && <OfflineWriteNotice action="eliminar un registro" />}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={deleteRecordMutation.isPending}
+                  onClick={() => setDeleteRecord(null)}
+                  className="text-foreground/60 hover:text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteRecordMutation.isPending || !online}
+                  onClick={() => deleteRecordMutation.mutate()}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-60"
+                >
+                  {deleteRecordMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {delModal && (
@@ -1920,6 +2054,22 @@ function RecordEditButton({ onClick }: { onClick: () => void }) {
     >
       <Pencil className="h-3.5 w-3.5" />
       Editar
+    </button>
+  );
+}
+
+/** Botón "Eliminar" para una fila de registro. Solo se muestra a admin y en
+ *  registros no anclados; el borrado en sí lo confirma un modal aparte. */
+function RecordDeleteButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Eliminar registro"
+      className="border-border text-foreground/50 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors hover:border-red-500/40 hover:text-red-500"
+    >
+      <Trash2 className="h-3.5 w-3.5" />
+      Eliminar
     </button>
   );
 }
