@@ -47,26 +47,19 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
     setOrigin(window.location.origin);
   }, []);
 
-  // ¿Tiene el registro alguna prueba criptográfica (firma o ancla)?
-  // Sin ella no debemos prometer una "auditoría blockchain" que no existe.
+  // ¿Está el registro anclado en blockchain? Esa es la prueba en esta app
+  // (no hay firmas de wallet). Sin ancla no prometemos una "auditoría".
   const proofQuery = useQuery({
     queryKey: ["animal-proof", animalId],
     enabled: !!supabase && !!animalId,
     queryFn: async () => {
       if (!supabase) return false;
-      const [{ count: sigs }, { count: anchors }] = await Promise.all([
-        supabase
-          .from("signatures")
-          .select("id", { count: "exact", head: true })
-          .eq("entity_type", "animals")
-          .eq("entity_id", animalId),
-        supabase
-          .from("blockchain_records")
-          .select("id", { count: "exact", head: true })
-          .eq("entity_type", "animals")
-          .eq("entity_id", animalId),
-      ]);
-      return (sigs ?? 0) > 0 || (anchors ?? 0) > 0;
+      const { count } = await supabase
+        .from("blockchain_records")
+        .select("id", { count: "exact", head: true })
+        .eq("entity_type", "animals")
+        .eq("entity_id", animalId);
+      return (count ?? 0) > 0;
     },
   });
   // Hasta confirmar, asumimos "sin prueba" para no prometer de más.
@@ -87,8 +80,8 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
         />
         <QrCard
           url={verifyUrl}
-          label={hasProof ? "Verificar firma" : "Verificar registro"}
-          sublabel={hasProof ? "Auditar firma y blockchain" : "Consultar estado"}
+          label="Verificar registro"
+          sublabel={hasProof ? "Auditar el anclaje en blockchain" : "Consultar estado"}
           accent={hasProof ? "text-emerald-500" : "text-foreground/60"}
         />
       </div>
@@ -112,14 +105,14 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
             {hasProof ? (
               <p className="text-foreground/50 text-xs leading-relaxed">
                 Escanea el QR{" "}
-                <span className="font-medium text-emerald-500">«Verificar firma»</span> para auditar
-                la firma criptográfica y el registro en blockchain de este animal.
+                <span className="font-medium text-emerald-500">«Verificar registro»</span> para
+                auditar el anclaje en blockchain de este animal.
               </p>
             ) : (
               <p className="text-foreground/50 text-xs leading-relaxed">
-                Escanea el QR de verificación para consultar el estado criptográfico del registro.
-                Este animal <span className="text-foreground/70 font-medium">aún no tiene</span>{" "}
-                firma digital ni anclaje en blockchain.
+                Escanea el QR de verificación para consultar el estado del registro. Este animal{" "}
+                <span className="text-foreground/70 font-medium">aún no tiene</span> anclaje en
+                blockchain.
               </p>
             )}
           </div>
@@ -135,7 +128,7 @@ export default function PublicQRBlock({ slug, animalId }: Props) {
             className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
           >
             <ScanLine className="h-3.5 w-3.5" />
-            {hasProof ? "Verificar firma" : "Ver verificación"}
+            {hasProof ? "Verificar registro" : "Ver verificación"}
           </a>
         </div>
       </div>
