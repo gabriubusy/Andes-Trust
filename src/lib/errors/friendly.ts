@@ -57,7 +57,14 @@ const API_ERROR_MESSAGES: Record<string, string> = {
   invalid_role: "Ese rol no está disponible para esta finca.",
   invalid_email: "El correo no tiene un formato válido. Ejemplo: nombre@correo.com",
   no_profile_email: "Tu cuenta no tiene un correo asociado.",
+  no_profile: "Tu cuenta no tiene un perfil asociado.",
   profile_upsert_failed: "No se pudo preparar tu perfil. Inténtalo de nuevo.",
+  missing_token: "Tu sesión expiró. Vuelve a iniciar sesión.",
+  missing_params: "Faltan datos obligatorios.",
+  no_records_in_period:
+    "No hay registros de producción de leche en el período seleccionado. Elige otro rango o registra producción primero.",
+  insert_failed: "No se pudo guardar. Inténtalo de nuevo.",
+  no_records: "No hay registros en el período seleccionado.",
 };
 
 export type FriendlyErrorOptions = {
